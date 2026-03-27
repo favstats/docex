@@ -238,6 +238,9 @@ class Workspace {
 
     // Track which XML files have been modified
     /** @type {Set<string>} */ this._dirty = new Set();
+
+    // Snapshot stack for in-memory rollback (LIFO)
+    /** @type {Array<object>} */ this._snapshots = [];
   }
 
   // --------------------------------------------------------------------------
@@ -441,6 +444,47 @@ class Workspace {
   /** @returns {number} Paragraph count recorded at open time */
   get originalParagraphCount() {
     return this._originalParagraphCount;
+  }
+
+  // --------------------------------------------------------------------------
+  // Snapshot / Rollback (in-memory state save/restore)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Save a copy of the current document state in memory.
+   * Multiple snapshots stack (LIFO). Use rollback() to restore.
+   *
+   * Captures: docXml, commentsXml, commentsExtXml, commentsIdsXml,
+   * stylesXml, footnotesXml, and the dirty set.
+   */
+  snapshot() {
+    this._snapshots.push({
+      docXml: this.docXml,
+      commentsXml: this.commentsXml,
+      commentsExtXml: this.commentsExtXml,
+      commentsIdsXml: this.commentsIdsXml,
+      stylesXml: this._stylesXml,
+      footnotesXml: this._footnotesXml,
+      dirty: new Set(this._dirty),
+    });
+  }
+
+  /**
+   * Restore the most recent snapshot, discarding current state.
+   * @returns {boolean} true if a snapshot was restored, false if stack was empty
+   */
+  rollback() {
+    const snap = this._snapshots.pop();
+    if (!snap) return false;
+
+    this._docXml = snap.docXml;
+    this._commentsXml = snap.commentsXml;
+    this._commentsExtXml = snap.commentsExtXml;
+    this._commentsIdsXml = snap.commentsIdsXml;
+    this._stylesXml = snap.stylesXml;
+    this._footnotesXml = snap.footnotesXml;
+    this._dirty = new Set(snap.dirty);
+    return true;
   }
 
   // --------------------------------------------------------------------------

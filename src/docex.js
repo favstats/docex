@@ -1187,6 +1187,106 @@ class DocexEngine {
     return Submission.highlightedChanges(ws);
   }
 
+  // ── Snapshot / Rollback (v0.4.1) ────────────────────────────────────────
+
+  /**
+   * Save the current document state in memory.
+   * Multiple snapshots stack (LIFO). Use rollback() to restore.
+   * Like git stash but in-memory -- no disk I/O.
+   *
+   * @returns {DocexEngine} this, for chaining
+   */
+  async snapshot() {
+    const ws = await this._ensureWorkspace();
+    ws.snapshot();
+    return this;
+  }
+
+  /**
+   * Restore the most recent snapshot, discarding current state.
+   * If an operation goes wrong, roll back without touching disk.
+   *
+   * @returns {boolean} true if a snapshot was restored, false if stack was empty
+   */
+  async rollback() {
+    const ws = await this._ensureWorkspace();
+    return ws.rollback();
+  }
+
+  // ── Assert (v0.4.1) ──────────────────────────────────────────────────────
+
+  /**
+   * Verify a paragraph contains expected text before operating.
+   * Fails fast instead of silently editing the wrong paragraph.
+   *
+   * @param {string} paraId - The w14:paraId of the paragraph to check
+   * @param {string} expectedText - Text the paragraph should contain
+   * @throws {Error} Descriptive error with actual text if assertion fails
+   * @returns {DocexEngine} this, for chaining
+   */
+  async assert(paraId, expectedText) {
+    const ws = await this._ensureWorkspace();
+    const result = DocMap.locateById(ws.docXml, paraId);
+    if (!result) {
+      throw new Error(
+        `assert failed: paragraph "${paraId}" not found in document`
+      );
+    }
+    const actualText = xml.extractTextDecoded(result.xml);
+    if (!actualText.includes(expectedText)) {
+      throw new Error(
+        `assert failed: paragraph "${paraId}" does not contain "${expectedText}"\n`
+        + `  actual text: "${actualText}"`
+      );
+    }
+    return this;
+  }
+
+  // ── Diff Summary (v0.4.1) ────────────────────────────────────────────────
+
+  /**
+   * Compare this document with another and return summary counts.
+   * "3 paragraphs changed, 1 added, 2 comments added" -- without
+   * producing the full tracked-changes diff or modifying either document.
+   *
+   * @param {string} otherDocxPath - Path to the other .docx file
+   * @returns {Promise<{changed: number, added: number, removed: number, comments: number}>}
+   */
+  async diffSummary(otherDocxPath) {
+    const ws1 = await this._ensureWorkspace();
+    const ws2 = Workspace.open(otherDocxPath);
+
+    try {
+      // Extract paragraphs and texts from both
+      const paras1 = xml.findParagraphs(ws1.docXml);
+      const paras2 = xml.findParagraphs(ws2.docXml);
+      const texts1 = paras1.map(p => xml.decodeXml(p.text));
+      const texts2 = paras2.map(p => xml.decodeXml(p.text));
+
+      // Use the Diff module's paragraph alignment
+      const operations = Diff._diffParagraphs(texts1, texts2);
+
+      let changed = 0, added = 0, removed = 0;
+      for (const op of operations) {
+        switch (op.type) {
+          case 'modify': changed++; break;
+          case 'add': added++; break;
+          case 'remove': removed++; break;
+          // 'keep' -- no change
+        }
+      }
+
+      // Count comments difference
+      const comments1 = Comments.list(ws1);
+      const comments2 = Comments.list(ws2);
+      const commentsDiff = Math.abs(comments2.length - comments1.length);
+
+      return { changed, added, removed, comments: commentsDiff };
+    } finally {
+      ws2.cleanup();
+    }
+  }
+
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
   /**
@@ -1230,11 +1330,41 @@ class DocexEngine {
     // because we operate on XML strings with text search, not character offsets)
     let opCount = { replace: 0, insert: 0, delete: 0, comment: 0, figure: 0, table: 0, reply: 0, format: 0, footnote: 0, replaceAll: 0 };
 
+    // Operation receipts (v0.4.1): every mutation returns a receipt
+    const receipts = [];
+
+    // Helper: find the paraId of the paragraph containing given text
+    const _findParaId = (text) => {
+      if (!text) return null;
+      try {
+        const paras = xml.findParagraphs(ws.docXml);
+        for (const p of paras) {
+          const decoded = xml.extractTextDecoded(p.xml);
+          if (decoded.includes(text)) {
+            const m = p.xml.match(/w14:paraId="([^"]+)"/);
+            return m ? m[1] : null;
+          }
+        }
+      } catch (_) { /* best effort */ }
+      return null;
+    };
+
     for (const op of this._operations) {
+      const receipt = {
+        success: false,
+        type: op.type,
+        paraId: op.paraId || null,
+        matched: null,
+        context: (op.oldText || op.anchor || op.text || '').slice(0, 80),
+      };
+
       try {
         switch (op.type) {
           case 'replace':
             Paragraphs.replace(ws, op.oldText, op.newText, op);
+            receipt.success = true;
+            receipt.matched = op.oldText;
+            receipt.paraId = _findParaId(op.newText) || _findParaId(op.oldText);
             opCount.replace++;
             break;
           case 'replaceAll': {
@@ -1249,31 +1379,50 @@ class DocexEngine {
                 break; // no more matches
               }
             }
+            receipt.success = count > 0;
+            receipt.matched = op.oldText;
+            receipt.count = count;
             opCount.replaceAll += count;
             break;
           }
           case 'insert':
             Paragraphs.insert(ws, op.anchor, op.mode, op.text, op);
+            receipt.success = true;
+            receipt.matched = op.anchor;
+            receipt.paraId = _findParaId(op.text) || _findParaId(op.anchor);
             opCount.insert++;
             break;
           case 'delete':
             Paragraphs.remove(ws, op.text, op);
+            receipt.success = true;
+            receipt.matched = op.text;
             opCount.delete++;
             break;
           case 'comment':
             Comments.add(ws, op.anchor, op.text, op);
+            receipt.success = true;
+            receipt.matched = op.anchor;
+            receipt.paraId = _findParaId(op.anchor);
             opCount.comment++;
             break;
           case 'reply':
             Comments.reply(ws, op.anchor, op.text, op);
+            receipt.success = true;
+            receipt.matched = op.anchor;
             opCount.reply++;
             break;
           case 'figure':
             Figures.insert(ws, op.anchor, op.mode, op.imagePath, op.caption, op);
+            receipt.success = true;
+            receipt.matched = op.anchor;
+            receipt.paraId = _findParaId(op.anchor);
             opCount.figure++;
             break;
           case 'table':
             Tables.insert(ws, op.anchor, op.mode, op.data, op);
+            receipt.success = true;
+            receipt.matched = op.anchor;
+            receipt.paraId = _findParaId(op.anchor);
             opCount.table++;
             break;
           case 'format': {
@@ -1310,26 +1459,42 @@ class DocexEngine {
                 Formatting.highlight(ws, op.text, op.colorName || 'yellow', fmtOpts);
                 break;
             }
+            receipt.success = true;
+            receipt.matched = op.text;
+            receipt.paraId = _findParaId(op.text);
             opCount.format++;
             break;
           }
           case 'footnote':
             Footnotes.add(ws, op.anchor, op.text, op);
+            receipt.success = true;
+            receipt.matched = op.anchor;
+            receipt.paraId = _findParaId(op.anchor);
             opCount.footnote++;
             break;
           case 'bulletList':
             Lists.insertBulletList(ws, op.anchor, op.mode, op.items, op);
+            receipt.success = true;
+            receipt.matched = op.anchor;
+            receipt.paraId = _findParaId(op.anchor);
             opCount.bulletList = (opCount.bulletList || 0) + 1;
             break;
           case 'numberedList':
             Lists.insertNumberedList(ws, op.anchor, op.mode, op.items, op);
+            receipt.success = true;
+            receipt.matched = op.anchor;
+            receipt.paraId = _findParaId(op.anchor);
             opCount.numberedList = (opCount.numberedList || 0) + 1;
             break;
         }
       } catch (err) {
+        receipt.success = false;
+        receipt.error = err.message;
         console.error(`[docex] WARN: ${op.type} operation failed: ${err.message}`);
         console.error(`[docex]   anchor/text: "${(op.oldText || op.anchor || op.text || '').slice(0, 50)}"`);
       }
+
+      receipts.push(receipt);
     }
 
     // Save and verify -- pass through options to workspace
@@ -1341,6 +1506,9 @@ class DocexEngine {
     if (result.verified) {
       console.log(`[docex] Verified: valid zip, paragraph count OK, size OK`);
     }
+
+    // Attach receipts to result (v0.4.1)
+    result.receipts = receipts;
 
     // Clear operations after save
     this._operations = [];

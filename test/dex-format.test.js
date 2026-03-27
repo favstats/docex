@@ -26,7 +26,7 @@ function freshCopy(testName) {
 // Import modules directly (avoiding docex.js which has a missing table-handle dep)
 const { Workspace } = require('../src/workspace');
 const { DexDecompiler } = require('../src/dex-decompiler');
-const { DexParser } = require('../src/dex-parser');
+const { DexParser } = require('../src/dex-markdown-parser');
 const { DexCompiler } = require('../src/dex-compiler');
 const { Comments } = require('../src/comments');
 const xmlLib = require('../src/xml');

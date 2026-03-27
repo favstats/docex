@@ -264,7 +264,7 @@ class Layout {
     const pPr = Paragraphs._extractPpr(target.xml);
 
     // Generate a new paraId for the second paragraph
-    const newParaId = xml.randomHexId().toUpperCase();
+    const newParaId = xml.randomHexId();
 
     // Build first paragraph (content before split point)
     const p1Xml = Layout._buildSimpleParagraph(pPr, textBefore, paraId);

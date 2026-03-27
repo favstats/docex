@@ -36,9 +36,9 @@ class Revisions {
     while ((m = insRe.exec(docXml)) !== null) {
       const attrs = m[1];
       const body = m[2];
-      const id = Revisions._attrVal(attrs, 'w:id');
-      const author = Revisions._attrVal(attrs, 'w:author') || '';
-      const date = Revisions._attrVal(attrs, 'w:date') || '';
+      const id = xml.attrVal(attrs, 'w:id');
+      const author = xml.attrVal(attrs, 'w:author') || '';
+      const date = xml.attrVal(attrs, 'w:date') || '';
       const text = xml.extractText(body);
       results.push({
         id: id ? parseInt(id, 10) : 0,
@@ -56,9 +56,9 @@ class Revisions {
     while ((m = delRe.exec(docXml)) !== null) {
       const attrs = m[1];
       const body = m[2];
-      const id = Revisions._attrVal(attrs, 'w:id');
-      const author = Revisions._attrVal(attrs, 'w:author') || '';
-      const date = Revisions._attrVal(attrs, 'w:date') || '';
+      const id = xml.attrVal(attrs, 'w:id');
+      const author = xml.attrVal(attrs, 'w:author') || '';
+      const date = xml.attrVal(attrs, 'w:date') || '';
       // Extract text from w:delText elements
       const text = Revisions._extractDelText(body);
       results.push({
@@ -349,17 +349,6 @@ class Revisions {
     let result = content.replace(/<w:delText(\b[^>]*)>/g, '<w:t$1>');
     result = result.replace(/<\/w:delText>/g, '</w:t>');
     return result;
-  }
-
-  /**
-   * Extract an attribute value from an attribute string.
-   * @private
-   */
-  static _attrVal(attrs, name) {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(escaped + '="([^"]*)"');
-    const m = attrs.match(re);
-    return m ? m[1] : null;
   }
 
   /**

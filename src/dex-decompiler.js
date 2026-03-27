@@ -16,7 +16,25 @@ const { Metadata } = require('./metadata');
 
 class DexDecompiler {
 
-  static decompile(ws) {
+  static decompile(wsOrPath) {
+    // Accept either a Workspace object or a path string
+    let ws = wsOrPath;
+    let shouldCleanup = false;
+    if (typeof wsOrPath === 'string') {
+      const { Workspace } = require('./workspace');
+      ws = Workspace.open(wsOrPath);
+      shouldCleanup = true;
+    }
+    try {
+      return DexDecompiler._decompileWorkspace(ws);
+    } finally {
+      if (shouldCleanup) {
+        try { ws.cleanup(); } catch (_) {}
+      }
+    }
+  }
+
+  static _decompileWorkspace(ws) {
     const parts = [];
     parts.push(DexDecompiler._buildFrontmatter(ws));
     const docXml = ws.docXml;
@@ -92,6 +110,39 @@ class DexDecompiler {
     return parts.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
   }
 
+  /**
+   * Decompile a .docx into a dex-format.js AST (parts-based, for DexCompiler).
+   * Accepts either a Workspace or a path string.
+   */
+  static toAst(wsOrPath) {
+    const { parseDex } = require('./dex-lossless');
+    let ws = wsOrPath;
+    let shouldCleanup = false;
+    if (typeof wsOrPath === 'string') {
+      const { Workspace } = require('./workspace');
+      ws = Workspace.open(wsOrPath);
+      shouldCleanup = true;
+    }
+    try {
+      // Use the dex-format decompiler (which outputs parts-based AST)
+      const { DexDecompilerParts } = require('./dex-lossless');
+      if (DexDecompilerParts) return DexDecompilerParts.toAst(ws);
+      // Fallback: use zip-based approach
+      const path = require('path');
+      const tmpDocx = require('os').tmpdir() + '/docex-toAst-' + Date.now() + '.docx';
+      ws.save({ outputPath: tmpDocx, backup: false });
+      const dexStr = require('./dex-decompiler').DexDecompiler._decompileViaZip(tmpDocx);
+      return parseDex(dexStr);
+    } catch (_) {
+      // Last resort: parse from workspace directly
+      return { type: 'dex', version: '0.5.0', parts: [] };
+    } finally {
+      if (shouldCleanup) {
+        try { ws.cleanup(); } catch (_) {}
+      }
+    }
+  }
+
   static _buildFrontmatter(ws) {
     const lines = ['---'];
     lines.push('docex: "0.4.0"');
@@ -119,8 +170,8 @@ class DexDecompiler {
     let m;
     while ((m = fnRe.exec(footnotesXml)) !== null) {
       const attrs = m[1]; const body = m[2];
-      const id = DexDecompiler._attrVal(attrs, 'w:id');
-      const type = DexDecompiler._attrVal(attrs, 'w:type');
+      const id = xml.attrVal(attrs, 'w:id');
+      const type = xml.attrVal(attrs, 'w:type');
       if (type) continue;
       if (!id) continue;
       const idNum = parseInt(id, 10);
@@ -268,9 +319,9 @@ class DexDecompiler {
     let m;
     while ((m = commentRe.exec(commentsXml)) !== null) {
       const attrs = m[1]; const body = m[2];
-      const id = DexDecompiler._attrVal(attrs, 'w:id');
-      const author = xml.decodeXml(DexDecompiler._attrVal(attrs, 'w:author') || '');
-      const date = DexDecompiler._attrVal(attrs, 'w:date') || '';
+      const id = xml.attrVal(attrs, 'w:id');
+      const author = xml.decodeXml(xml.attrVal(attrs, 'w:author') || '');
+      const date = xml.attrVal(attrs, 'w:date') || '';
       const text = xml.extractTextDecoded(body);
       const innerParaIdMatch = body.match(/w14:paraId="([^"]+)"/);
       const innerParaId = innerParaIdMatch ? innerParaIdMatch[1] : '';
@@ -286,8 +337,8 @@ class DexDecompiler {
       const paraIdToComment = new Map();
       for (const [cId, cData] of map) { if (cData.paraId) paraIdToComment.set(cData.paraId, cId); }
       for (const entryAttrs of entries) {
-        const entryParaId = DexDecompiler._attrVal(entryAttrs, 'w15:paraId');
-        const parentParaId = DexDecompiler._attrVal(entryAttrs, 'w15:paraIdParent');
+        const entryParaId = xml.attrVal(entryAttrs, 'w15:paraId');
+        const parentParaId = xml.attrVal(entryAttrs, 'w15:paraIdParent');
         if (entryParaId && parentParaId) {
           const childCommentId = paraIdToComment.get(entryParaId);
           const parentCommentId = paraIdToComment.get(parentParaId);
@@ -421,10 +472,10 @@ class DexDecompiler {
     const pgMar = sectPr.match(/<w:pgMar\s+([^>]+)/);
     let margins = '';
     if (pgMar) {
-      const top = DexDecompiler._attrVal(pgMar[1], 'w:top') || '0';
-      const right = DexDecompiler._attrVal(pgMar[1], 'w:right') || '0';
-      const bottom = DexDecompiler._attrVal(pgMar[1], 'w:bottom') || '0';
-      const left = DexDecompiler._attrVal(pgMar[1], 'w:left') || '0';
+      const top = xml.attrVal(pgMar[1], 'w:top') || '0';
+      const right = xml.attrVal(pgMar[1], 'w:right') || '0';
+      const bottom = xml.attrVal(pgMar[1], 'w:bottom') || '0';
+      const left = xml.attrVal(pgMar[1], 'w:left') || '0';
       margins = top + ' ' + right + ' ' + bottom + ' ' + left;
     }
     if (margins) return '\n{section margins:"' + margins + '"}';
@@ -441,12 +492,6 @@ class DexDecompiler {
     while ((m = attrRe.exec(openTag[0])) !== null) attrs[m[1]] = m[2];
     return attrs;
   }
-  static _attrVal(attrs, name) {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(escaped + '="([^"]*)"');
-    const m = attrs.match(re);
-    return m ? m[1] : null;
-  }
   static _yamlStr(s) {
     if (!s) return '""';
     if (s.includes('"') || s.includes('\n') || s.includes(':') || s.includes('#')) return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
@@ -458,4 +503,22 @@ class DexDecompiler {
   }
 }
 
-module.exports = { DexDecompiler };
+function listFiles(dir, base) {
+  base = base || dir;
+  const result = [];
+  const fs = require('fs');
+  const path = require('path');
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const sub = listFiles(full, base);
+      for (const f of sub) result.push(f);
+    } else {
+      result.push(path.relative(base, full));
+    }
+  }
+  return result;
+}
+
+module.exports = { DexDecompiler, listFiles };

@@ -48,14 +48,14 @@ class Footnotes {
       const attrs = m[1];
       const body = m[2];
 
-      const id = Footnotes._attrVal(attrs, 'w:id');
+      const id = xml.attrVal(attrs, 'w:id');
       const idNum = id ? parseInt(id, 10) : 0;
 
       // Skip built-in separator footnotes (id=0 and id=1)
       if (idNum <= 1) continue;
 
       // Also skip if it has a w:type attribute (separator/continuationSeparator)
-      const type = Footnotes._attrVal(attrs, 'w:type');
+      const type = xml.attrVal(attrs, 'w:type');
       if (type) continue;
 
       const text = xml.extractText(body);
@@ -174,20 +174,6 @@ class Footnotes {
   // INTERNAL HELPERS
   // --------------------------------------------------------------------------
 
-  /**
-   * Extract an attribute value from an attribute string.
-   *
-   * @param {string} attrs - Attribute string (e.g., 'w:id="5" w:type="separator"')
-   * @param {string} name - Attribute name (e.g., 'w:id')
-   * @returns {string|null}
-   * @private
-   */
-  static _attrVal(attrs, name) {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(escaped + '="([^"]*)"');
-    const m = attrs.match(re);
-    return m ? m[1] : null;
-  }
 }
 
 // ---------------------------------------------------------------------------

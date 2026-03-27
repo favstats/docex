@@ -37,17 +37,6 @@ const NS = {
   wne:  'http://schemas.microsoft.com/office/word/2006/wordml',
 };
 
-/**
- * Return all namespace declarations as a single attribute string.
- * Suitable for injection into a root element.
- * @returns {string}
- */
-function allNamespaceAttrs() {
-  return Object.entries(NS)
-    .map(([prefix, uri]) => `xmlns:${prefix}="${uri}"`)
-    .join(' ');
-}
-
 // ============================================================================
 // ESCAPING
 // ============================================================================
@@ -163,6 +152,56 @@ function findElement(xml, tag, contains) {
 }
 
 // ============================================================================
+// ANCHOR SEARCH
+// ============================================================================
+
+/**
+ * Find the index of the paragraph whose text contains the anchor string.
+ * Tries exact match first, then substring, then case-insensitive substring.
+ *
+ * @param {Array<{xml?: string, text?: string}>|string[]} paragraphs - Array of paragraph objects or XML strings
+ * @param {string} anchor - Text to search for
+ * @returns {number} Index of the matching paragraph, or -1
+ */
+function findAnchorParagraph(paragraphs, anchor) {
+  // Exact match
+  for (let i = 0; i < paragraphs.length; i++) {
+    const text = typeof paragraphs[i] === 'string' ? extractText(paragraphs[i]) : paragraphs[i].text;
+    if (text === anchor) return i;
+  }
+  // Substring match
+  for (let i = 0; i < paragraphs.length; i++) {
+    const text = typeof paragraphs[i] === 'string' ? extractText(paragraphs[i]) : paragraphs[i].text;
+    if (text.includes(anchor)) return i;
+  }
+  // Case-insensitive substring
+  const lower = anchor.toLowerCase();
+  for (let i = 0; i < paragraphs.length; i++) {
+    const text = typeof paragraphs[i] === 'string' ? extractText(paragraphs[i]) : paragraphs[i].text;
+    if (text.toLowerCase().includes(lower)) return i;
+  }
+  return -1;
+}
+
+// ============================================================================
+// ATTRIBUTE EXTRACTION
+// ============================================================================
+
+/**
+ * Extract an attribute value from an XML attribute string using regex.
+ *
+ * @param {string} attrs - Attribute string (e.g., 'w:id="5" w:author="Alice"')
+ * @param {string} name - Attribute name (e.g., 'w:id')
+ * @returns {string|null} Attribute value or null if not found
+ */
+function attrVal(attrs, name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(escaped + '="([^"]*)"');
+  const m = attrs.match(re);
+  return m ? m[1] : null;
+}
+
+// ============================================================================
 // ID GENERATION
 // ============================================================================
 
@@ -222,7 +261,7 @@ function nextRId(relsXml) {
  * @returns {string} e.g. "3A4F1B2C"
  */
 function randomHexId() {
-  return crypto.randomBytes(4).toString('hex');
+  return crypto.randomBytes(4).toString('hex').toUpperCase();
 }
 
 /**
@@ -433,7 +472,6 @@ function emuFromInches(inches) {
 module.exports = {
   // Namespace helpers
   NS,
-  allNamespaceAttrs,
 
   // Escaping
   escapeXml,
@@ -446,6 +484,10 @@ module.exports = {
   // Element finding
   findParagraphs,
   findElement,
+  findAnchorParagraph,
+
+  // Attribute extraction
+  attrVal,
 
   // ID generation
   nextChangeId,

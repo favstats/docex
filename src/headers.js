@@ -81,14 +81,14 @@ Headers._setHeaderContent = function(ws, content, type, kind) {
   var rootTag = kind === 'header' ? 'w:hdr' : 'w:ftr';
   var existingFile = Headers._findHeaderFile(ws, type, kind);
   if (existingFile) {
-    var paraId = xml.randomHexId().toUpperCase();
-    var textId = xml.randomHexId().toUpperCase();
+    var paraId = xml.randomHexId();
+    var textId = xml.randomHexId();
     fs.writeFileSync(path.join(ws.tmpDir, 'word', existingFile), Headers._buildPartXml(rootTag, content, paraId, textId), 'utf-8');
   } else {
     var fileNum = Headers._nextFileNum(ws, kind);
     var filename = kind + fileNum + '.xml';
-    var paraId2 = xml.randomHexId().toUpperCase();
-    var textId2 = xml.randomHexId().toUpperCase();
+    var paraId2 = xml.randomHexId();
+    var textId2 = xml.randomHexId();
     fs.writeFileSync(path.join(ws.tmpDir, 'word', filename), Headers._buildPartXml(rootTag, content, paraId2, textId2), 'utf-8');
     var rId = xml.nextRId(ws.relsXml);
     ws.relsXml = ws.relsXml.replace('</Relationships>', '<Relationship Id="' + rId + '" Type="' + relType + '" Target="' + filename + '"/></Relationships>');

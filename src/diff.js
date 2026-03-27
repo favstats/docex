@@ -18,6 +18,7 @@
 'use strict';
 
 const xml = require('./xml');
+const { Paragraphs } = require('./paragraphs');
 
 // ============================================================================
 // DIFF CLASS
@@ -99,7 +100,7 @@ class Diff {
         case 'add': {
           // New paragraph from ws2, wrap content in w:ins
           const p2 = paras2[op.index2];
-          const pPr = Diff._extractPpr(p2.xml);
+          const pPr = Paragraphs._extractPpr(p2.xml);
           const text2 = xml.decodeXml(p2.text);
           const insXml = Diff._buildInsertedParagraph(text2, pPr, nextId, author, date);
           nextId++;
@@ -111,7 +112,7 @@ class Diff {
         case 'remove': {
           // Paragraph from ws1, wrap content in w:del
           const p1 = paras1[op.index1];
-          const pPr = Diff._extractPpr(p1.xml);
+          const pPr = Paragraphs._extractPpr(p1.xml);
           const rPr = Diff._extractFirstRpr(p1.xml);
           const text1 = xml.decodeXml(p1.text);
           const delXml = Diff._buildDeletedParagraph(text1, pPr, rPr, nextId, author, date);
@@ -127,7 +128,7 @@ class Diff {
           const p2 = paras2[op.index2];
           const text1 = xml.decodeXml(p1.text);
           const text2 = xml.decodeXml(p2.text);
-          const pPr = Diff._extractPpr(p1.xml);
+          const pPr = Paragraphs._extractPpr(p1.xml);
           const rPr = Diff._extractFirstRpr(p1.xml);
 
           const segments = Diff._diffWords(text1, text2);
@@ -404,22 +405,6 @@ class Diff {
   // --------------------------------------------------------------------------
   // HELPERS
   // --------------------------------------------------------------------------
-
-  /**
-   * Extract w:pPr (paragraph properties) from paragraph XML.
-   * @param {string} pXml - Paragraph XML
-   * @returns {string} pPr XML or ''
-   * @private
-   */
-  static _extractPpr(pXml) {
-    const selfClose = pXml.match(/<w:pPr\s*\/>/);
-    if (selfClose) return selfClose[0];
-    const full = pXml.match(/<w:pPr>[\s\S]*?<\/w:pPr>/);
-    if (full) return full[0];
-    const withAttrs = pXml.match(/<w:pPr\s[^>]*>[\s\S]*?<\/w:pPr>/);
-    if (withAttrs) return withAttrs[0];
-    return '';
-  }
 
   /**
    * Extract the first run's w:rPr from paragraph XML.

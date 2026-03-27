@@ -94,7 +94,7 @@ describe('xml utilities', () => {
 
   it('randomHexId returns 8 hex chars', () => {
     const id = xml.randomHexId();
-    assert.match(id, /^[0-9a-f]{8}$/);
+    assert.match(id, /^[0-9A-F]{8}$/);
   });
 
   it('buildDel creates valid deletion markup', () => {

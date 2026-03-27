@@ -56,7 +56,7 @@ class Tables {
     // 3. Find the anchor paragraph
     const docXml = ws.docXml;
     const paragraphs = xml.findParagraphs(docXml);
-    const idx = Tables._findAnchorIndex(paragraphs, anchor);
+    const idx = xml.findAnchorParagraph(paragraphs, anchor);
     if (idx === -1) {
       throw new Error('Anchor not found: "' + anchor + '"');
     }
@@ -297,33 +297,6 @@ class Tables {
       + '</w:p>';
   }
 
-  /**
-   * Find the index of the paragraph whose text contains the anchor string.
-   * Tries exact match first, then substring, then case-insensitive substring.
-   *
-   * @param {string[]} paragraphs - Array of w:p XML strings
-   * @param {string} anchor - Text to search for
-   * @returns {number} Index of the matching paragraph, or -1
-   */
-  static _findAnchorIndex(paragraphs, anchor) {
-    // Exact match
-    for (let i = 0; i < paragraphs.length; i++) {
-      const text = typeof paragraphs[i] === 'string' ? xml.extractText(paragraphs[i]) : paragraphs[i].text;
-      if (text === anchor) return i;
-    }
-    // Substring match
-    for (let i = 0; i < paragraphs.length; i++) {
-      const text = typeof paragraphs[i] === 'string' ? xml.extractText(paragraphs[i]) : paragraphs[i].text;
-      if (text.includes(anchor)) return i;
-    }
-    // Case-insensitive substring
-    const lower = anchor.toLowerCase();
-    for (let i = 0; i < paragraphs.length; i++) {
-      const text = typeof paragraphs[i] === 'string' ? xml.extractText(paragraphs[i]) : paragraphs[i].text;
-      if (text.toLowerCase().includes(lower)) return i;
-    }
-    return -1;
-  }
 }
 
 module.exports = { Tables };

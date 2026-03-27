@@ -215,14 +215,14 @@ class DocMap {
       // Generate unique ID
       let newId;
       do {
-        newId = xml.randomHexId().toUpperCase();
+        newId = xml.randomHexId();
       } while (existingIds.has(newId));
       existingIds.add(newId);
 
       // Also generate textId
       let textId;
       do {
-        textId = xml.randomHexId().toUpperCase();
+        textId = xml.randomHexId();
       } while (existingIds.has(textId));
       existingIds.add(textId);
 

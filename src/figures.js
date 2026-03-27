@@ -16,15 +16,8 @@ const xml = require('./xml');
 const MAX_WIDTH_EMU = 5943600;
 const INCHES_TO_EMU = 914400;
 
-// OOXML namespace URIs used in drawing XML
-const NS = {
-  w:   'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
-  r:   'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
-  wp:  'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing',
-  a:   'http://schemas.openxmlformats.org/drawingml/2006/main',
-  pic: 'http://schemas.openxmlformats.org/drawingml/2006/picture',
-  mc:  'http://schemas.openxmlformats.org/markup-compatibility/2006',
-};
+// Use namespace map from xml.js
+const NS = xml.NS;
 
 class Figures {
   /**
@@ -159,7 +152,7 @@ class Figures {
     // 7. Find anchor and insert
     const docXml = ws.docXml;
     const paragraphs = xml.findParagraphs(docXml);
-    const idx = Figures._findAnchorIndex(paragraphs, anchor);
+    const idx = xml.findAnchorParagraph(paragraphs, anchor);
     if (idx === -1) {
       throw new Error(`Anchor not found: "${anchor}"`);
     }
@@ -513,7 +506,7 @@ class Figures {
       };
     } else {
       // Try JPEG
-      dims = Figures._getJpegDimensions(buf);
+      dims = xml.getJpegDimensions(buf);
     }
 
     const aspectRatio = dims.height / dims.width;
@@ -525,58 +518,6 @@ class Figures {
     const cy = Math.round(cx * aspectRatio);
 
     return { cx, cy };
-  }
-
-  /**
-   * Parse JPEG dimensions from a file buffer by scanning SOF markers.
-   *
-   * @param {Buffer} buf - File buffer
-   * @returns {{ width: number, height: number }}
-   */
-  static _getJpegDimensions(buf) {
-    let offset = 2;
-    while (offset < buf.length) {
-      if (buf[offset] !== 0xFF) break;
-      const marker = buf[offset + 1];
-      // SOF0 (0xC0) or SOF2 (0xC2) contain dimensions
-      if (marker === 0xC0 || marker === 0xC2) {
-        const height = buf.readUInt16BE(offset + 5);
-        const width = buf.readUInt16BE(offset + 7);
-        return { width, height };
-      }
-      const len = buf.readUInt16BE(offset + 2);
-      offset += 2 + len;
-    }
-    // Fallback if no SOF marker found
-    return { width: 800, height: 600 };
-  }
-
-  /**
-   * Find the index of the paragraph whose text contains the anchor string.
-   * Tries exact match first, then substring, then case-insensitive substring.
-   *
-   * @param {string[]} paragraphs - Array of w:p XML strings
-   * @param {string} anchor - Text to search for
-   * @returns {number} Index of the matching paragraph, or -1
-   */
-  static _findAnchorIndex(paragraphs, anchor) {
-    // Exact match
-    for (let i = 0; i < paragraphs.length; i++) {
-      const text = typeof paragraphs[i] === 'string' ? xml.extractText(paragraphs[i]) : paragraphs[i].text;
-      if (text === anchor) return i;
-    }
-    // Substring match
-    for (let i = 0; i < paragraphs.length; i++) {
-      const text = typeof paragraphs[i] === 'string' ? xml.extractText(paragraphs[i]) : paragraphs[i].text;
-      if (text.includes(anchor)) return i;
-    }
-    // Case-insensitive substring
-    const lower = anchor.toLowerCase();
-    for (let i = 0; i < paragraphs.length; i++) {
-      const text = typeof paragraphs[i] === 'string' ? xml.extractText(paragraphs[i]) : paragraphs[i].text;
-      if (text.toLowerCase().includes(lower)) return i;
-    }
-    return -1;
   }
 
   /**

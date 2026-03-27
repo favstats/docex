@@ -5,14 +5,14 @@ class TableHandle {
   constructor(engine, tableIndex) { this._engine = engine; this._tableIndex = tableIndex; }
   dimensions() {
     var tbl = this._locate(); var rows = TableHandle._findRows(tbl.xml);
-    var cols = rows.length > 0 ? TableHandle._findCells(rows[0]).length : 0;
+    var cols = rows.length > 0 ? TableHandle._findCells(rows[0].xml).length : 0;
     return { rows: rows.length, cols: cols };
   }
   cell(row, col) { return new CellHandle(this._engine, this._tableIndex, row, col); }
   addRow(data) {
     var ws = this._getWorkspace(); var tbl = this._locate();
     var rows = TableHandle._findRows(tbl.xml);
-    var numCols = rows.length > 0 ? TableHandle._findCells(rows[0]).length : data.length;
+    var numCols = rows.length > 0 ? TableHandle._findCells(rows[0].xml).length : data.length;
     var colWidth = Math.floor(9360 / numCols); var cellsXml = '';
     for (var c = 0; c < numCols; c++) {
       var t = c < data.length ? String(data[c]) : '';
@@ -42,7 +42,7 @@ class TableHandle {
     }
     ws.docXml = ws.docXml.slice(0, tbl.start) + x + ws.docXml.slice(tbl.end); return this;
   }
-  merge(r1, c1, r2, c2) { return this; }
+  merge(r1, c1, r2, c2) { throw new Error('TableHandle.merge() is not implemented. Use w:vMerge and w:gridSpan manually via getXml/setXml.'); }
   data() {
     var tbl = this._locate(); var rows = TableHandle._findRows(tbl.xml); var result = [];
     for (var ri = 0; ri < rows.length; ri++) {
@@ -57,17 +57,36 @@ class TableHandle {
   _locateFromXml(d) { var t = TableHandle.findAllTables(d); if (this._tableIndex < 0 || this._tableIndex >= t.length) throw new Error('Table index out of range'); return t[this._tableIndex]; }
   static findAllTables(d) {
     var t = []; var re = /<w:tbl[\s>]/g; var m;
-    while ((m = re.exec(d)) !== null) { var s = m.index; var dp = 1; var p = s + m[0].length;
-      while (dp > 0 && p < d.length) { var no = d.indexOf('<w:tbl', p); var nc = d.indexOf('</w:tbl>', p); if (nc === -1) break;
-        if (no !== -1 && no < nc) { dp++; p = no + 6; } else { dp--; if (dp === 0) t.push({ xml: d.slice(s, nc + 8), start: s, end: nc + 8 }); p = nc + 8; } } }
+    while ((m = re.exec(d)) !== null) {
+      var s = m.index; var dp = 1; var p = s + m[0].length;
+      while (dp > 0 && p < d.length) {
+        // Find next nested <w:tbl (must be followed by space or >) to avoid matching <w:tblPr> etc.
+        var innerRe = /<w:tbl[\s>]/g; innerRe.lastIndex = p;
+        var innerM = innerRe.exec(d);
+        var no = innerM ? innerM.index : -1;
+        var nc = d.indexOf('</w:tbl>', p);
+        if (nc === -1) break;
+        if (no !== -1 && no < nc) { dp++; p = no + innerM[0].length; }
+        else { dp--; if (dp === 0) t.push({ xml: d.slice(s, nc + 8), start: s, end: nc + 8 }); p = nc + 8; }
+      }
+    }
     return t;
   }
   static _findRows(x) { var r = []; var re = /<w:tr[\s>]/g; var m; while ((m = re.exec(x)) !== null) { var s = m.index; var ci = x.indexOf('</w:tr>', s); if (ci === -1) continue; r.push({ xml: x.slice(s, ci + 7), start: s, end: ci + 7 }); } return r; }
   static _findCells(x) {
     var c = []; var re = /<w:tc[\s>]/g; var m;
-    while ((m = re.exec(x)) !== null) { var s = m.index; var dp = 1; var p = s + m[0].length;
-      while (dp > 0 && p < x.length) { var no = x.indexOf('<w:tc', p); var nc = x.indexOf('</w:tc>', p); if (nc === -1) break;
-        if (no !== -1 && no < nc) { dp++; p = no + 5; } else { dp--; if (dp === 0) c.push({ xml: x.slice(s, nc + 7), start: s, end: nc + 7 }); p = nc + 7; } } }
+    while ((m = re.exec(x)) !== null) {
+      var s = m.index; var dp = 1; var p = s + m[0].length;
+      while (dp > 0 && p < x.length) {
+        var innerRe = /<w:tc[\s>]/g; innerRe.lastIndex = p;
+        var innerM = innerRe.exec(x);
+        var no = innerM ? innerM.index : -1;
+        var nc = x.indexOf('</w:tc>', p);
+        if (nc === -1) break;
+        if (no !== -1 && no < nc) { dp++; p = no + innerM[0].length; }
+        else { dp--; if (dp === 0) c.push({ xml: x.slice(s, nc + 7), start: s, end: nc + 7 }); p = nc + 7; }
+      }
+    }
     return c;
   }
 }

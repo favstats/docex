@@ -53,9 +53,9 @@ class Comments {
       const attrs = m[1];
       const body = m[2];
 
-      const id = Comments._attrVal(attrs, 'w:id');
-      const author = Comments._attrVal(attrs, 'w:author') || '';
-      const date = Comments._attrVal(attrs, 'w:date') || '';
+      const id = xml.attrVal(attrs, 'w:id');
+      const author = xml.attrVal(attrs, 'w:author') || '';
+      const date = xml.attrVal(attrs, 'w:date') || '';
       const text = xml.extractText(body);
 
       // Look up paraId from commentsExtended (parallel ordering)
@@ -71,7 +71,7 @@ class Comments {
         // Comments and commentEx entries are in parallel order
         if (exEntries.length > results.length) {
           const exAttrs = exEntries[results.length];
-          const pid = Comments._attrVal(exAttrs, 'w15:paraId');
+          const pid = xml.attrVal(exAttrs, 'w15:paraId');
           if (pid) paraId = pid;
         }
       }
@@ -125,8 +125,8 @@ class Comments {
     const commentsXml = ws.commentsXml;
     const docXml = ws.docXml;
     const commentId = Math.max(xml.nextCommentId(commentsXml), xml.nextChangeId(docXml));
-    const paraId = xml.randomHexId().toUpperCase();
-    const textId = xml.randomHexId().toUpperCase();
+    const paraId = xml.randomHexId();
+    const textId = xml.randomHexId();
 
     // 1. Add to word/comments.xml
     const commentEl = '<w:comment w:id="' + commentId
@@ -168,7 +168,7 @@ class Comments {
     // 3. Add to word/commentsIds.xml
     let idsXml = ws.commentsIdsXml;
     if (idsXml) {
-      const durableId = xml.randomHexId().toUpperCase();
+      const durableId = xml.randomHexId();
       const idEl = '<w16cid:commentId w16cid:paraId="' + paraId
         + '" w16cid:durableId="' + durableId + '"/>';
       idsXml = idsXml.replace('</w16cid:commentsIds>', idEl + '</w16cid:commentsIds>');
@@ -368,17 +368,7 @@ class Comments {
     let parentParaId = null;
 
     if (typeof anchorOrId === 'number') {
-      // Find by numeric ID
-      const re = new RegExp('<w:comment\\b[^>]*\\bw:id="' + anchorOrId + '"[^>]*>');
-      const m = re.exec(commentsXml);
-      if (m) {
-        const paraIdMatch = m[0].match(/w14:paraId="([^"]*)"/);
-        parentParaId = paraIdMatch ? paraIdMatch[1] : null;
-      }
-      // If comment element doesn't have w14:paraId, check commentsExtXml
-      if (!parentParaId) {
-        parentParaId = Comments._getParaIdForComment(ws, anchorOrId);
-      }
+      parentParaId = Comments._getCommentParaId(ws, anchorOrId);
     } else {
       // Find by anchor text: look for a comment whose document anchor text matches
       const docXml = ws.docXml;
@@ -402,16 +392,7 @@ class Comments {
       }
 
       if (foundCommentId !== null) {
-        // Now find the paraId for this comment
-        const re = new RegExp('<w:comment\\b[^>]*\\bw:id="' + foundCommentId + '"[^>]*>');
-        const m = re.exec(commentsXml);
-        if (m) {
-          const paraIdMatch = m[0].match(/w14:paraId="([^"]*)"/);
-          parentParaId = paraIdMatch ? paraIdMatch[1] : null;
-        }
-        if (!parentParaId) {
-          parentParaId = Comments._getParaIdForComment(ws, foundCommentId);
-        }
+        parentParaId = Comments._getCommentParaId(ws, foundCommentId);
       }
     }
 
@@ -422,8 +403,8 @@ class Comments {
     // Generate IDs for the reply
     const docXml = ws.docXml;
     const commentId = Math.max(xml.nextCommentId(commentsXml), xml.nextChangeId(docXml));
-    const replyParaId = xml.randomHexId().toUpperCase();
-    const replyTextId = xml.randomHexId().toUpperCase();
+    const replyParaId = xml.randomHexId();
+    const replyTextId = xml.randomHexId();
 
     // 1. Add reply to word/comments.xml (no ranges in document.xml)
     const replyEl = '<w:comment w:id="' + commentId
@@ -458,7 +439,7 @@ class Comments {
     // 3. Add to commentsIds.xml
     let idsXml = ws.commentsIdsXml;
     if (idsXml) {
-      const durableId = xml.randomHexId().toUpperCase();
+      const durableId = xml.randomHexId();
       const idEl = '<w16cid:commentId w16cid:paraId="' + replyParaId
         + '" w16cid:durableId="' + durableId + '"/>';
       idsXml = idsXml.replace('</w16cid:commentsIds>', idEl + '</w16cid:commentsIds>');
@@ -618,7 +599,7 @@ class Comments {
       const exRe = /<w15:commentEx\s+([^>]*?)\s*\/?>/g;
       let exM;
       while ((exM = exRe.exec(extXml)) !== null) {
-        const done = Comments._attrVal(exM[1], 'w15:done');
+        const done = xml.attrVal(exM[1], 'w15:done');
         doneStatuses.push(done === '1');
       }
     }
@@ -649,24 +630,126 @@ class Comments {
     return JSON.stringify(enriched, null, 2);
   }
 
+  /**
+   * Get the anchor text for a comment (the text range that was annotated).
+   *
+   * @param {object} ws - Workspace
+   * @param {number} commentId - Comment ID
+   * @returns {{ text: string, paraId: string|null }} Anchor info
+   */
+  static anchor(ws, commentId) {
+    const docXml = ws.docXml;
+    const idStr = String(commentId);
+    // Find the text between commentRangeStart and commentRangeEnd
+    const rangeStartRe = new RegExp('<w:commentRangeStart\\s+w:id="' + idStr + '"[^/]*/>[\\s\\S]*?<w:commentRangeEnd\\s+w:id="' + idStr + '"');
+    const rangeMatch = rangeStartRe.exec(docXml);
+    let anchorText = '';
+    let paraId = null;
+    if (rangeMatch) {
+      // Extract text between the markers
+      const between = rangeMatch[0];
+      const tRe = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+      let tm;
+      while ((tm = tRe.exec(between)) !== null) anchorText += tm[1];
+      // Find the paragraph containing this range
+      const paragraphs = xml.findParagraphs(docXml);
+      for (const p of paragraphs) {
+        if (p.xml.includes('<w:commentRangeStart w:id="' + idStr + '"') ||
+            p.xml.includes('<w:commentRangeStart w:id=\'' + idStr + '\'')) {
+          const pidMatch = p.xml.match(/w14:paraId="([^"]+)"/);
+          if (pidMatch) paraId = pidMatch[1];
+          if (!anchorText) anchorText = xml.extractTextDecoded(p.xml);
+          break;
+        }
+      }
+    }
+    if (!anchorText) {
+      // Fallback: find paragraph with commentReference
+      const paragraphs = xml.findParagraphs(docXml);
+      for (const p of paragraphs) {
+        if (p.xml.includes('w:id="' + idStr + '"')) {
+          anchorText = xml.extractTextDecoded(p.xml).slice(0, 80);
+          const pidMatch = p.xml.match(/w14:paraId="([^"]+)"/);
+          if (pidMatch) paraId = pidMatch[1];
+          break;
+        }
+      }
+    }
+    return { text: anchorText, paraId };
+  }
+
+  /**
+   * Edit a comment's text.
+   *
+   * @param {object} ws - Workspace
+   * @param {number} commentId - Comment ID to edit
+   * @param {string} newText - New comment text
+   */
+  static edit(ws, commentId, newText) {
+    const idStr = String(commentId);
+    let commentsXml = ws.commentsXml;
+    if (!commentsXml) throw new Error('No comments found');
+    const commentRe = new RegExp('(<w:comment\\b[^>]*w:id="' + idStr + '"[^>]*>[\\s\\S]*?)(<w:t[^>]*>)[^<]*(</w:t>)([\\s\\S]*?</w:comment>)');
+    const match = commentRe.exec(commentsXml);
+    if (!match) throw new Error('Comment not found: ' + commentId);
+    // Replace all w:t text nodes inside this comment
+    const start = match.index;
+    const end = match.index + match[0].length;
+    const commentEl = match[0];
+    const newEl = commentEl.replace(/<w:t[^>]*>[^<]*<\/w:t>/g,
+      '<w:t xml:space="preserve">' + xml.escapeXml(newText) + '</w:t>');
+    ws.commentsXml = commentsXml.slice(0, start) + newEl + commentsXml.slice(end);
+  }
+
+  /**
+   * Get all replies to a comment (threaded comments).
+   *
+   * @param {object} ws - Workspace
+   * @param {number} commentId - Parent comment ID
+   * @returns {Array<{id: number, author: string, text: string, date: string}>}
+   */
+  static replies(ws, commentId) {
+    const extXml = ws.commentsExtXml;
+    if (!extXml) return [];
+    // Get the paraId of the parent comment
+    const parentParaId = Comments._getCommentParaId(ws, commentId);
+    if (!parentParaId) return [];
+    // Find all commentEx entries with paraIdParent matching the parent's paraId
+    const replyParaIds = [];
+    const exRe = /<w15:commentEx\s+([^>]*?)\s*\/?>/g;
+    let exM;
+    while ((exM = exRe.exec(extXml)) !== null) {
+      const pid = xml.attrVal(exM[1], 'w15:paraIdParent');
+      if (pid === parentParaId) {
+        const replyPid = xml.attrVal(exM[1], 'w15:paraId');
+        if (replyPid) replyParaIds.push(replyPid);
+      }
+    }
+    if (replyParaIds.length === 0) return [];
+    // Find comments whose paragraph has those paraIds
+    const results = [];
+    const commentsXml = ws.commentsXml;
+    if (!commentsXml) return [];
+    const commentRe = /<w:comment\b([^>]*)>([\s\S]*?)<\/w:comment>/g;
+    let m;
+    while ((m = commentRe.exec(commentsXml)) !== null) {
+      const body = m[2];
+      const paraIdM = body.match(/w14:paraId="([^"]+)"/);
+      if (paraIdM && replyParaIds.includes(paraIdM[1])) {
+        const attrs = m[1];
+        const id = parseInt(xml.attrVal(attrs, 'w:id') || '0', 10);
+        const author = xml.decodeXml(xml.attrVal(attrs, 'w:author') || '');
+        const date = xml.attrVal(attrs, 'w:date') || '';
+        const text = xml.extractText(body);
+        results.push({ id, author, text, date });
+      }
+    }
+    return results;
+  }
+
   // --------------------------------------------------------------------------
   // INTERNAL HELPERS
   // --------------------------------------------------------------------------
-
-  /**
-   * Extract an attribute value from an attribute string.
-   *
-   * @param {string} attrs - Attribute string (e.g., 'w:id="5" w:author="Alice"')
-   * @param {string} name - Attribute name (e.g., 'w:id')
-   * @returns {string|null}
-   * @private
-   */
-  static _attrVal(attrs, name) {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(escaped + '="([^"]*)"');
-    const m = attrs.match(re);
-    return m ? m[1] : null;
-  }
 
   /**
    * List all comment IDs from comments.xml in document order.
@@ -710,12 +793,37 @@ class Comments {
     let exMatch;
     while ((exMatch = exRe.exec(extXml)) !== null) {
       if (count === idx) {
-        return Comments._attrVal(exMatch[1], 'w15:paraId');
+        return xml.attrVal(exMatch[1], 'w15:paraId');
       }
       count++;
     }
 
     return null;
+  }
+
+  /**
+   * Get a comment's paraId directly from comments.xml when available,
+   * falling back to commentsExtended.xml ordering for older documents.
+   *
+   * @param {object} ws - Workspace
+   * @param {number} commentId - Comment ID
+   * @returns {string|null}
+   * @private
+   */
+  static _getCommentParaId(ws, commentId) {
+    const commentsXml = ws.commentsXml;
+    if (commentsXml) {
+      const re = new RegExp(
+        '<w:comment\\b[^>]*\\bw:id="' + commentId + '"[^>]*>[\\s\\S]*?</w:comment>'
+      );
+      const match = re.exec(commentsXml);
+      if (match) {
+        const paraIdMatch = match[0].match(/w14:paraId="([^"]+)"/);
+        if (paraIdMatch) return paraIdMatch[1];
+      }
+    }
+
+    return Comments._getParaIdForComment(ws, commentId);
   }
 
   /**

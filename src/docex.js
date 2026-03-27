@@ -55,6 +55,7 @@ const { Sections } = require('./sections');
 const { Redact } = require('./redact');
 const { Quality } = require('./quality');
 const { Production } = require('./production');
+const { Transaction } = require('./transaction');
 const xml = require('./xml');
 
 // ============================================================================
@@ -929,13 +930,16 @@ class DocexEngine {
    */
   async toHtml(opts = {}) {
     await this._ensureWorkspace();
-    // Save to a temp file for pandoc to read
     const tmpDocx = path.join('/tmp', `docex-html-${crypto.randomBytes(8).toString('hex')}.docx`);
     try {
-      const ws = this._workspace;
-      ws.save({ outputPath: tmpDocx, backup: false });
-      // Re-open workspace since save() cleans it up
-      this._workspace = Workspace.open(this._docxPath);
+      // Open a separate workspace copy so the active one is not consumed by save()
+      const exportWs = Workspace.open(this._docxPath);
+      // Copy any in-memory modifications from the active workspace
+      exportWs.docXml = this._workspace.docXml;
+      try { exportWs.commentsXml = this._workspace.commentsXml; } catch (_) { /* may not exist */ }
+      try { exportWs.commentsExtXml = this._workspace.commentsExtXml; } catch (_) { /* may not exist */ }
+      try { exportWs.footnotesXml = this._workspace.footnotesXml; } catch (_) { /* may not exist */ }
+      exportWs.save({ outputPath: tmpDocx, backup: false });
 
       const result = execFileSync('pandoc', [tmpDocx, '--from', 'docx', '--to', 'html5', '--standalone'], {
         encoding: 'utf-8',
@@ -965,9 +969,13 @@ class DocexEngine {
     await this._ensureWorkspace();
     const tmpDocx = path.join('/tmp', `docex-md-${crypto.randomBytes(8).toString('hex')}.docx`);
     try {
-      const ws = this._workspace;
-      ws.save({ outputPath: tmpDocx, backup: false });
-      this._workspace = Workspace.open(this._docxPath);
+      // Open a separate workspace copy so the active one is not consumed by save()
+      const exportWs = Workspace.open(this._docxPath);
+      exportWs.docXml = this._workspace.docXml;
+      try { exportWs.commentsXml = this._workspace.commentsXml; } catch (_) { /* may not exist */ }
+      try { exportWs.commentsExtXml = this._workspace.commentsExtXml; } catch (_) { /* may not exist */ }
+      try { exportWs.footnotesXml = this._workspace.footnotesXml; } catch (_) { /* may not exist */ }
+      exportWs.save({ outputPath: tmpDocx, backup: false });
 
       const result = execFileSync('pandoc', [tmpDocx, '--from', 'docx', '--to', 'markdown'], {
         encoding: 'utf-8',
@@ -1058,6 +1066,19 @@ class DocexEngine {
     }
 
     return lines.join('\n');
+  }
+
+  // ── Transactions ────────────────────────────────────────────────────────
+
+  /**
+   * Create a new transaction for atomic multi-operation edits.
+   * All operations are queued and applied atomically on commit.
+   * On failure, the document is rolled back to its pre-transaction state.
+   *
+   * @returns {Transaction}
+   */
+  transaction() {
+    return new Transaction(this);
   }
 
   /** @private */
@@ -1552,10 +1573,22 @@ class DocexEngine {
             opCount.replace++;
             break;
           case 'replaceAll': {
-            // Replace all occurrences by looping until no more matches
+            // Count actual occurrences first to avoid infinite loop when
+            // replacement text contains the search text
+            const allParas = xml.findParagraphs(ws.docXml);
+            let totalOccurrences = 0;
+            for (const p of allParas) {
+              const decoded = xml.decodeXml(p.text);
+              let searchPos = 0;
+              while (true) {
+                const idx = decoded.indexOf(op.oldText, searchPos);
+                if (idx === -1) break;
+                totalOccurrences++;
+                searchPos = idx + op.oldText.length;
+              }
+            }
             let count = 0;
-            const maxIter = 1000; // safety limit
-            while (count < maxIter) {
+            for (let ri = 0; ri < totalOccurrences; ri++) {
               try {
                 Paragraphs.replace(ws, op.oldText, op.newText, op);
                 count++;
@@ -1731,6 +1764,202 @@ class DocexEngine {
     return this;
   }
 
+  // ── RangeHandle ──────────────────────────────────────────────────────────
+
+  /**
+   * Create a RangeHandle spanning from one paragraph offset to another.
+   * @param {string} fromParaId
+   * @param {number} fromOffset
+   * @param {string} toParaId
+   * @param {number} toOffset
+   * @returns {RangeHandle}
+   */
+  range(fromParaId, fromOffset, toParaId, toOffset) {
+    const { RangeHandle } = require('./range');
+    return new RangeHandle(this, fromParaId, fromOffset, toParaId, toOffset);
+  }
+
+  // ── Named Checkpoints ────────────────────────────────────────────────────
+
+  /**
+   * Save the current document state as a named checkpoint.
+   * @param {string} name - Checkpoint name
+   */
+  async checkpoint(name) {
+    const ws = await this._ensureWorkspace();
+    if (!this._checkpoints) this._checkpoints = [];
+    this._checkpoints.push({ name, docXml: ws.docXml, date: new Date().toISOString() });
+    return this;
+  }
+
+  /**
+   * Restore the document to a previously saved checkpoint.
+   * @param {string} name - Checkpoint name
+   */
+  async restoreTo(name) {
+    if (!this._checkpoints) throw new Error('Checkpoint does not exist: ' + name);
+    const ckpt = this._checkpoints.find(c => c.name === name);
+    if (!ckpt) throw new Error('Checkpoint does not exist: ' + name);
+    const ws = await this._ensureWorkspace();
+    ws.docXml = ckpt.docXml;
+    return this;
+  }
+
+  /**
+   * List all saved checkpoints.
+   * @returns {Array<{name: string, date: string}>}
+   */
+  async listCheckpoints() {
+    return (this._checkpoints || []).map(c => ({ name: c.name, date: c.date }));
+  }
+
+  // ── Sections ─────────────────────────────────────────────────────────────
+
+  /**
+   * Get outline of headings and section structure.
+   */
+  async outline() {
+    const ws = await this._ensureWorkspace();
+    return Sections.outline(ws);
+  }
+
+  /**
+   * Move a section before or after another heading.
+   */
+  async moveSection(sectionHeading, opts = {}) {
+    const ws = await this._ensureWorkspace();
+    return Sections.move(ws, sectionHeading, opts);
+  }
+
+  /**
+   * Extract a section into a new .docx file.
+   */
+  async splitDocument(sectionHeading, outputPath) {
+    const ws = await this._ensureWorkspace();
+    return Sections.split(ws, sectionHeading, outputPath);
+  }
+
+  /**
+   * Extract abstract text.
+   */
+  async extractAbstract() {
+    const ws = await this._ensureWorkspace();
+    return Sections.extractAbstract(ws);
+  }
+
+  /**
+   * Duplicate a section with a new heading.
+   */
+  async duplicateSection(sectionHeading, newHeading) {
+    const ws = await this._ensureWorkspace();
+    return Sections.duplicate(ws, sectionHeading, newHeading);
+  }
+
+  // ── Redact ───────────────────────────────────────────────────────────────
+
+  /**
+   * Redact text in the document.
+   */
+  async redact(text, replacement, opts = {}) {
+    const ws = await this._ensureWorkspace();
+    return Redact.redact(ws, text, replacement, opts);
+  }
+
+  /**
+   * Restore redacted text.
+   */
+  async unredact(opts = {}) {
+    const ws = await this._ensureWorkspace();
+    return Redact.unredact(ws, opts);
+  }
+
+  /**
+   * Compare document styles against a preset.
+   */
+  async compareStyles(presetName) {
+    const ws = await this._ensureWorkspace();
+    return Presets.compareStyles(ws, presetName);
+  }
+
+  // ── Quality ──────────────────────────────────────────────────────────────
+
+  /**
+   * Run lint checks on the document.
+   */
+  async lint() {
+    const ws = await this._ensureWorkspace();
+    return Quality.lint(ws);
+  }
+
+  /**
+   * Detect passive voice constructions.
+   */
+  async passiveVoice() {
+    const ws = await this._ensureWorkspace();
+    return Quality.passiveVoice(ws);
+  }
+
+  /**
+   * Flag long sentences.
+   */
+  async sentenceLength(opts = {}) {
+    const ws = await this._ensureWorkspace();
+    return Quality.sentenceLength(ws, opts);
+  }
+
+  /**
+   * Calculate readability scores.
+   */
+  async readability() {
+    const ws = await this._ensureWorkspace();
+    return Quality.readability(ws);
+  }
+
+  /**
+   * Check numbers in the document against a stats file.
+   */
+  async checkNumbers(statsPath) {
+    const ws = await this._ensureWorkspace();
+    return Quality.checkNumbers(ws, statsPath);
+  }
+
+  // ── Production ───────────────────────────────────────────────────────────
+
+  /**
+   * Add a watermark to the document.
+   */
+  async watermark(text, opts = {}) {
+    const ws = await this._ensureWorkspace();
+    Production.watermark(ws, text, opts);
+    return this;
+  }
+
+  /**
+   * Add a text stamp to the document header/footer.
+   */
+  async stamp(text, opts = {}) {
+    const ws = await this._ensureWorkspace();
+    Production.stamp(ws, text, opts);
+    return this;
+  }
+
+  /**
+   * Estimate page count.
+   */
+  async pageCount() {
+    const ws = await this._ensureWorkspace();
+    return Production.pageCount(ws);
+  }
+
+  /**
+   * Insert a cover page.
+   */
+  async coverPage(opts = {}) {
+    const ws = await this._ensureWorkspace();
+    Production.coverPage(ws, opts);
+    return this;
+  }
+
   // ── Internal ─────────────────────────────────────────────────────────────
 
   async _ensureWorkspace() {
@@ -1794,3 +2023,7 @@ module.exports.ResponseLetter = ResponseLetter;
 module.exports.Layout = Layout;
 module.exports.Provenance = Provenance;
 module.exports.Workflow = Workflow;
+module.exports.Transaction = Transaction;
+
+// Apply ParagraphHandle extensions (conditionals, verification)
+require('./extensions');

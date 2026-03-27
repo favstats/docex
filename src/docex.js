@@ -37,6 +37,13 @@ const { Metadata } = require('./metadata');
 const { Diff } = require('./diff');
 const { DocMap } = require('./docmap');
 const { ParagraphHandle } = require('./handle');
+const { Doctor } = require('./doctor');
+const { CrossRef } = require('./crossref');
+const { Lists } = require('./lists');
+const { Macros } = require('./macros');
+const { Presets } = require('./presets');
+const { Verify } = require('./verify');
+const { Submission } = require('./submission');
 const xml = require('./xml');
 
 // ============================================================================
@@ -120,6 +127,14 @@ class PositionSelector {
 
   /** Add a footnote anchored to text at this position */
   footnote(text, opts) { return this._engine._footnoteAt(this._anchor, text, opts); }
+
+  // ── Lists at position ─────────────────────────────────────────────────
+
+  /** Insert a bullet list at this position */
+  bulletList(items, opts) { return this._engine._bulletListAt(this._anchor, this._mode, items, opts); }
+
+  /** Insert a numbered list at this position */
+  numberedList(items, opts) { return this._engine._numberedListAt(this._anchor, this._mode, items, opts); }
 }
 
 // ============================================================================
@@ -138,6 +153,42 @@ class DocexEngine {
     this._comments = null;
     this._figures = null;
     this._tables = null;
+    this._rc = null; // .docexrc config
+
+    // Load .docexrc from the directory containing the docx file
+    this._loadRc();
+  }
+
+  /**
+   * Load .docexrc configuration from the docx file's directory,
+   * falling back to ~/.docexrc for global defaults.
+   * @private
+   */
+  _loadRc() {
+    const localRcPath = path.join(path.dirname(this._docxPath), '.docexrc');
+    const homeRcPath = path.join(require('os').homedir(), '.docexrc');
+
+    let globalRc = {};
+    let localRc = {};
+
+    try {
+      if (fs.existsSync(homeRcPath)) {
+        globalRc = JSON.parse(fs.readFileSync(homeRcPath, 'utf-8'));
+      }
+    } catch (_) { /* ignore */ }
+
+    try {
+      if (fs.existsSync(localRcPath)) {
+        localRc = JSON.parse(fs.readFileSync(localRcPath, 'utf-8'));
+      }
+    } catch (_) { /* ignore */ }
+
+    this._rc = { ...globalRc, ...localRc };
+
+    // Apply rc defaults
+    if (this._rc.author) {
+      this._author = this._rc.author;
+    }
   }
 
   // ── Configuration ────────────────────────────────────────────────────────
@@ -453,6 +504,32 @@ class DocexEngine {
     return this;
   }
 
+  _bulletListAt(anchor, mode, items, opts = {}) {
+    this._operations.push({
+      type: 'bulletList',
+      anchor,
+      mode,
+      items,
+      author: (opts && opts.author) || this._author,
+      tracked: opts && opts.tracked !== undefined ? opts.tracked : false,
+      date: this._date,
+    });
+    return this;
+  }
+
+  _numberedListAt(anchor, mode, items, opts = {}) {
+    this._operations.push({
+      type: 'numberedList',
+      anchor,
+      mode,
+      items,
+      author: (opts && opts.author) || this._author,
+      tracked: opts && opts.tracked !== undefined ? opts.tracked : false,
+      date: this._date,
+    });
+    return this;
+  }
+
   // ── Stable Addressing (v0.3) ────────────────────────────────────────────
 
   /**
@@ -675,6 +752,19 @@ class DocexEngine {
     return Metadata.get(ws);
   }
 
+  // ── Validation ─────────────────────────────────────────────────────────
+
+  /**
+   * Validate the document's integrity.
+   * Alias for Doctor.validate(). Does not modify the document.
+   *
+   * @returns {Promise<{valid: boolean, errors: string[], warnings: string[]}>}
+   */
+  async validate() {
+    const ws = await this._ensureWorkspace();
+    return Doctor.validate(ws);
+  }
+
   // ── Word Count ──────────────────────────────────────────────────────────
 
   /**
@@ -683,6 +773,83 @@ class DocexEngine {
    */
   async wordCount() {
     return Paragraphs.wordCount(await this._ensureWorkspace());
+  }
+
+  // ── Stats ──────────────────────────────────────────────────────────────
+
+  /**
+   * Comprehensive document statistics.
+   * Combines word count, paragraph count, figure count, table count,
+   * citation count, comment count, and revision count.
+   *
+   * @returns {Promise<{words: object, paragraphs: number, headings: number, figures: number, tables: number, citations: number, comments: number, revisions: number, pages: null}>}
+   */
+  async stats() {
+    const ws = await this._ensureWorkspace();
+
+    const words = Paragraphs.wordCount(ws);
+    const paraList = Paragraphs.list(ws);
+    const headingList = Paragraphs.headings(ws);
+    const figureList = Figures.list(ws);
+
+    // Count tables in document
+    const docXml = ws.docXml;
+    const tableCount = (docXml.match(/<w:tbl[\s>]/g) || []).length;
+
+    const citationList = Citations.list(ws);
+    const commentList = Comments.list(ws);
+    const revisionList = Revisions.list(ws);
+
+    return {
+      words,
+      paragraphs: paraList.length,
+      headings: headingList.length,
+      figures: figureList.length,
+      tables: tableCount,
+      citations: citationList.length,
+      comments: commentList.length,
+      revisions: revisionList.length,
+      pages: null, // requires PDF rendering, not available
+    };
+  }
+
+  // ── Contributors ───────────────────────────────────────────────────────
+
+  /**
+   * Scan all tracked changes and comments to find unique contributors.
+   * Returns authors with change/comment counts and last-active dates.
+   *
+   * @returns {Promise<Array<{name: string, changes: number, comments: number, lastActive: string}>>}
+   */
+  async contributors() {
+    const ws = await this._ensureWorkspace();
+    return Revisions.contributors(ws);
+  }
+
+  // ── Timeline ───────────────────────────────────────────────────────────
+
+  /**
+   * Combine comment dates and revision dates into a single
+   * chronological timeline.
+   *
+   * @returns {Promise<Array<{date: string, type: string, author: string, text: string}>>}
+   */
+  async timeline() {
+    const ws = await this._ensureWorkspace();
+    return Revisions.timeline(ws);
+  }
+
+  // ── Export Comments ────────────────────────────────────────────────────
+
+  /**
+   * Export all comments as CSV or JSON string.
+   *
+   * @param {string} [format='json'] - 'csv' or 'json'
+   * @returns {Promise<string>}
+   */
+  async exportComments(format) {
+    const ws = await this._ensureWorkspace();
+    return Comments.exportComments(ws, format);
   }
 
   // ── Diff ────────────────────────────────────────────────────────────────
@@ -729,6 +896,225 @@ class DocexEngine {
     return Latex.convert(ws, options);
   }
 
+  // ── Preview ─────────────────────────────────────────────────────────────
+
+  /**
+   * Format pending operations as a human-readable summary string.
+   * Does not execute the operations or modify the document.
+   *
+   * @returns {string} Human-readable summary of pending operations
+   *
+   * @example
+   *   doc.replace("old", "new");
+   *   doc.after("Methods").insert("text");
+   *   console.log(doc.preview());
+   *   // "2 pending operations:
+   *   //   1. replace 'old' -> 'new' (tracked, by Fabio Votta)
+   *   //   2. insert after 'Methods': 'text' (tracked, by Fabio Votta)"
+   */
+  preview() {
+    if (this._operations.length === 0) {
+      return 'No pending operations.';
+    }
+
+    const lines = [`${this._operations.length} pending operation${this._operations.length !== 1 ? 's' : ''}:`];
+
+    for (let i = 0; i < this._operations.length; i++) {
+      const op = this._operations[i];
+      const num = i + 1;
+      const trackedStr = op.tracked !== undefined
+        ? (op.tracked ? 'tracked' : 'untracked')
+        : '';
+      const authorStr = op.author ? `by ${op.author}` : '';
+      const meta = [trackedStr, authorStr].filter(Boolean).join(', ');
+      const metaSuffix = meta ? ` (${meta})` : '';
+
+      let desc;
+      switch (op.type) {
+        case 'replace':
+          desc = `replace '${DocexEngine._truncate(op.oldText, 30)}' -> '${DocexEngine._truncate(op.newText, 30)}'${metaSuffix}`;
+          break;
+        case 'replaceAll':
+          desc = `replaceAll '${DocexEngine._truncate(op.oldText, 30)}' -> '${DocexEngine._truncate(op.newText, 30)}'${metaSuffix}`;
+          break;
+        case 'insert':
+          desc = `insert ${op.mode} '${DocexEngine._truncate(op.anchor, 30)}': '${DocexEngine._truncate(op.text, 30)}'${metaSuffix}`;
+          break;
+        case 'delete':
+          desc = `delete '${DocexEngine._truncate(op.text, 30)}'${metaSuffix}`;
+          break;
+        case 'comment':
+          desc = `comment at '${DocexEngine._truncate(op.anchor, 30)}': '${DocexEngine._truncate(op.text, 30)}'${metaSuffix}`;
+          break;
+        case 'reply':
+          desc = `reply at '${DocexEngine._truncate(op.anchor, 30)}': '${DocexEngine._truncate(op.text, 30)}'${metaSuffix}`;
+          break;
+        case 'figure':
+          desc = `figure ${op.mode} '${DocexEngine._truncate(op.anchor, 30)}'${metaSuffix}`;
+          break;
+        case 'table':
+          desc = `table ${op.mode} '${DocexEngine._truncate(op.anchor, 30)}'${metaSuffix}`;
+          break;
+        case 'format':
+          desc = `${op.formatType} '${DocexEngine._truncate(op.text, 30)}'${metaSuffix}`;
+          break;
+        case 'footnote':
+          desc = `footnote at '${DocexEngine._truncate(op.anchor, 30)}': '${DocexEngine._truncate(op.text, 30)}'${metaSuffix}`;
+          break;
+        default:
+          desc = `${op.type}${metaSuffix}`;
+      }
+
+      lines.push(`  ${num}. ${desc}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /** @private */
+  static _truncate(str, max) {
+    if (!str) return '';
+    if (str.length <= max) return str;
+    return str.slice(0, max) + '...';
+  }
+
+  // ── RC Config ──────────────────────────────────────────────────────────
+
+  /**
+   * Get the loaded .docexrc configuration.
+   * @returns {object} The merged .docexrc config
+   */
+  get rc() {
+    return this._rc || {};
+  }
+
+  // ── Cross-References & Auto-Numbering (v0.3) ──────────────────────────
+
+  /**
+   * Assign a label to a paragraph for cross-referencing.
+   * @param {string} paraId - The w14:paraId of the paragraph
+   * @param {string} labelName - Label name, e.g. "fig:funnel"
+   */
+  async label(paraId, labelName) {
+    const ws = await this._ensureWorkspace();
+    CrossRef.label(ws, paraId, labelName);
+    return this;
+  }
+
+  /**
+   * Insert a cross-reference to a labeled element.
+   * @param {string} labelName - Label to reference
+   * @param {object} [opts] - { insertAt: paraId, after: "text" }
+   */
+  async ref(labelName, opts) {
+    const ws = await this._ensureWorkspace();
+    CrossRef.ref(ws, labelName, opts);
+    return this;
+  }
+
+  /**
+   * Auto-number all figure and table captions using SEQ field codes.
+   * @returns {{figures: number, tables: number}}
+   */
+  async autoNumber() {
+    const ws = await this._ensureWorkspace();
+    return CrossRef.autoNumber(ws);
+  }
+
+  /**
+   * List all labels in the document.
+   * @returns {Array<{name: string, type: string, number: number|null, paraId: string|null}>}
+   */
+  async listLabels() {
+    const ws = await this._ensureWorkspace();
+    return CrossRef.listLabels(ws);
+  }
+
+  // ── Variables & Macros (v0.3) ──────────────────────────────────────────
+
+  /**
+   * Define a variable for later expansion.
+   * @param {string} name - Variable name (e.g. "NUM_ADS")
+   * @param {string} value - Variable value (e.g. "268,635")
+   */
+  async define(name, value) {
+    const ws = await this._ensureWorkspace();
+    Macros.define(ws, name, value);
+    return this;
+  }
+
+  /**
+   * Expand all {{VAR_NAME}} patterns in the document.
+   * @param {object} [variables] - Map of variable names to values
+   * @returns {number} Count of expansions
+   */
+  async expand(variables) {
+    const ws = await this._ensureWorkspace();
+    return Macros.expand(ws, variables);
+  }
+
+  /**
+   * List all {{VAR}} patterns found in the document.
+   * @returns {Array<{name: string, paragraph: number, context: string}>}
+   */
+  async listVariables() {
+    const ws = await this._ensureWorkspace();
+    return Macros.listVariables(ws);
+  }
+
+  // ── Journal Style Presets (v0.3) ──────────────────────────────────────
+
+  /**
+   * Apply a journal style preset to the document.
+   * @param {string} presetName - e.g. "polcomm", "apa7", "academic"
+   * @returns {{applied: string, changes: string[]}}
+   */
+  async style(presetName) {
+    const ws = await this._ensureWorkspace();
+    return Presets.apply(ws, presetName);
+  }
+
+  // ── Submission Validation (v0.3) ──────────────────────────────────────
+
+  /**
+   * Validate document against journal requirements.
+   * @param {string} presetName - e.g. "polcomm", "apa7"
+   * @returns {{ pass: boolean, errors: string[], warnings: string[] }}
+   */
+  async verify(presetName) {
+    const ws = await this._ensureWorkspace();
+    return Verify.check(ws, presetName);
+  }
+
+  // ── Submission Helpers (v0.3) ──────────────────────────────────────────
+
+  /**
+   * Remove author names for blind review.
+   * @returns {{ authorsRemoved: string[], locations: string[] }}
+   */
+  async anonymize() {
+    const ws = await this._ensureWorkspace();
+    return Submission.anonymize(ws);
+  }
+
+  /**
+   * Restore author info after anonymize().
+   * @returns {{ restored: boolean, authors: string[] }}
+   */
+  async deanonymize() {
+    const ws = await this._ensureWorkspace();
+    return Submission.deanonymize(ws);
+  }
+
+  /**
+   * Highlight all tracked changes (insertions yellow, deletions red).
+   * @returns {{ insertions: number, deletions: number }}
+   */
+  async highlightedChanges() {
+    const ws = await this._ensureWorkspace();
+    return Submission.highlightedChanges(ws);
+  }
+
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
   /**
@@ -739,6 +1125,7 @@ class DocexEngine {
    *   - outputPath {string}    Save to a different path (default: overwrite original)
    *   - safeModify {string}    Path to safe-modify.sh script for manuscript protection
    *   - description {string}   Description for safe-modify.sh commit message
+   *   - dryRun {boolean}       If true, return result without writing
    * @returns {object} - { path, operations, paragraphCount, fileSize, verified }
    *
    * @example
@@ -858,6 +1245,14 @@ class DocexEngine {
             Footnotes.add(ws, op.anchor, op.text, op);
             opCount.footnote++;
             break;
+          case 'bulletList':
+            Lists.insertBulletList(ws, op.anchor, op.mode, op.items, op);
+            opCount.bulletList = (opCount.bulletList || 0) + 1;
+            break;
+          case 'numberedList':
+            Lists.insertNumberedList(ws, op.anchor, op.mode, op.items, op);
+            opCount.numberedList = (opCount.numberedList || 0) + 1;
+            break;
         }
       } catch (err) {
         console.error(`[docex] WARN: ${op.type} operation failed: ${err.message}`);
@@ -927,6 +1322,15 @@ docex.open = function(docxPath) {
   return new DocexEngine(docxPath);
 };
 
+// Static methods for presets (no document needed)
+docex.defineStyle = function(name, config) {
+  Presets.define(name, config);
+};
+docex.listStyles = function() {
+  return Presets.list();
+};
+
 module.exports = docex;
 module.exports.DocexEngine = DocexEngine;
 module.exports.PositionSelector = PositionSelector;
+module.exports.Presets = Presets;

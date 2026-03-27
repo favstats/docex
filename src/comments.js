@@ -598,6 +598,57 @@ class Comments {
     }
   }
 
+  /**
+   * Export all comments as CSV or JSON string.
+   *
+   * CSV format: id,author,date,text,paraId,resolved
+   * JSON format: array of comment objects
+   *
+   * @param {object} ws - Workspace
+   * @param {string} [format='json'] - 'csv' or 'json'
+   * @returns {string} Formatted export string
+   */
+  static exportComments(ws, format = 'json') {
+    const comments = Comments.list(ws);
+
+    // Check resolved status from commentsExtended.xml
+    const extXml = ws.commentsExtXml;
+    const doneStatuses = [];
+    if (extXml) {
+      const exRe = /<w15:commentEx\s+([^>]*?)\s*\/?>/g;
+      let exM;
+      while ((exM = exRe.exec(extXml)) !== null) {
+        const done = Comments._attrVal(exM[1], 'w15:done');
+        doneStatuses.push(done === '1');
+      }
+    }
+
+    const enriched = comments.map((c, i) => ({
+      ...c,
+      resolved: i < doneStatuses.length ? doneStatuses[i] : false,
+    }));
+
+    if (format === 'csv') {
+      const header = 'id,author,date,text,paraId,resolved';
+      const rows = enriched.map(c => {
+        // Escape CSV fields: quote fields that contain commas, quotes, or newlines
+        const fields = [
+          String(c.id),
+          _csvEscape(c.author),
+          _csvEscape(c.date),
+          _csvEscape(c.text),
+          _csvEscape(c.paraId),
+          String(c.resolved),
+        ];
+        return fields.join(',');
+      });
+      return header + '\n' + rows.join('\n');
+    }
+
+    // Default: JSON
+    return JSON.stringify(enriched, null, 2);
+  }
+
   // --------------------------------------------------------------------------
   // INTERNAL HELPERS
   // --------------------------------------------------------------------------
@@ -763,6 +814,22 @@ function _ensureCommentFiles(ws) {
   if (ctChanged) {
     ws.contentTypesXml = ctXml;
   }
+}
+
+/**
+ * Escape a value for CSV output.
+ * Wraps in double quotes if it contains commas, quotes, or newlines.
+ *
+ * @param {string} val
+ * @returns {string}
+ * @private
+ */
+function _csvEscape(val) {
+  const s = String(val);
+  if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
 }
 
 /**

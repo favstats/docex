@@ -42,12 +42,13 @@ const { execFileSync } = require('child_process');
 // ============================================================================
 
 const C = {
-  green:  (s) => `\x1b[32m${s}\x1b[0m`,
-  red:    (s) => `\x1b[31m${s}\x1b[0m`,
-  yellow: (s) => `\x1b[33m${s}\x1b[0m`,
-  bold:   (s) => `\x1b[1m${s}\x1b[0m`,
-  dim:    (s) => `\x1b[2m${s}\x1b[0m`,
-  cyan:   (s) => `\x1b[36m${s}\x1b[0m`,
+  green:         (s) => `\x1b[32m${s}\x1b[0m`,
+  red:           (s) => `\x1b[31m${s}\x1b[0m`,
+  yellow:        (s) => `\x1b[33m${s}\x1b[0m`,
+  bold:          (s) => `\x1b[1m${s}\x1b[0m`,
+  dim:           (s) => `\x1b[2m${s}\x1b[0m`,
+  cyan:          (s) => `\x1b[36m${s}\x1b[0m`,
+  redStrike:     (s) => `\x1b[31m\x1b[9m${s}\x1b[0m`,
 };
 
 // ============================================================================
@@ -64,8 +65,8 @@ const C = {
  * @returns {{ command: string, positionals: string[], options: object }}
  */
 function parseArgs(argv) {
-  const booleanFlags = new Set(['--untracked', '--help', '--version', '--list', '--json']);
-  const valueFlags = new Set(['--author', '--by', '--output', '--width', '--style', '--caption', '--safe', '--zotero-key', '--zotero-user', '--collection', '--doc-class', '--bib-file', '--packages', '--title', '--keywords', '--color']);
+  const booleanFlags = new Set(['--untracked', '--help', '--version', '--list', '--json', '--dry-run']);
+  const valueFlags = new Set(['--author', '--by', '--output', '--width', '--style', '--caption', '--safe', '--zotero-key', '--zotero-user', '--collection', '--doc-class', '--bib-file', '--packages', '--title', '--keywords', '--color', '--preset', '--vars']);
 
   const positionals = [];
   const options = {};
@@ -158,12 +159,15 @@ function resolveAuthor(options) {
  * @returns {string|object|undefined}
  */
 function buildSaveOpts(options, description) {
-  if (options.safe) {
-    return {
-      outputPath: options.output || undefined,
-      safeModify: options.safe,
-      description: description || 'docex CLI edit',
-    };
+  if (options['dry-run'] || options.safe) {
+    const opts = {};
+    if (options.output) opts.outputPath = options.output;
+    if (options.safe) {
+      opts.safeModify = options.safe;
+      opts.description = description || 'docex CLI edit';
+    }
+    if (options['dry-run']) opts.dryRun = true;
+    return opts;
   }
   return options.output;
 }
@@ -207,6 +211,14 @@ function formatSize(bytes) {
  * @param {object} result - { path, fileSize, paragraphCount, verified }
  */
 function printResult(result) {
+  if (result.dryRun) {
+    console.log('');
+    console.log(C.yellow('  [DRY RUN] No file written.'));
+    console.log(C.yellow('  Target: ') + result.path);
+    console.log(C.yellow('  Paras:  ') + result.paragraphCount + ' paragraphs');
+    return;
+  }
+
   const sizeStr = formatSize(result.fileSize);
   const paraStr = result.paragraphCount + ' paragraphs';
   const verifiedStr = result.verified
@@ -266,6 +278,8 @@ ${C.bold('Commands:')}
   ${C.cyan('count')}      <file>                           Word count
   ${C.cyan('meta')}       <file> [--title X] [--author X] [--keywords X]  Get/set metadata
   ${C.cyan('diff')}       <file1> <file2>                  Compare two documents
+  ${C.cyan('doctor')}     <file>                           Run diagnostic checks
+  ${C.cyan('init')}                                        Create .docexrc in current directory
 
 ${C.bold('Options:')}
   --author <name>     Author name (default: from git config)
@@ -286,6 +300,7 @@ ${C.bold('Options:')}
   --title <text>      Document title (for meta command)
   --keywords <text>   Document keywords (for meta command)
   --color <color>     Color name for highlight command (default: yellow)
+  --dry-run           Preview changes without writing (all mutating commands)
   --json              Output as JSON (for list/meta/count commands)
   --help              Show help
   --version           Show version
@@ -916,9 +931,16 @@ async function cmdRevisions(positionals, options) {
     console.log(C.bold(`Tracked changes (${revs.length}):\n`));
     for (const r of revs) {
       const typeTag = r.type === 'insertion' ? C.green('ins') : C.red('del');
-      console.log(`  ${C.cyan('#' + String(r.id).padStart(3))}  ${typeTag}  ${C.bold(r.author)} ${C.dim(r.date)}`);
+      console.log(`  ${C.cyan('#' + String(r.id).padStart(3))}  ${typeTag}  ${C.dim(r.author + '  ' + r.date)}`);
       const preview = r.text.slice(0, 80) + (r.text.length > 80 ? '...' : '');
-      console.log(`        ${preview}`);
+      // Colored text: red strikethrough for deletions, green for insertions
+      if (r.type === 'deletion') {
+        // Red + strikethrough (ANSI: \x1b[9m = strikethrough)
+        console.log(`        \x1b[31m\x1b[9m${preview}\x1b[0m`);
+      } else {
+        // Green for insertions
+        console.log(`        ${C.green(preview)}`);
+      }
       console.log('');
     }
     if (revs.length === 0) {
@@ -1137,6 +1159,224 @@ async function cmdDiff(positionals, options) {
 }
 
 // ============================================================================
+// v0.3 command handlers: doctor, init
+// ============================================================================
+
+/**
+ * docex doctor <file>
+ * Run diagnostic checks on a .docx file.
+ */
+async function cmdDoctor(positionals, options) {
+  if (positionals.length < 1) {
+    die('doctor requires: <file>');
+  }
+
+  const [file] = positionals;
+  const { Workspace } = require('../src/workspace');
+  const { Doctor } = require('../src/doctor');
+
+  const ws = Workspace.open(file);
+  const output = Doctor.diagnose(ws);
+  console.log(output);
+  ws.cleanup();
+}
+
+/**
+ * docex init
+ * Create .docexrc in the current directory.
+ */
+async function cmdInit(positionals, options) {
+  const targetDir = process.cwd();
+  const rcPath = path.join(targetDir, '.docexrc');
+
+  if (fs.existsSync(rcPath)) {
+    console.log(C.yellow('  .docexrc already exists at: ') + rcPath);
+    console.log(C.dim('  Delete it first if you want to reinitialize.'));
+    return;
+  }
+
+  // Get author from git config
+  let author = 'Unknown';
+  try {
+    author = require('child_process').execFileSync('git', ['config', 'user.name'], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      encoding: 'utf-8',
+      timeout: 3000,
+    }).trim() || 'Unknown';
+  } catch (_) { /* ignore */ }
+
+  const rc = {
+    author,
+    safeModify: '',
+    style: 'academic',
+    backup: true,
+  };
+
+  fs.writeFileSync(rcPath, JSON.stringify(rc, null, 2) + '\n', 'utf-8');
+  console.log(C.green('  Created: ') + rcPath);
+  console.log('');
+  console.log(C.dim('  Contents:'));
+  console.log(C.dim('  ' + JSON.stringify(rc, null, 2).replace(/\n/g, '\n  ')));
+}
+
+// ============================================================================
+// v0.3 Academic command handlers
+// ============================================================================
+
+/**
+ * docex style <file> <preset> [--output]
+ * Apply a journal style preset.
+ */
+async function cmdStyle(positionals, options) {
+  if (positionals.length < 2) {
+    die('style requires: <file> <preset-name>\n  Available: academic, polcomm, apa7, jcmc, joc');
+  }
+
+  const [file, presetName] = positionals;
+
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  console.log(C.dim(`Applying style preset: ${presetName}`));
+  const result = await doc.style(presetName);
+
+  for (const change of result.changes) {
+    console.log(C.green('  + ') + change);
+  }
+
+  const saveOpts = buildSaveOpts(options, `Apply style: ${presetName}`);
+  const saveResult = await doc.save(saveOpts);
+  printResult(saveResult);
+}
+
+/**
+ * docex verify <file> <preset> [--json]
+ * Validate document against journal requirements.
+ */
+async function cmdVerify(positionals, options) {
+  if (positionals.length < 2) {
+    die('verify requires: <file> <preset-name>\n  Available: academic, polcomm, apa7, jcmc, joc');
+  }
+
+  const [file, presetName] = positionals;
+
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  const result = await doc.verify(presetName);
+
+  if (options.json) {
+    console.log(JSON.stringify(result, null, 2));
+  } else {
+    const status = result.pass ? C.green('PASS') : C.red('FAIL');
+    console.log(C.bold(`Verification (${presetName}): `) + status);
+
+    if (result.errors.length > 0) {
+      console.log(C.red('\n  Errors:'));
+      for (const e of result.errors) {
+        console.log(C.red('    - ') + e);
+      }
+    }
+
+    if (result.warnings.length > 0) {
+      console.log(C.yellow('\n  Warnings:'));
+      for (const w of result.warnings) {
+        console.log(C.yellow('    - ') + w);
+      }
+    }
+
+    if (result.pass && result.warnings.length === 0) {
+      console.log(C.green('\n  All checks passed.'));
+    }
+  }
+
+  doc.discard();
+}
+
+/**
+ * docex anonymize <file> [--output]
+ * Remove author names for blind review.
+ */
+async function cmdAnonymize(positionals, options) {
+  if (positionals.length < 1) {
+    die('anonymize requires: <file>');
+  }
+
+  const [file] = positionals;
+
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  console.log(C.dim('Anonymizing document for blind review...'));
+  const result = await doc.anonymize();
+
+  if (result.authorsRemoved.length > 0) {
+    console.log(C.green('  Authors removed:'));
+    for (const a of result.authorsRemoved) {
+      console.log(C.green('    - ') + a);
+    }
+    console.log(C.green('  Locations: ') + result.locations.join(', '));
+  } else {
+    console.log(C.dim('  No author names found to remove.'));
+  }
+
+  const saveOpts = buildSaveOpts(options, 'Anonymize for blind review');
+  const saveResult = await doc.save(saveOpts);
+  printResult(saveResult);
+}
+
+/**
+ * docex expand <file> [--vars "KEY=VAL,KEY2=VAL2"] [--output]
+ * Expand {{VAR}} patterns in the document.
+ */
+async function cmdExpand(positionals, options) {
+  if (positionals.length < 1) {
+    die('expand requires: <file> [--vars "KEY=VAL,KEY2=VAL2"]');
+  }
+
+  const [file] = positionals;
+
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  // Parse variables from --vars option
+  const variables = {};
+  if (options.vars) {
+    const pairs = options.vars.split(',');
+    for (const pair of pairs) {
+      const eqIdx = pair.indexOf('=');
+      if (eqIdx > 0) {
+        const key = pair.slice(0, eqIdx).trim();
+        const val = pair.slice(eqIdx + 1).trim();
+        variables[key] = val;
+      }
+    }
+  }
+
+  if (Object.keys(variables).length === 0) {
+    // List mode: show all variables in the document
+    const vars = await doc.listVariables();
+    console.log(C.bold(`Variables found (${vars.length}):\n`));
+    for (const v of vars) {
+      console.log(`  ${C.cyan('{{' + v.name + '}}')}  para ${v.paragraph}  ${C.dim(v.context)}`);
+    }
+    if (vars.length === 0) {
+      console.log(C.dim('  No {{VAR}} patterns found.'));
+    }
+    doc.discard();
+    return;
+  }
+
+  console.log(C.dim(`Expanding ${Object.keys(variables).length} variable(s)...`));
+  const count = await doc.expand(variables);
+  console.log(C.green(`  Expanded: `) + count + ' occurrence(s)');
+
+  const saveOpts = buildSaveOpts(options, `Expand ${Object.keys(variables).length} variables`);
+  const saveResult = await doc.save(saveOpts);
+  printResult(saveResult);
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
@@ -1251,6 +1491,33 @@ async function main() {
       case 'diff':
       case 'compare':
         await cmdDiff(positionals, options);
+        break;
+
+      case 'doctor':
+      case 'check':
+        await cmdDoctor(positionals, options);
+        break;
+
+      case 'init':
+        await cmdInit(positionals, options);
+        break;
+
+      case 'style':
+        await cmdStyle(positionals, options);
+        break;
+
+      case 'verify':
+      case 'validate':
+        await cmdVerify(positionals, options);
+        break;
+
+      case 'anonymize':
+      case 'anon':
+        await cmdAnonymize(positionals, options);
+        break;
+
+      case 'expand':
+        await cmdExpand(positionals, options);
         break;
 
       default:

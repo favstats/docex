@@ -83,6 +83,144 @@ function findClosestMatches(paragraphs, searchText, limit = 3) {
 }
 
 // ============================================================================
+// FUZZY RETRY HELPERS
+// ============================================================================
+
+/**
+ * Normalize whitespace: collapse multiple spaces/newlines/tabs into single space, trim.
+ * @param {string} s
+ * @returns {string}
+ */
+function _normalizeWhitespace(s) {
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Try to find text in paragraphs using fuzzy matching strategies.
+ * Attempts in order:
+ *   1. Case-insensitive match
+ *   2. Normalized whitespace match
+ *   3. Decoded XML entities match (collapse &amp; etc.)
+ *
+ * Returns the actual text that matched in the paragraph (needed for replacement),
+ * or null if no fuzzy match found.
+ *
+ * @param {Array<{text: string, xml: string}>} paragraphs
+ * @param {string} searchText
+ * @returns {{paraIndex: number, matchedText: string, strategy: string}|null}
+ */
+function fuzzyFindText(paragraphs, searchText) {
+  // Strategy 1: case-insensitive
+  const lowerSearch = searchText.toLowerCase();
+  for (let i = 0; i < paragraphs.length; i++) {
+    const decoded = xml.decodeXml(paragraphs[i].text);
+    const lowerPara = decoded.toLowerCase();
+    const pos = lowerPara.indexOf(lowerSearch);
+    if (pos !== -1) {
+      // Return the actual-cased text from the paragraph
+      return {
+        paraIndex: i,
+        matchedText: decoded.slice(pos, pos + searchText.length),
+        strategy: 'case-insensitive',
+      };
+    }
+  }
+
+  // Strategy 2: normalized whitespace
+  const normSearch = _normalizeWhitespace(searchText);
+  for (let i = 0; i < paragraphs.length; i++) {
+    const decoded = xml.decodeXml(paragraphs[i].text);
+    const normPara = _normalizeWhitespace(decoded);
+    const pos = normPara.indexOf(normSearch);
+    if (pos !== -1) {
+      // We need to find the corresponding original text. We'll walk the original
+      // decoded text mapping normalized positions back.
+      const origText = _mapNormalizedBack(decoded, pos, normSearch.length);
+      if (origText) {
+        return {
+          paraIndex: i,
+          matchedText: origText,
+          strategy: 'normalized-whitespace',
+        };
+      }
+    }
+  }
+
+  // Strategy 3: case-insensitive + normalized whitespace
+  const normSearchLower = normSearch.toLowerCase();
+  for (let i = 0; i < paragraphs.length; i++) {
+    const decoded = xml.decodeXml(paragraphs[i].text);
+    const normPara = _normalizeWhitespace(decoded).toLowerCase();
+    const pos = normPara.indexOf(normSearchLower);
+    if (pos !== -1) {
+      const origText = _mapNormalizedBack(decoded, pos, normSearchLower.length);
+      if (origText) {
+        return {
+          paraIndex: i,
+          matchedText: origText,
+          strategy: 'case-insensitive-normalized',
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Map a position in a whitespace-normalized string back to the original string.
+ * Returns the slice of the original that corresponds to the normalized range.
+ *
+ * @param {string} original - Original (decoded) text
+ * @param {number} normPos - Start position in the normalized string
+ * @param {number} normLen - Length in the normalized string
+ * @returns {string|null}
+ */
+function _mapNormalizedBack(original, normPos, normLen) {
+  // Build mapping: normalized index -> original index
+  let normIdx = 0;
+  let origStart = -1;
+  let origEnd = -1;
+  let inWhitespace = false;
+  let origIdx = 0;
+
+  // Skip leading whitespace
+  while (origIdx < original.length && /\s/.test(original[origIdx])) {
+    origIdx++;
+  }
+
+  for (; origIdx < original.length; origIdx++) {
+    const ch = original[origIdx];
+    if (/\s/.test(ch)) {
+      if (!inWhitespace) {
+        // First whitespace char -> maps to single space in normalized
+        if (normIdx === normPos) origStart = origIdx;
+        normIdx++;
+        if (normIdx === normPos + normLen && origStart !== -1) {
+          origEnd = origIdx + 1;
+          break;
+        }
+        inWhitespace = true;
+      }
+      // Additional whitespace chars are skipped
+    } else {
+      inWhitespace = false;
+      if (normIdx === normPos) origStart = origIdx;
+      normIdx++;
+      if (normIdx === normPos + normLen && origStart !== -1) {
+        origEnd = origIdx + 1;
+        break;
+      }
+    }
+  }
+
+  if (origStart !== -1 && origEnd !== -1) {
+    return original.slice(origStart, origEnd);
+  }
+  return null;
+}
+
+// ============================================================================
 // PARAGRAPHS
 // ============================================================================
 
@@ -537,6 +675,26 @@ class Paragraphs {
       }
     }
 
+    // Fuzzy retry if exact match failed
+    if (!found) {
+      const fuzzy = fuzzyFindText(paragraphs, oldText);
+      if (fuzzy) {
+        // Retry with the actual matched text from the paragraph
+        docXml = ws.docXml; // refresh
+        const retryParagraphs = xml.findParagraphs(docXml);
+        if (fuzzy.paraIndex < retryParagraphs.length) {
+          const result = Paragraphs._injectReplacement(
+            retryParagraphs[fuzzy.paraIndex].xml, fuzzy.matchedText, newText, nextId, author, date
+          );
+          if (result.modified) {
+            const para = retryParagraphs[fuzzy.paraIndex];
+            docXml = docXml.slice(0, para.start) + result.xml + docXml.slice(para.end);
+            found = true;
+          }
+        }
+      }
+    }
+
     if (!found) {
       const closest = findClosestMatches(paragraphs, oldText);
       let msg = 'Text not found for replacement: "' + oldText.slice(0, 80) + '"';
@@ -656,6 +814,24 @@ class Paragraphs {
       break; // replace first occurrence only
     }
 
+    // Fuzzy retry if exact match failed
+    if (!found) {
+      const fuzzy = fuzzyFindText(paragraphs, oldText);
+      if (fuzzy) {
+        // Retry with the actual matched text using a proxy
+        const proxy = {
+          _xml: ws.docXml,
+          get docXml() { return this._xml; },
+          set docXml(v) { this._xml = v; },
+        };
+        try {
+          Paragraphs._replaceDirect(proxy, fuzzy.matchedText, newText);
+          docXml = proxy.docXml;
+          found = true;
+        } catch (_) { /* fuzzy retry also failed, fall through */ }
+      }
+    }
+
     if (!found) {
       const closest = findClosestMatches(paragraphs, oldText);
       let msg = 'Text not found for replacement: "' + oldText.slice(0, 80) + '"';
@@ -698,6 +874,25 @@ class Paragraphs {
         nextId = result.nextId;
         found = true;
         break;
+      }
+    }
+
+    // Fuzzy retry if exact match failed
+    if (!found) {
+      const fuzzy = fuzzyFindText(paragraphs, text);
+      if (fuzzy) {
+        docXml = ws.docXml;
+        const retryParagraphs = xml.findParagraphs(docXml);
+        if (fuzzy.paraIndex < retryParagraphs.length) {
+          const result = Paragraphs._injectDeletion(
+            retryParagraphs[fuzzy.paraIndex].xml, fuzzy.matchedText, nextId, author, date
+          );
+          if (result.modified) {
+            const para = retryParagraphs[fuzzy.paraIndex];
+            docXml = docXml.slice(0, para.start) + result.xml + docXml.slice(para.end);
+            found = true;
+          }
+        }
       }
     }
 
@@ -750,6 +945,18 @@ class Paragraphs {
         ws.docXml = proxy.docXml;
       }
       break;
+    }
+
+    // Fuzzy retry if exact match failed
+    if (!found) {
+      const fuzzy = fuzzyFindText(paragraphs, text);
+      if (fuzzy) {
+        // Retry with the actual matched text
+        try {
+          Paragraphs._deleteDirect(ws, fuzzy.matchedText);
+          found = true;
+        } catch (_) { /* fuzzy retry also failed */ }
+      }
     }
 
     if (!found) {
@@ -1082,4 +1289,4 @@ class Paragraphs {
   }
 }
 
-module.exports = { Paragraphs, findClosestMatches };
+module.exports = { Paragraphs, findClosestMatches, fuzzyFindText };

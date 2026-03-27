@@ -1,0 +1,437 @@
+/**
+ * presets.js -- Journal style presets for docex
+ *
+ * Applies predefined journal formatting to an OOXML document.
+ * Modifies: styles.xml (fonts, sizes, spacing), document defaults,
+ * section properties (margins, headers, footers).
+ *
+ * All methods operate on a Workspace object.
+ * XML manipulation is done entirely with string operations and regex.
+ * Zero external dependencies.
+ */
+
+'use strict';
+
+const xml = require('./xml');
+
+// ============================================================================
+// BUILT-IN PRESETS
+// ============================================================================
+
+const PRESETS = {
+  academic: {
+    font: 'Times New Roman',
+    size: 12,
+    spacing: 'double',
+    alignment: 'justified',
+    margins: { top: 1, bottom: 1, left: 1, right: 1 },
+    indent: 0.5,
+    headingFont: 'Times New Roman',
+  },
+  polcomm: {
+    font: 'Times New Roman',
+    size: 12,
+    spacing: 'double',
+    alignment: 'justified',
+    margins: { top: 1, bottom: 1, left: 1, right: 1 },
+    indent: 0.5,
+    titlePage: true,
+    runningHeader: true,
+    abstractWordLimit: 250,
+    wordLimit: 8000,
+    headingFont: 'Times New Roman',
+  },
+  apa7: {
+    font: 'Times New Roman',
+    size: 12,
+    spacing: 'double',
+    alignment: 'left',
+    margins: { top: 1, bottom: 1, left: 1, right: 1 },
+    indent: 0.5,
+    titlePage: true,
+    runningHeader: true,
+    abstractWordLimit: 250,
+    headingStyle: 'apa',
+    headingFont: 'Times New Roman',
+  },
+  jcmc: {
+    font: 'Times New Roman',
+    size: 12,
+    spacing: 'double',
+    alignment: 'justified',
+    margins: { top: 1, bottom: 1, left: 1, right: 1 },
+    indent: 0.5,
+    titlePage: true,
+    runningHeader: true,
+    abstractWordLimit: 200,
+    wordLimit: 10000,
+    headingFont: 'Times New Roman',
+  },
+  joc: {
+    font: 'Times New Roman',
+    size: 12,
+    spacing: 'double',
+    alignment: 'justified',
+    margins: { top: 1, bottom: 1, left: 1, right: 1 },
+    indent: 0.5,
+    titlePage: true,
+    runningHeader: true,
+    abstractWordLimit: 250,
+    wordLimit: 8000,
+    headingFont: 'Times New Roman',
+  },
+};
+
+// User-defined presets (accumulated at runtime)
+const customPresets = {};
+
+// ============================================================================
+// PRESETS CLASS
+// ============================================================================
+
+class Presets {
+
+  /**
+   * Apply a journal style preset to the document.
+   * Modifies: styles.xml (fonts, sizes, spacing), document defaults, margins.
+   *
+   * @param {object} ws - Workspace
+   * @param {string} presetName - Name of the preset (e.g. "polcomm", "apa7")
+   * @returns {{applied: string, changes: string[]}} Summary of changes made
+   */
+  static apply(ws, presetName) {
+    const config = Presets._resolvePreset(presetName);
+    if (!config) {
+      const available = Presets.list().join(', ');
+      throw new Error(`Unknown preset: "${presetName}". Available: ${available}`);
+    }
+
+    const changes = [];
+
+    // 1. Apply font and size to styles.xml
+    if (config.font || config.size) {
+      Presets._applyDefaultFont(ws, config.font, config.size);
+      changes.push(`Default font: ${config.font || 'unchanged'} ${config.size || ''}pt`);
+    }
+
+    // 2. Apply line spacing
+    if (config.spacing) {
+      Presets._applyLineSpacing(ws, config.spacing);
+      changes.push(`Line spacing: ${config.spacing}`);
+    }
+
+    // 3. Apply paragraph alignment
+    if (config.alignment) {
+      Presets._applyAlignment(ws, config.alignment);
+      changes.push(`Alignment: ${config.alignment}`);
+    }
+
+    // 4. Apply margins
+    if (config.margins) {
+      Presets._applyMargins(ws, config.margins);
+      changes.push(`Margins: ${config.margins.top}" top, ${config.margins.bottom}" bottom, ${config.margins.left}" left, ${config.margins.right}" right`);
+    }
+
+    // 5. Apply paragraph indent
+    if (config.indent) {
+      Presets._applyFirstLineIndent(ws, config.indent);
+      changes.push(`First-line indent: ${config.indent}"`);
+    }
+
+    return { applied: presetName, changes };
+  }
+
+  /**
+   * Return all available preset names.
+   *
+   * @returns {string[]} Array of preset names
+   */
+  static list() {
+    return [...Object.keys(PRESETS), ...Object.keys(customPresets)];
+  }
+
+  /**
+   * Register a custom preset.
+   *
+   * @param {string} name - Preset name
+   * @param {object} config - Preset configuration
+   */
+  static define(name, config) {
+    customPresets[name] = config;
+  }
+
+  /**
+   * Get the configuration for a preset.
+   *
+   * @param {string} name - Preset name
+   * @returns {object|null} The preset config or null
+   */
+  static get(name) {
+    return Presets._resolvePreset(name);
+  }
+
+  // --------------------------------------------------------------------------
+  // Internal helpers
+  // --------------------------------------------------------------------------
+
+  /**
+   * Resolve a preset name to its configuration.
+   *
+   * @param {string} name - Preset name
+   * @returns {object|null}
+   * @private
+   */
+  static _resolvePreset(name) {
+    return PRESETS[name] || customPresets[name] || null;
+  }
+
+  /**
+   * Apply the default font and size to styles.xml docDefaults.
+   *
+   * @param {object} ws - Workspace
+   * @param {string} font - Font name
+   * @param {number} size - Font size in points
+   * @private
+   */
+  static _applyDefaultFont(ws, font, size) {
+    let stylesXml = ws.stylesXml;
+    if (!stylesXml) return;
+
+    const sizeHalfPt = size ? size * 2 : 24; // OOXML uses half-points
+
+    // Update or create docDefaults rPrDefault
+    if (stylesXml.includes('<w:rPrDefault>')) {
+      // Update existing rPrDefault
+      if (font) {
+        // Replace rFonts in rPrDefault
+        stylesXml = stylesXml.replace(
+          /(<w:rPrDefault>[\s\S]*?<w:rFonts\b)[^/]*(\/?>)/,
+          `$1 w:ascii="${font}" w:hAnsi="${font}" w:eastAsia="${font}" w:cs="${font}"$2`
+        );
+        // If no rFonts exists, add it
+        if (!/<w:rPrDefault>[\s\S]*?<w:rFonts\b/.test(stylesXml)) {
+          stylesXml = stylesXml.replace(
+            /(<w:rPrDefault>\s*<w:rPr>)/,
+            `$1<w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:eastAsia="${font}" w:cs="${font}"/>`
+          );
+        }
+      }
+      if (size) {
+        // Replace sz in rPrDefault
+        if (stylesXml.match(/<w:rPrDefault>[\s\S]*?<w:sz\b/)) {
+          stylesXml = stylesXml.replace(
+            /(<w:rPrDefault>[\s\S]*?<w:sz\s+w:val=")(\d+)(")/,
+            `$1${sizeHalfPt}$3`
+          );
+          stylesXml = stylesXml.replace(
+            /(<w:rPrDefault>[\s\S]*?<w:szCs\s+w:val=")(\d+)(")/,
+            `$1${sizeHalfPt}$3`
+          );
+        } else {
+          stylesXml = stylesXml.replace(
+            /(<w:rPrDefault>\s*<w:rPr>)/,
+            `$1<w:sz w:val="${sizeHalfPt}"/><w:szCs w:val="${sizeHalfPt}"/>`
+          );
+        }
+      }
+    } else if (stylesXml.includes('<w:docDefaults>')) {
+      // docDefaults exists but no rPrDefault
+      const rPrDefault =
+        '<w:rPrDefault><w:rPr>'
+        + (font ? `<w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:eastAsia="${font}" w:cs="${font}"/>` : '')
+        + (size ? `<w:sz w:val="${sizeHalfPt}"/><w:szCs w:val="${sizeHalfPt}"/>` : '')
+        + '</w:rPr></w:rPrDefault>';
+      stylesXml = stylesXml.replace('<w:docDefaults>', '<w:docDefaults>' + rPrDefault);
+    } else {
+      // No docDefaults at all -- add it
+      const docDefaults =
+        '<w:docDefaults>'
+        + '<w:rPrDefault><w:rPr>'
+        + (font ? `<w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:eastAsia="${font}" w:cs="${font}"/>` : '')
+        + (size ? `<w:sz w:val="${sizeHalfPt}"/><w:szCs w:val="${sizeHalfPt}"/>` : '')
+        + '</w:rPr></w:rPrDefault>'
+        + '</w:docDefaults>';
+      // Insert after the opening <w:styles...> tag
+      stylesXml = stylesXml.replace(/(<w:styles[^>]*>)/, `$1${docDefaults}`);
+    }
+
+    ws.stylesXml = stylesXml;
+  }
+
+  /**
+   * Apply line spacing to the document's Normal style.
+   *
+   * @param {object} ws - Workspace
+   * @param {string} spacing - "single", "1.5", or "double"
+   * @private
+   */
+  static _applyLineSpacing(ws, spacing) {
+    let stylesXml = ws.stylesXml;
+    if (!stylesXml) return;
+
+    // OOXML line spacing values (in 240ths of a line)
+    const spacingMap = {
+      'single': 240,
+      '1.15': 276,
+      '1.5': 360,
+      'double': 480,
+    };
+    const lineVal = spacingMap[spacing] || 480;
+
+    const spacingXml = `<w:spacing w:line="${lineVal}" w:lineRule="auto"/>`;
+
+    // Try to update the Normal style's pPr spacing
+    // Find the Normal style
+    const normalStyleRe = /(<w:style\s+w:type="paragraph"\s+w:default="1"[^>]*>)([\s\S]*?)(<\/w:style>)/;
+    const normalMatch = stylesXml.match(normalStyleRe);
+
+    if (normalMatch) {
+      let styleContent = normalMatch[2];
+
+      if (styleContent.includes('<w:spacing')) {
+        // Update existing spacing in pPr
+        styleContent = styleContent.replace(
+          /<w:spacing[^/]*\/>/,
+          spacingXml
+        );
+      } else if (styleContent.includes('<w:pPr>')) {
+        // Add spacing to existing pPr
+        styleContent = styleContent.replace('<w:pPr>', '<w:pPr>' + spacingXml);
+      } else {
+        // Add pPr with spacing
+        styleContent = `<w:pPr>${spacingXml}</w:pPr>` + styleContent;
+      }
+
+      stylesXml = stylesXml.replace(normalStyleRe, normalMatch[1] + styleContent + normalMatch[3]);
+    } else {
+      // Also update pPrDefault if present
+      if (stylesXml.includes('<w:pPrDefault>')) {
+        if (stylesXml.match(/<w:pPrDefault>[\s\S]*?<w:spacing/)) {
+          stylesXml = stylesXml.replace(
+            /(<w:pPrDefault>[\s\S]*?)<w:spacing[^/]*\/>/,
+            `$1${spacingXml}`
+          );
+        } else if (stylesXml.includes('<w:pPr>', stylesXml.indexOf('<w:pPrDefault>'))) {
+          stylesXml = stylesXml.replace(
+            /(<w:pPrDefault>\s*<w:pPr>)/,
+            `$1${spacingXml}`
+          );
+        }
+      }
+    }
+
+    ws.stylesXml = stylesXml;
+  }
+
+  /**
+   * Apply paragraph alignment to the Normal style.
+   *
+   * @param {object} ws - Workspace
+   * @param {string} alignment - "left", "center", "right", "justified"
+   * @private
+   */
+  static _applyAlignment(ws, alignment) {
+    let stylesXml = ws.stylesXml;
+    if (!stylesXml) return;
+
+    // OOXML alignment values
+    const alignMap = {
+      'left': 'start',
+      'center': 'center',
+      'right': 'end',
+      'justified': 'both',
+      'justify': 'both',
+      'both': 'both',
+    };
+    const alignVal = alignMap[alignment] || 'both';
+    const alignXml = `<w:jc w:val="${alignVal}"/>`;
+
+    // Update Normal style
+    const normalStyleRe = /(<w:style\s+w:type="paragraph"\s+w:default="1"[^>]*>)([\s\S]*?)(<\/w:style>)/;
+    const normalMatch = stylesXml.match(normalStyleRe);
+
+    if (normalMatch) {
+      let styleContent = normalMatch[2];
+
+      if (styleContent.includes('<w:jc')) {
+        styleContent = styleContent.replace(/<w:jc[^/]*\/>/, alignXml);
+      } else if (styleContent.includes('<w:pPr>')) {
+        styleContent = styleContent.replace('<w:pPr>', '<w:pPr>' + alignXml);
+      } else {
+        styleContent = `<w:pPr>${alignXml}</w:pPr>` + styleContent;
+      }
+
+      stylesXml = stylesXml.replace(normalStyleRe, normalMatch[1] + styleContent + normalMatch[3]);
+    }
+
+    ws.stylesXml = stylesXml;
+  }
+
+  /**
+   * Apply page margins via section properties in document.xml.
+   *
+   * @param {object} ws - Workspace
+   * @param {object} margins - { top, bottom, left, right } in inches
+   * @private
+   */
+  static _applyMargins(ws, margins) {
+    let docXml = ws.docXml;
+
+    // OOXML margins are in twips (1 inch = 1440 twips)
+    const top = Math.round((margins.top || 1) * 1440);
+    const bottom = Math.round((margins.bottom || 1) * 1440);
+    const left = Math.round((margins.left || 1) * 1440);
+    const right = Math.round((margins.right || 1) * 1440);
+
+    const marginXml = `<w:pgMar w:top="${top}" w:right="${right}" w:bottom="${bottom}" w:left="${left}" w:header="720" w:footer="720" w:gutter="0"/>`;
+
+    // Find sectPr and update pgMar
+    if (docXml.includes('<w:pgMar')) {
+      docXml = docXml.replace(/<w:pgMar[^/]*\/>/, marginXml);
+    } else if (docXml.includes('<w:sectPr')) {
+      docXml = docXml.replace(/<w:sectPr([^>]*)>/, `<w:sectPr$1>${marginXml}`);
+    }
+
+    ws.docXml = docXml;
+  }
+
+  /**
+   * Apply first-line indent to the Normal paragraph style.
+   *
+   * @param {object} ws - Workspace
+   * @param {number} inches - Indent in inches
+   * @private
+   */
+  static _applyFirstLineIndent(ws, inches) {
+    let stylesXml = ws.stylesXml;
+    if (!stylesXml) return;
+
+    const twips = Math.round(inches * 1440);
+    const indentXml = `<w:ind w:firstLine="${twips}"/>`;
+
+    // Update Normal style
+    const normalStyleRe = /(<w:style\s+w:type="paragraph"\s+w:default="1"[^>]*>)([\s\S]*?)(<\/w:style>)/;
+    const normalMatch = stylesXml.match(normalStyleRe);
+
+    if (normalMatch) {
+      let styleContent = normalMatch[2];
+
+      if (styleContent.includes('<w:ind')) {
+        styleContent = styleContent.replace(/<w:ind[^/]*\/>/, indentXml);
+      } else if (styleContent.includes('<w:pPr>')) {
+        styleContent = styleContent.replace('<w:pPr>', '<w:pPr>' + indentXml);
+      } else {
+        styleContent = `<w:pPr>${indentXml}</w:pPr>` + styleContent;
+      }
+
+      stylesXml = stylesXml.replace(normalStyleRe, normalMatch[1] + styleContent + normalMatch[3]);
+    }
+
+    ws.stylesXml = stylesXml;
+  }
+}
+
+// Export the PRESETS constant too for direct access
+Presets.PRESETS = PRESETS;
+
+module.exports = { Presets };

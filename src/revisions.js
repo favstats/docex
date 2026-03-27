@@ -361,6 +361,91 @@ class Revisions {
     const m = attrs.match(re);
     return m ? m[1] : null;
   }
+
+  /**
+   * Scan all tracked changes and comments to find unique contributors.
+   * Returns authors with counts and last-active dates.
+   *
+   * @param {object} ws - Workspace with ws.docXml and ws.commentsXml
+   * @returns {Array<{name: string, changes: number, comments: number, lastActive: string}>}
+   */
+  static contributors(ws) {
+    const authors = {};
+
+    // Count tracked changes
+    const revisions = Revisions.list(ws);
+    for (const rev of revisions) {
+      const name = rev.author || 'Unknown';
+      if (!authors[name]) {
+        authors[name] = { name, changes: 0, comments: 0, lastActive: '' };
+      }
+      authors[name].changes++;
+      if (rev.date && rev.date > authors[name].lastActive) {
+        authors[name].lastActive = rev.date;
+      }
+    }
+
+    // Count comments (lazy require to avoid circular dependency)
+    const { Comments } = require('./comments');
+    const comments = Comments.list(ws);
+    for (const c of comments) {
+      const name = c.author || 'Unknown';
+      if (!authors[name]) {
+        authors[name] = { name, changes: 0, comments: 0, lastActive: '' };
+      }
+      authors[name].comments++;
+      if (c.date && c.date > authors[name].lastActive) {
+        authors[name].lastActive = c.date;
+      }
+    }
+
+    // Sort by total activity descending
+    return Object.values(authors).sort((a, b) =>
+      (b.changes + b.comments) - (a.changes + a.comments)
+    );
+  }
+
+  /**
+   * Combine comment dates and revision dates into a single chronological timeline.
+   *
+   * @param {object} ws - Workspace with ws.docXml and ws.commentsXml
+   * @returns {Array<{date: string, type: string, author: string, text: string}>}
+   */
+  static timeline(ws) {
+    const events = [];
+
+    // Add tracked changes
+    const revisions = Revisions.list(ws);
+    for (const rev of revisions) {
+      events.push({
+        date: rev.date || '',
+        type: rev.type,
+        author: rev.author,
+        text: rev.text,
+      });
+    }
+
+    // Add comments
+    const { Comments } = require('./comments');
+    const comments = Comments.list(ws);
+    for (const c of comments) {
+      events.push({
+        date: c.date || '',
+        type: 'comment',
+        author: c.author,
+        text: c.text,
+      });
+    }
+
+    // Sort chronologically
+    events.sort((a, b) => {
+      if (a.date < b.date) return -1;
+      if (a.date > b.date) return 1;
+      return 0;
+    });
+
+    return events;
+  }
 }
 
 module.exports = { Revisions };

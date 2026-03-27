@@ -11,9 +11,111 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execFileSync } = require('child_process');
 const crypto = require('crypto');
 const xml = require('./xml');
+
+// ============================================================================
+// LOCK FILE HELPERS
+// ============================================================================
+
+/**
+ * Check if a process with the given PID is still alive.
+ * @param {number} pid
+ * @returns {boolean}
+ */
+function _isPidAlive(pid) {
+  try {
+    process.kill(pid, 0); // signal 0 = existence check, no actual signal sent
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * Build lock file path for a given docx path.
+ * Lock file is `.filename.docx.docex-lock` in the same directory.
+ * @param {string} docxPath - Absolute path to the docx
+ * @returns {string}
+ */
+function _lockFilePath(docxPath) {
+  const dir = path.dirname(docxPath);
+  const base = path.basename(docxPath);
+  return path.join(dir, '.' + base + '.docex-lock');
+}
+
+/**
+ * Reference counter for lock files within the same process.
+ * Tracks how many open workspaces hold a lock on each file path.
+ * @type {Map<string, number>}
+ */
+const _lockRefCounts = new Map();
+
+// ============================================================================
+// BACKUP HELPERS
+// ============================================================================
+
+const MAX_BACKUPS = 20;
+
+/**
+ * Create a timestamped backup of a file in .docex-backups/ next to it.
+ * Prunes backups older than MAX_BACKUPS.
+ * @param {string} docxPath - Absolute path to the original docx
+ */
+function _createBackup(docxPath) {
+  if (!fs.existsSync(docxPath)) return;
+
+  const dir = path.dirname(docxPath);
+  const base = path.basename(docxPath, '.docx');
+  const backupDir = path.join(dir, '.docex-backups');
+
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+  }
+
+  // Timestamp: YYYYMMDD_HHMMSS
+  const now = new Date();
+  const ts = now.getFullYear().toString()
+    + String(now.getMonth() + 1).padStart(2, '0')
+    + String(now.getDate()).padStart(2, '0')
+    + '_'
+    + String(now.getHours()).padStart(2, '0')
+    + String(now.getMinutes()).padStart(2, '0')
+    + String(now.getSeconds()).padStart(2, '0');
+
+  const backupName = `${base}_${ts}.docx`;
+  const backupPath = path.join(backupDir, backupName);
+  fs.copyFileSync(docxPath, backupPath);
+
+  // Prune: keep only the newest MAX_BACKUPS
+  _pruneBackups(backupDir, base);
+}
+
+/**
+ * Remove oldest backups so at most MAX_BACKUPS remain.
+ * @param {string} backupDir
+ * @param {string} baseName - Filename prefix (without extension)
+ */
+function _pruneBackups(backupDir, baseName) {
+  const prefix = baseName + '_';
+  let files;
+  try {
+    files = fs.readdirSync(backupDir)
+      .filter(f => f.startsWith(prefix) && f.endsWith('.docx'))
+      .sort(); // lexicographic sort = chronological for YYYYMMDD_HHMMSS
+  } catch (_) {
+    return;
+  }
+
+  while (files.length > MAX_BACKUPS) {
+    const oldest = files.shift();
+    try {
+      fs.unlinkSync(path.join(backupDir, oldest));
+    } catch (_) { /* ignore */ }
+  }
+}
 
 // Late-loaded to avoid circular dependency (docmap requires paragraphs which is fine,
 // but docmap is only needed at open time for paraId injection).
@@ -86,12 +188,14 @@ class Workspace {
    * @param {string} docxPath - Absolute or relative path to the .docx file
    * @returns {Workspace}
    */
-  static open(docxPath) {
+  static open(docxPath, opts = {}) {
     const absPath = path.resolve(docxPath);
     if (!fs.existsSync(absPath)) {
       throw new Error(`File not found: ${absPath}`);
     }
+
     const ws = new Workspace(absPath);
+    ws._lockPath = null;
     ws._unzip();
     // Inject w14:paraId on every <w:p> that lacks one (stable addressing)
     const DocMap = getDocMap();
@@ -113,6 +217,9 @@ class Workspace {
 
     /** @type {string} Temp directory holding unzipped contents */
     this._tmpDir = '';
+
+    /** @type {string|null} Lock file path (set by open()) */
+    this._lockPath = null;
 
     /** @type {number} Paragraph count at open time */
     this._originalParagraphCount = 0;
@@ -239,7 +346,7 @@ class Workspace {
     this._dirty.add('contentTypesXml');
   }
 
-  /** @returns {string} word/styles.xml content (read-only) */
+  /** @returns {string} word/styles.xml content */
   get stylesXml() {
     if (this._stylesXml === null) {
       const filePath = path.join(this._tmpDir, 'word', 'styles.xml');
@@ -250,6 +357,12 @@ class Workspace {
       }
     }
     return this._stylesXml;
+  }
+
+  /** @param {string} val */
+  set stylesXml(val) {
+    this._stylesXml = val;
+    this._dirty.add('stylesXml');
   }
 
   /** @returns {string|null} docProps/core.xml content, or null if not present */
@@ -348,6 +461,9 @@ class Workspace {
     let target;
     let safeModify = null;
     let description = 'docex edit';
+    let doBackup = true;
+
+    let dryRun = false;
 
     if (typeof outputPathOrOpts === 'object' && outputPathOrOpts !== null) {
       target = outputPathOrOpts.outputPath
@@ -355,12 +471,68 @@ class Workspace {
         : this._docxPath;
       safeModify = outputPathOrOpts.safeModify || null;
       description = outputPathOrOpts.description || 'docex edit';
+      if (outputPathOrOpts.backup === false) doBackup = false;
+      dryRun = !!outputPathOrOpts.dryRun;
     } else {
       target = outputPathOrOpts ? path.resolve(outputPathOrOpts) : this._docxPath;
     }
 
+    // Read .docexrc in the target directory to check backup setting
+    if (doBackup) {
+      try {
+        const rcPath = path.join(path.dirname(target), '.docexrc');
+        if (fs.existsSync(rcPath)) {
+          const rc = JSON.parse(fs.readFileSync(rcPath, 'utf-8'));
+          if (rc.backup === false) doBackup = false;
+        }
+      } catch (_) { /* ignore rc parse errors */ }
+    }
+
+    // Create backup before overwriting
+    if (doBackup && fs.existsSync(target)) {
+      _createBackup(target);
+    }
+
+    // Acquire lock file on target path to prevent concurrent writes
+    if (!dryRun) {
+      const lockPath = _lockFilePath(target);
+      try {
+        const lockContent = fs.readFileSync(lockPath, 'utf-8');
+        const lockInfo = JSON.parse(lockContent);
+        if (lockInfo.pid && lockInfo.pid !== process.pid && _isPidAlive(lockInfo.pid)) {
+          throw new Error(
+            `File is being edited by another docex process (PID ${lockInfo.pid}, started ${lockInfo.started || 'unknown'})`
+          );
+        }
+      } catch (err) {
+        if (err.message && err.message.includes('being edited')) throw err;
+        // No lock file or corrupt -- proceed
+      }
+      const lockFileData = {
+        pid: process.pid,
+        started: new Date().toISOString(),
+        user: os.userInfo().username,
+      };
+      try {
+        fs.writeFileSync(lockPath, JSON.stringify(lockFileData, null, 2), 'utf-8');
+        this._lockPath = lockPath;
+      } catch (_) { /* advisory lock, non-critical */ }
+    }
+
     // Write all dirty XML files back to disk
     this._flush();
+
+    // Dry-run mode: return result without writing to disk
+    if (dryRun) {
+      const newCount = this._countParagraphsInXml(this.docXml);
+      return {
+        path: target,
+        fileSize: 0,
+        paragraphCount: newCount,
+        verified: true,
+        dryRun: true,
+      };
+    }
 
     if (safeModify) {
       // Safe-modify path: save to temp file, then use safe-modify.sh to copy over
@@ -436,12 +608,23 @@ class Workspace {
   }
 
   /**
-   * Remove the temp directory. Safe to call multiple times.
+   * Remove the temp directory and lock file. Safe to call multiple times.
    */
   cleanup() {
     if (this._tmpDir && fs.existsSync(this._tmpDir)) {
       execFileSync('rm', ['-rf', this._tmpDir], { stdio: 'pipe' });
       this._tmpDir = '';
+    }
+    // Remove lock file only when reference count reaches 0
+    if (this._lockPath) {
+      const count = (_lockRefCounts.get(this._lockPath) || 1) - 1;
+      if (count <= 0) {
+        _lockRefCounts.delete(this._lockPath);
+        try { fs.unlinkSync(this._lockPath); } catch (_) { /* already removed */ }
+      } else {
+        _lockRefCounts.set(this._lockPath, count);
+      }
+      this._lockPath = null;
     }
   }
 
@@ -515,6 +698,7 @@ class Workspace {
       commentsIdsXml:  'word/commentsIds.xml',
       relsXml:         'word/_rels/document.xml.rels',
       contentTypesXml: '[Content_Types].xml',
+      stylesXml:       'word/styles.xml',
       footnotesXml:    'word/footnotes.xml',
       corePropsXml:    'docProps/core.xml',
       rootRelsXml:     '_rels/.rels',

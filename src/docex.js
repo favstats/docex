@@ -1153,6 +1153,13 @@ class DocexEngine {
     return Presets.apply(ws, presetName);
   }
 
+  async font(name) { Presets.setFont(await this._ensureWorkspace(), name); return this; }
+  async fontSize(pt) { Presets.setFontSize(await this._ensureWorkspace(), pt); return this; }
+  async headingFont(name) { Presets.setHeadingFont(await this._ensureWorkspace(), name); return this; }
+  async headingColor(hex) { Presets.setHeadingColor(await this._ensureWorkspace(), hex); return this; }
+  async linkColor(hex) { Presets.setLinkColor(await this._ensureWorkspace(), hex); return this; }
+  async paragraphSpacing(opts) { Presets.setParagraphSpacing(await this._ensureWorkspace(), opts); return this; }
+
   // ── Submission Validation (v0.3) ──────────────────────────────────────
 
   /**

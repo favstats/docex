@@ -288,6 +288,10 @@ ${C.bold('Commands:')}
   ${C.cyan('html')}       <docx-file>                        Convert .docx to HTML
   ${C.cyan('markdown')}   <docx-file>                        Convert .docx to Markdown
   ${C.cyan('create')}                                        Create a minimal empty .docx
+  ${C.cyan('outline')}    <file>                           Show document outline (headings)
+  ${C.cyan('split')}      <file> <heading>                 Split section into a separate .docx
+  ${C.cyan('redact')}     <file> <text> [replacement]      Redact sensitive text
+  ${C.cyan('unredact')}   <file>                           Restore all redacted text
 
 ${C.bold('Options:')}
   --author <name>     Author name (default: from git config)
@@ -1627,6 +1631,135 @@ async function cmdCreate(positionals, options) {
   console.log('');
   console.log(C.green('  Created: ') + result.path);
   console.log(C.green('  Size:    ') + formatSize(result.fileSize));
+}
+
+/**
+ * docex todo <file> -- Extract TODO/FIXME items
+ */
+async function cmdTodo(positionals, options) {
+  if (positionals.length < 1) die('todo requires: <file>');
+  const [file] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  const todos = await doc.todo();
+  if (todos.length === 0) { console.log(C.green('  No TODOs or FIXMEs found.')); return; }
+  if (options.json) { console.log(JSON.stringify(todos, null, 2)); return; }
+  console.log(C.bold(`  ${todos.length} TODO/FIXME items:\n`));
+  for (const t of todos) {
+    const source = t.source === 'comment' ? C.cyan('[comment]') : C.dim('[body]');
+    const author = t.author ? C.dim(` (${t.author})`) : '';
+    console.log(`  ${source} ${t.text}${author}`);
+  }
+}
+
+/**
+ * docex progress <file> -- Per-section writing progress
+ */
+async function cmdProgress(positionals, options) {
+  if (positionals.length < 1) die('progress requires: <file>');
+  const [file] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  const sections = await doc.progress();
+  if (options.json) { console.log(JSON.stringify(sections, null, 2)); return; }
+  console.log(C.bold('  Section progress:\n'));
+  for (const s of sections) {
+    const statusColor = s.status === 'done' ? C.green : s.status === 'draft' ? C.yellow : C.red;
+    const todoStr = s.todoCount > 0 ? C.yellow(` (${s.todoCount} TODOs)`) : '';
+    console.log(`  ${statusColor(s.status.padEnd(6))} ${s.section} -- ${s.wordCount} words${todoStr}`);
+  }
+}
+
+/**
+ * docex certify <file> <label> -- Certify document state
+ */
+async function cmdCertify(positionals, options) {
+  if (positionals.length < 2) die('certify requires: <file> <label>');
+  const [file, label] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  await doc.certify(label);
+  const saveOpts = buildSaveOpts(options, `Certify: "${label}"`);
+  const result = await doc.save(saveOpts);
+  console.log(C.green(`  Certified: "${label}"`));
+  printResult(result);
+}
+
+/**
+ * docex changelog <file> -- Show embedded changelog
+ */
+async function cmdChangelog(positionals, options) {
+  if (positionals.length < 1) die('changelog requires: <file>');
+  const [file] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  const entries = await doc.changelog();
+  if (entries.length === 0) { console.log(C.dim('  No changelog entries.')); return; }
+  if (options.json) { console.log(JSON.stringify(entries, null, 2)); return; }
+  console.log(C.bold(`  ${entries.length} changelog entries:\n`));
+  for (const e of entries) {
+    const ts = e.timestamp ? C.dim(e.timestamp.slice(0, 19)) : '';
+    console.log(`  ${ts} ${C.cyan(e.operation)} by ${e.author}: ${e.description}`);
+  }
+}
+
+
+async function cmdOutline(positionals, options) {
+  if (positionals.length < 1) die('outline requires: <file>');
+  const [file] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  const outline = await doc.outline();
+  if (options.json) { console.log(JSON.stringify(outline, null, 2)); return; }
+  if (outline.length === 0) { console.log(C.yellow('  No headings found.')); return; }
+  console.log(C.bold('  Document outline:\n'));
+  for (const h of outline) {
+    const indent = '  '.repeat(h.level);
+    const figStr = h.figureCount > 0 ? C.dim(` [${h.figureCount} fig]`) : '';
+    const paraStr = C.dim(` (${h.paragraphCount} para)`);
+    console.log(`  ${indent}${h.text}${paraStr}${figStr}`);
+  }
+}
+
+async function cmdSplit(positionals, options) {
+  if (positionals.length < 2) die('split requires: <file> <section-heading>');
+  const [file, heading] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  const outputPath = options.output || undefined;
+  const result = await doc.splitDocument(heading, outputPath);
+  const saveOpts = buildSaveOpts(options, `Split section: "${heading}"`);
+  const saved = await doc.save(saveOpts);
+  console.log('');
+  console.log(C.green('  Extracted: ') + result.outputPath);
+  console.log(C.green('  Paragraphs: ') + result.paragraphsExtracted);
+  printResult(saved);
+}
+
+async function cmdRedact(positionals, options) {
+  if (positionals.length < 2) die('redact requires: <file> <search-text> [replacement]');
+  const [file, searchText, replacement] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  const result = await doc.redact(searchText, replacement || '[REDACTED]');
+  console.log(C.dim(`Redacting "${searchText.slice(0, 40)}"`));
+  console.log(C.dim(`Replacement: ${result.replacement}`));
+  console.log(C.dim(`Occurrences: ${result.count}`));
+  const saveOpts = buildSaveOpts(options, `Redact: "${searchText.slice(0, 40)}"`);
+  const saved = await doc.save(saveOpts);
+  printResult(saved);
+}
+
+async function cmdUnredact(positionals, options) {
+  if (positionals.length < 1) die('unredact requires: <file>');
+  const [file] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  const result = await doc.unredact();
+  console.log(C.dim(`Restored ${result.count} redacted text segments`));
+  const saveOpts = buildSaveOpts(options, 'Unredact all');
+  const saved = await doc.save(saveOpts);
+  printResult(saved);
 }
 
 // ============================================================================

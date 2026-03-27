@@ -565,6 +565,16 @@ class DocexEngine {
     return new ParagraphHandle(this, paraId);
   }
 
+  table(n) {
+    var TH = require('./table-handle').TableHandle;
+    return new TH(this, n);
+  }
+
+  figure(n) {
+    var FH = require('./figure-handle').FigureHandle;
+    return new FH(this, n);
+  }
+
   /**
    * Find a heading by text and return a PositionSelector.
    * Only matches heading paragraphs.

@@ -431,6 +431,103 @@ class Presets {
   }
 
   // --------------------------------------------------------------------------
+  // Document-level font and color controls (v0.4.x)
+  // --------------------------------------------------------------------------
+
+  static setFont(ws, fontName) {
+    Presets._applyDefaultFont(ws, fontName, null);
+    let stylesXml = ws.stylesXml;
+    if (!stylesXml) return;
+    const normalStyleRe = /(<w:style\s+w:type="paragraph"\s+w:default="1"[^>]*>)([\s\S]*?)(<\/w:style>)/;
+    const normalMatch = stylesXml.match(normalStyleRe);
+    if (normalMatch) {
+      let sc = normalMatch[2];
+      const rf = '<w:rFonts w:ascii="' + fontName + '" w:hAnsi="' + fontName + '" w:eastAsia="' + fontName + '" w:cs="' + fontName + '"/>';
+      if (sc.includes('<w:rPr>') || sc.includes('<w:rPr ')) {
+        if (/<w:rPr[\s>][\s\S]*?<w:rFonts\b/.test(sc)) {
+          sc = sc.replace(/(<w:rPr[\s>][\s\S]*?)<w:rFonts\b[^/]*\/>/,'$1'+rf);
+        } else {
+          sc = sc.replace(/(<w:rPr[\s>])/,'$1'+rf);
+        }
+      } else { sc = '<w:rPr>'+rf+'</w:rPr>' + sc; }
+      stylesXml = stylesXml.replace(normalStyleRe, normalMatch[1] + sc + normalMatch[3]);
+      ws.stylesXml = stylesXml;
+    }
+  }
+
+  static setFontSize(ws, sizeInPt) { Presets._applyDefaultFont(ws, null, sizeInPt); }
+
+  static setHeadingFont(ws, fontName) {
+    let stylesXml = ws.stylesXml;
+    if (!stylesXml) return;
+    const rf = '<w:rFonts w:ascii="' + fontName + '" w:hAnsi="' + fontName + '" w:eastAsia="' + fontName + '" w:cs="' + fontName + '"/>';
+    const re = /(<w:style\s+w:type="paragraph"\s+w:styleId="(?:[Hh]eading\d|84[0-5]|13[9-9]|14[0-3])"[^>]*>)([\s\S]*?)(<\/w:style>)/g;
+    stylesXml = stylesXml.replace(re, function(full, open, content, close) {
+      if (content.includes('<w:rFonts')) content = content.replace(/<w:rFonts\b[^/]*\/>/,rf);
+      else if (content.includes('<w:rPr>') || content.includes('<w:rPr ')) content = content.replace(/(<w:rPr[\s>])/,'$1'+rf);
+      else content = '<w:rPr>'+rf+'</w:rPr>' + content;
+      return open + content + close;
+    });
+    ws.stylesXml = stylesXml;
+  }
+
+  static setHeadingColor(ws, hexColor) {
+    let stylesXml = ws.stylesXml;
+    if (!stylesXml) return;
+    const cx = '<w:color w:val="' + hexColor + '"/>';
+    const re = /(<w:style\s+w:type="paragraph"\s+w:styleId="(?:[Hh]eading\d|84[0-5]|13[9-9]|14[0-3])"[^>]*>)([\s\S]*?)(<\/w:style>)/g;
+    stylesXml = stylesXml.replace(re, function(full, open, content, close) {
+      if (content.includes('<w:color')) content = content.replace(/<w:color\b[^/]*\/>/,cx);
+      else if (content.includes('<w:rPr>') || content.includes('<w:rPr ')) content = content.replace(/(<w:rPr[\s>])/,'$1'+cx);
+      else content = '<w:rPr>'+cx+'</w:rPr>' + content;
+      return open + content + close;
+    });
+    ws.stylesXml = stylesXml;
+  }
+
+  static setLinkColor(ws, hexColor) {
+    let stylesXml = ws.stylesXml;
+    if (!stylesXml) return;
+    const cx = '<w:color w:val="' + hexColor + '"/>';
+    const re = /(<w:style\s+w:type="character"\s+w:styleId="(?:[Hh]yperlink)"[^>]*>)([\s\S]*?)(<\/w:style>)/;
+    const m = stylesXml.match(re);
+    if (m) {
+      let c = m[2];
+      if (c.includes('<w:color')) c = c.replace(/<w:color\b[^/]*\/>/,cx);
+      else if (c.includes('<w:rPr>') || c.includes('<w:rPr ')) c = c.replace(/(<w:rPr[\s>])/,'$1'+cx);
+      else c = '<w:rPr>'+cx+'</w:rPr>' + c;
+      stylesXml = stylesXml.replace(re, m[1] + c + m[3]);
+    } else {
+      stylesXml = stylesXml.replace('</w:styles>', '<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr>'+cx+'<w:u w:val="single"/></w:rPr></w:style></w:styles>');
+    }
+    ws.stylesXml = stylesXml;
+  }
+
+  static setParagraphSpacing(ws, opts) {
+    if (!opts) opts = {};
+    let stylesXml = ws.stylesXml;
+    if (!stylesXml) return;
+    const attrs = [];
+    if (opts.before !== undefined) attrs.push('w:before="' + Math.round(opts.before * 20) + '"');
+    if (opts.after !== undefined) attrs.push('w:after="' + Math.round(opts.after * 20) + '"');
+    if (opts.line !== undefined) attrs.push('w:line="' + opts.line + '" w:lineRule="auto"');
+    if (attrs.length === 0) return;
+    const spacingXml = '<w:spacing ' + attrs.join(' ') + '/>';
+    const normalStyleRe = /(<w:style\s+w:type="paragraph"\s+w:default="1"[^>]*>)([\s\S]*?)(<\/w:style>)/;
+    const normalMatch = stylesXml.match(normalStyleRe);
+    if (normalMatch) {
+      let sc = normalMatch[2];
+      if (sc.includes('<w:spacing')) sc = sc.replace(/<w:spacing[^/]*\/>/,spacingXml);
+      else if (sc.includes('<w:pPr>')) sc = sc.replace('<w:pPr>','<w:pPr>' + spacingXml);
+      else sc = '<w:pPr>'+spacingXml+'</w:pPr>' + sc;
+      stylesXml = stylesXml.replace(normalStyleRe, normalMatch[1] + sc + normalMatch[3]);
+    } else {
+      stylesXml = stylesXml.replace('</w:styles>', '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:pPr>'+spacingXml+'</w:pPr></w:style></w:styles>');
+    }
+    ws.stylesXml = stylesXml;
+  }
+
+  // --------------------------------------------------------------------------
   // Compare styles (v0.4.3)
   // --------------------------------------------------------------------------
 

@@ -47,6 +47,23 @@ const EMPTY_COMMENTS_IDS_XML =
   + `xmlns:mc="${xml.NS.mc}" mc:Ignorable="w16cid">`
   + '</w16cid:commentsIds>';
 
+/**
+ * Minimal footnotes.xml content for a .docx that has no footnotes yet.
+ * Includes the two required built-in separator footnotes (id=0 and id=1).
+ */
+const EMPTY_FOOTNOTES_XML =
+  '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+  + `<w:footnotes xmlns:w="${xml.NS.w}" xmlns:r="${xml.NS.r}" `
+  + `xmlns:w14="${xml.NS.w14}" xmlns:mc="${xml.NS.mc}" `
+  + `mc:Ignorable="w14">`
+  + '<w:footnote w:type="separator" w:id="0">'
+  + '<w:p><w:r><w:separator/></w:r></w:p>'
+  + '</w:footnote>'
+  + '<w:footnote w:type="continuationSeparator" w:id="1">'
+  + '<w:p><w:r><w:continuationSeparator/></w:r></w:p>'
+  + '</w:footnote>'
+  + '</w:footnotes>';
+
 // ============================================================================
 // WORKSPACE CLASS
 // ============================================================================
@@ -95,6 +112,9 @@ class Workspace {
     /** @type {string|null} */ this._relsXml = null;
     /** @type {string|null} */ this._contentTypesXml = null;
     /** @type {string|null} */ this._stylesXml = null;
+    /** @type {string|null} */ this._corePropsXml = null;
+    /** @type {string|null} */ this._rootRelsXml = null;
+    /** @type {string|null} */ this._footnotesXml = null;
 
     // Track which XML files have been modified
     /** @type {Set<string>} */ this._dirty = new Set();
@@ -217,6 +237,65 @@ class Workspace {
       }
     }
     return this._stylesXml;
+  }
+
+  /** @returns {string|null} docProps/core.xml content, or null if not present */
+  get corePropsXml() {
+    if (this._corePropsXml === null) {
+      const filePath = path.join(this._tmpDir, 'docProps', 'core.xml');
+      if (fs.existsSync(filePath)) {
+        this._corePropsXml = fs.readFileSync(filePath, 'utf-8');
+      } else {
+        // Return null to indicate file doesn't exist (unlike comments which auto-create)
+        return null;
+      }
+    }
+    return this._corePropsXml;
+  }
+
+  /** @param {string} val */
+  set corePropsXml(val) {
+    this._corePropsXml = val;
+    this._dirty.add('corePropsXml');
+  }
+
+  /** @returns {string|null} _rels/.rels content (root-level relationships) */
+  get rootRelsXml() {
+    if (this._rootRelsXml === null) {
+      const filePath = path.join(this._tmpDir, '_rels', '.rels');
+      if (fs.existsSync(filePath)) {
+        this._rootRelsXml = fs.readFileSync(filePath, 'utf-8');
+      } else {
+        return null;
+      }
+    }
+    return this._rootRelsXml;
+  }
+
+  /** @param {string} val */
+  set rootRelsXml(val) {
+    this._rootRelsXml = val;
+    this._dirty.add('rootRelsXml');
+  }
+
+  /** @returns {string} word/footnotes.xml content (created with separators if missing) */
+  get footnotesXml() {
+    if (this._footnotesXml === null) {
+      const filePath = path.join(this._tmpDir, 'word', 'footnotes.xml');
+      if (fs.existsSync(filePath)) {
+        this._footnotesXml = fs.readFileSync(filePath, 'utf-8');
+      } else {
+        this._footnotesXml = EMPTY_FOOTNOTES_XML;
+        this._dirty.add('footnotesXml');
+      }
+    }
+    return this._footnotesXml;
+  }
+
+  /** @param {string} val */
+  set footnotesXml(val) {
+    this._footnotesXml = val;
+    this._dirty.add('footnotesXml');
   }
 
   /** @returns {string} Absolute path to word/media/ directory */
@@ -423,6 +502,9 @@ class Workspace {
       commentsIdsXml:  'word/commentsIds.xml',
       relsXml:         'word/_rels/document.xml.rels',
       contentTypesXml: '[Content_Types].xml',
+      footnotesXml:    'word/footnotes.xml',
+      corePropsXml:    'docProps/core.xml',
+      rootRelsXml:     '_rels/.rels',
     };
 
     for (const [key, relPath] of Object.entries(fileMap)) {

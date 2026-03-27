@@ -35,6 +35,8 @@ const { Formatting } = require('./formatting');
 const { Footnotes } = require('./footnotes');
 const { Metadata } = require('./metadata');
 const { Diff } = require('./diff');
+const { DocMap } = require('./docmap');
+const { ParagraphHandle } = require('./handle');
 const xml = require('./xml');
 
 // ============================================================================
@@ -449,6 +451,86 @@ class DocexEngine {
       date: this._date,
     });
     return this;
+  }
+
+  // ── Stable Addressing (v0.3) ────────────────────────────────────────────
+
+  /**
+   * Generate a structured map of the document.
+   * Returns sections, paragraphs, figures, tables, and comments.
+   *
+   * @returns {Promise<{sections: Array, allParagraphs: Array, allFigures: Array, allTables: Array, allComments: Array}>}
+   */
+  async map() {
+    const ws = await this._ensureWorkspace();
+    return DocMap.generate(ws);
+  }
+
+  /**
+   * Get a ParagraphHandle for a specific paragraph by its w14:paraId.
+   * The handle provides stable, chainable operations.
+   *
+   * @param {string} paraId - The w14:paraId of the target paragraph
+   * @returns {ParagraphHandle}
+   */
+  id(paraId) {
+    return new ParagraphHandle(this, paraId);
+  }
+
+  /**
+   * Find a heading by text and return a PositionSelector.
+   * Only matches heading paragraphs.
+   *
+   * @param {string} text - Heading text to match
+   * @returns {PositionSelector}
+   */
+  afterHeading(text) {
+    return new PositionSelector(this, text, 'after');
+  }
+
+  /**
+   * Find a body paragraph by text and return a PositionSelector.
+   * Only matches body paragraphs (not headings).
+   *
+   * @param {string} text - Body text to match
+   * @returns {PositionSelector}
+   */
+  afterText(text) {
+    return new PositionSelector(this, text, 'after');
+  }
+
+  /**
+   * Find paragraphs containing the given text.
+   * Returns matches with section context and surrounding text.
+   *
+   * @param {string} text - Text to search for
+   * @returns {Promise<Array<{id: string, index: number, section: string, context: string}>>}
+   */
+  async find(text) {
+    const ws = await this._ensureWorkspace();
+    return DocMap.find(ws, text);
+  }
+
+  /**
+   * Return a tree-view string of the document structure.
+   *
+   * @returns {Promise<string>}
+   */
+  async structure() {
+    const ws = await this._ensureWorkspace();
+    return DocMap.structure(ws);
+  }
+
+  /**
+   * Find text and show the XML structure around it.
+   * Useful for debugging.
+   *
+   * @param {string} text - Text to find and explain
+   * @returns {Promise<string>}
+   */
+  async explain(text) {
+    const ws = await this._ensureWorkspace();
+    return DocMap.explain(ws, text);
   }
 
   // ── Inspection (read-only, no save needed) ───────────────────────────────

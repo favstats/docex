@@ -15,6 +15,16 @@ const { execFileSync } = require('child_process');
 const crypto = require('crypto');
 const xml = require('./xml');
 
+// Late-loaded to avoid circular dependency (docmap requires paragraphs which is fine,
+// but docmap is only needed at open time for paraId injection).
+let _DocMap = null;
+function getDocMap() {
+  if (!_DocMap) {
+    _DocMap = require('./docmap').DocMap;
+  }
+  return _DocMap;
+}
+
 // ============================================================================
 // EMPTY DOCUMENT TEMPLATES
 // ============================================================================
@@ -83,6 +93,9 @@ class Workspace {
     }
     const ws = new Workspace(absPath);
     ws._unzip();
+    // Inject w14:paraId on every <w:p> that lacks one (stable addressing)
+    const DocMap = getDocMap();
+    DocMap.injectParaIds(ws);
     ws._countOriginalParagraphs();
     return ws;
   }

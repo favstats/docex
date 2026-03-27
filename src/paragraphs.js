@@ -92,6 +92,112 @@ class Paragraphs {
     return results;
   }
 
+  /**
+   * Count words in the document, categorized by type.
+   *
+   * Categories:
+   *   - body: regular body text (everything not in another category)
+   *   - headings: text in heading paragraphs
+   *   - abstract: paragraphs between an "Abstract" heading and the next heading
+   *   - captions: paragraphs starting with "Figure" or "Table" followed by a number
+   *   - footnotes: text in word/footnotes.xml (if it exists)
+   *
+   * @param {object} ws - Workspace with ws.docXml and optionally ws.footnotesXml
+   * @returns {{total: number, body: number, headings: number, abstract: number, captions: number, footnotes: number}}
+   */
+  static wordCount(ws) {
+    const paragraphs = xml.findParagraphs(ws.docXml);
+
+    let headingWords = 0;
+    let abstractWords = 0;
+    let captionWords = 0;
+    let bodyWords = 0;
+
+    let inAbstract = false;
+
+    for (let i = 0; i < paragraphs.length; i++) {
+      const p = paragraphs[i];
+      const text = xml.extractTextDecoded(p.xml).trim();
+      if (!text) continue;
+
+      const words = Paragraphs._countWords(text);
+      const level = Paragraphs._headingLevel(p.xml);
+
+      if (level > 0) {
+        // It's a heading
+        headingWords += words;
+
+        // Check if this heading is "Abstract" (case-insensitive)
+        if (/^abstract$/i.test(text.trim())) {
+          inAbstract = true;
+        } else {
+          inAbstract = false;
+        }
+        continue;
+      }
+
+      // A standalone "Abstract" label paragraph (not a heading style but acts as one)
+      if (/^abstract$/i.test(text)) {
+        // Count the word "Abstract" as a heading, start abstract section
+        headingWords += words;
+        inAbstract = true;
+        continue;
+      }
+
+      // Check for "Keywords:" paragraph -- ends abstract section, categorize as abstract
+      if (inAbstract && /^keywords?\s*:/i.test(text)) {
+        abstractWords += words;
+        inAbstract = false;
+        continue;
+      }
+
+      // Check for caption: starts with "Figure" or "Table" followed by a number
+      if (/^(Figure|Table)\s+\d/i.test(text)) {
+        captionWords += words;
+        continue;
+      }
+
+      // If we're in the abstract section
+      if (inAbstract) {
+        abstractWords += words;
+        continue;
+      }
+
+      // Everything else is body text
+      bodyWords += words;
+    }
+
+    // Count footnote words
+    let footnoteWords = 0;
+    const footnotesXml = ws.footnotesXml;
+    if (footnotesXml) {
+      // Find all footnote elements (skip the separator/continuation footnotes with id 0 and 1)
+      const fnRe = /<w:footnote\b([^>]*)>([\s\S]*?)<\/w:footnote>/g;
+      let fnMatch;
+      while ((fnMatch = fnRe.exec(footnotesXml)) !== null) {
+        const attrs = fnMatch[1];
+        // Skip separator and continuation footnotes (w:type="separator" or w:type="continuationSeparator")
+        if (/w:type="/.test(attrs)) continue;
+        const fnBody = fnMatch[2];
+        const fnText = xml.extractTextDecoded(fnBody).trim();
+        if (fnText) {
+          footnoteWords += Paragraphs._countWords(fnText);
+        }
+      }
+    }
+
+    const total = bodyWords + headingWords + abstractWords + captionWords + footnoteWords;
+
+    return {
+      total,
+      body: bodyWords,
+      headings: headingWords,
+      abstract: abstractWords,
+      captions: captionWords,
+      footnotes: footnoteWords,
+    };
+  }
+
   // --------------------------------------------------------------------------
   // WRITE OPERATIONS
   // --------------------------------------------------------------------------
@@ -756,6 +862,19 @@ class Paragraphs {
     if (DOCBUILDER_MAP[styleId]) return DOCBUILDER_MAP[styleId];
 
     return 0;
+  }
+
+  /**
+   * Count words in a plain text string (split by whitespace).
+   *
+   * @param {string} text - Plain text
+   * @returns {number} Word count
+   * @private
+   */
+  static _countWords(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return 0;
+    return trimmed.split(/\s+/).length;
   }
 
   /**

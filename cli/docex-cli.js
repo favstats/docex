@@ -1808,6 +1808,22 @@ async function main() {
         await cmdCreate(positionals, options);
         break;
 
+      case 'todo':
+        await cmdTodo(positionals, options);
+        break;
+
+      case 'progress':
+        await cmdProgress(positionals, options);
+        break;
+
+      case 'certify':
+        await cmdCertify(positionals, options);
+        break;
+
+      case 'changelog':
+        await cmdChangelog(positionals, options);
+        break;
+
       default:
         die(`Unknown command: "${command}". Run 'docex --help' for usage.`);
     }

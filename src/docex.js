@@ -51,6 +51,10 @@ const { ResponseLetter } = require('./response-letter');
 const { Layout } = require('./layout');
 const { Provenance } = require('./provenance');
 const { Workflow } = require('./workflow');
+const { Sections } = require('./sections');
+const { Redact } = require('./redact');
+const { Quality } = require('./quality');
+const { Production } = require('./production');
 const xml = require('./xml');
 
 // ============================================================================
@@ -1290,6 +1294,166 @@ class DocexEngine {
     }
   }
 
+  // ── Document Manipulation (v0.4.8) ──────────────────────────────────────
+
+  /**
+   * Replace the content of the nth table in the document.
+   * @param {number} tableNumber - 1-based table number
+   * @param {Array<Array<string>>} newData - 2D array of cell values
+   * @param {object} [opts] - Options { headers, style }
+   */
+  async replaceTable(tableNumber, newData, opts = {}) {
+    const ws = await this._ensureWorkspace();
+    Layout.replaceTable(ws, tableNumber, newData, opts);
+    return this;
+  }
+
+  /**
+   * Add a page break before a heading.
+   * @param {string} headingText - Text of the heading
+   */
+  async pageBreakBefore(headingText) {
+    const ws = await this._ensureWorkspace();
+    Layout.pageBreakBefore(ws, headingText);
+    return this;
+  }
+
+  /**
+   * Fix heading hierarchy skips (e.g. H1->H3 becomes H1->H2).
+   * @returns {number} Count of fixes applied
+   */
+  async ensureHeadingHierarchy() {
+    const ws = await this._ensureWorkspace();
+    return Layout.ensureHeadingHierarchy(ws);
+  }
+
+  /**
+   * Merge two consecutive paragraphs into one.
+   * @param {string} id1 - w14:paraId of the first paragraph
+   * @param {string} id2 - w14:paraId of the second paragraph
+   */
+  async mergeParagraphs(id1, id2) {
+    const ws = await this._ensureWorkspace();
+    Layout.mergeParagraphs(ws, id1, id2);
+    return this;
+  }
+
+  /**
+   * Split a paragraph at the given text into two paragraphs.
+   * @param {string} paraId - w14:paraId of the paragraph
+   * @param {string} atText - Text at which to split
+   * @returns {string} New paraId for the second paragraph
+   */
+  async splitParagraph(paraId, atText) {
+    const ws = await this._ensureWorkspace();
+    return Layout.splitParagraph(ws, paraId, atText);
+  }
+
+  // ── Provenance (v0.4.9) ──────────────────────────────────────────────────
+
+  /**
+   * Get the embedded changelog.
+   * @returns {Array<{timestamp: string, operation: string, author: string, description: string}>}
+   */
+  async changelog() {
+    const ws = await this._ensureWorkspace();
+    return Provenance.getChangelog(ws);
+  }
+
+  /**
+   * Get changelog entries since a date.
+   * @param {string} dateString - ISO date string
+   */
+  async changelogSince(dateString) {
+    const ws = await this._ensureWorkspace();
+    return Provenance.changelogSince(ws, dateString);
+  }
+
+  /**
+   * Get origin information string.
+   * @returns {string}
+   */
+  async origin() {
+    const ws = await this._ensureWorkspace();
+    return Provenance.origin(ws);
+  }
+
+  /**
+   * Set origin information.
+   * @param {object} info - { version, date, template, tool }
+   */
+  async setOrigin(info) {
+    const ws = await this._ensureWorkspace();
+    Provenance.setOrigin(ws, info);
+    return this;
+  }
+
+  /**
+   * Certify the current document state with a label.
+   * @param {string} label - e.g. "submitted to Political Communication"
+   */
+  async certify(label) {
+    const ws = await this._ensureWorkspace();
+    Provenance.certify(ws, label);
+    return this;
+  }
+
+  /**
+   * Verify if document matches its last certification.
+   * @returns {{ certified: boolean, label: string, date: string, hash: string }}
+   */
+  async verifyCertification() {
+    const ws = await this._ensureWorkspace();
+    return Provenance.verifyCertification(ws);
+  }
+
+  /**
+   * List all certification points.
+   * @returns {Array<{label: string, date: string, hash: string}>}
+   */
+  async certifications() {
+    const ws = await this._ensureWorkspace();
+    return Provenance.certifications(ws);
+  }
+
+  // ── Workflow (v0.4.10) ────────────────────────────────────────────────────
+
+  /**
+   * Extract all TODO/FIXME items from comments and body text.
+   * @returns {Array<{text: string, source: string, paraId: string, author: string}>}
+   */
+  async todo() {
+    const ws = await this._ensureWorkspace();
+    return Workflow.todo(ws);
+  }
+
+  /**
+   * Per-section progress analysis.
+   * @returns {Array<{section: string, status: string, wordCount: number, todoCount: number}>}
+   */
+  async progress() {
+    const ws = await this._ensureWorkspace();
+    return Workflow.progress(ws);
+  }
+
+  /**
+   * Render table of contents as a preview string.
+   * @returns {string}
+   */
+  async tocPreview() {
+    const ws = await this._ensureWorkspace();
+    return Workflow.tocPreview(ws);
+  }
+
+  /**
+   * List all figures with captions and estimated page numbers.
+   * @returns {string}
+   */
+  async figureList() {
+    const ws = await this._ensureWorkspace();
+    return Workflow.figureList(ws);
+  }
+
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
   /**
@@ -1500,6 +1664,26 @@ class DocexEngine {
       receipts.push(receipt);
     }
 
+    // v0.4.9: Auto-append to embedded changelog before saving
+    if (this._operations.length > 0) {
+      try {
+        const now = new Date().toISOString();
+        const changelogEntries = receipts
+          .filter(r => r.success)
+          .map(r => ({
+            timestamp: now,
+            operation: r.type,
+            author: this._author,
+            description: r.context ? r.context.slice(0, 120) : r.type,
+          }));
+        if (changelogEntries.length > 0) {
+          Provenance.appendChangelog(ws, changelogEntries);
+        }
+      } catch (_) {
+        // Non-fatal: if changelog writing fails, still save the document
+      }
+    }
+
     // Save and verify -- pass through options to workspace
     const result = ws.save(saveOpts);
 
@@ -1590,3 +1774,6 @@ module.exports.Compile = Compile;
 module.exports.Batch = Batch;
 module.exports.Template = Template;
 module.exports.ResponseLetter = ResponseLetter;
+module.exports.Layout = Layout;
+module.exports.Provenance = Provenance;
+module.exports.Workflow = Workflow;

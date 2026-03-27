@@ -429,6 +429,206 @@ class Presets {
 
     ws.stylesXml = stylesXml;
   }
+
+  // --------------------------------------------------------------------------
+  // Compare styles (v0.4.3)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Preview what a preset would change without applying it.
+   * Compares the current document state against the preset config.
+   *
+   * @param {object} ws - Workspace
+   * @param {string} presetName - Preset name to compare against
+   * @returns {{ changes: string[] }} List of human-readable change descriptions
+   */
+  static compareStyles(ws, presetName) {
+    const config = Presets._resolvePreset(presetName);
+    if (!config) {
+      const available = Presets.list().join(', ');
+      throw new Error(`Unknown preset: "${presetName}". Available: ${available}`);
+    }
+
+    const changes = [];
+    const stylesXml = ws.stylesXml || '';
+    const docXml = ws.docXml || '';
+
+    // 1. Check font
+    if (config.font) {
+      const currentFont = Presets._detectCurrentFont(stylesXml);
+      if (currentFont && currentFont !== config.font) {
+        // Count paragraphs that would be affected
+        const paraCount = (docXml.match(/<w:p[\s>]/g) || []).length;
+        changes.push(`${paraCount} paragraphs: font ${currentFont} -> ${config.font}`);
+      } else if (!currentFont) {
+        const paraCount = (docXml.match(/<w:p[\s>]/g) || []).length;
+        changes.push(`${paraCount} paragraphs: font (default) -> ${config.font}`);
+      }
+    }
+
+    // 2. Check size
+    if (config.size) {
+      const currentSize = Presets._detectCurrentSize(stylesXml);
+      if (currentSize && currentSize !== config.size) {
+        changes.push(`font size: ${currentSize}pt -> ${config.size}pt`);
+      } else if (!currentSize) {
+        changes.push(`font size: (default) -> ${config.size}pt`);
+      }
+    }
+
+    // 3. Check spacing
+    if (config.spacing) {
+      const currentSpacing = Presets._detectCurrentSpacing(stylesXml);
+      if (currentSpacing && currentSpacing !== config.spacing) {
+        changes.push(`line spacing: ${currentSpacing} -> ${config.spacing}`);
+      } else if (!currentSpacing) {
+        changes.push(`line spacing: (default) -> ${config.spacing}`);
+      }
+    }
+
+    // 4. Check alignment
+    if (config.alignment) {
+      const currentAlign = Presets._detectCurrentAlignment(stylesXml);
+      if (currentAlign && currentAlign !== config.alignment) {
+        changes.push(`alignment: ${currentAlign} -> ${config.alignment}`);
+      }
+    }
+
+    // 5. Check margins
+    if (config.margins) {
+      const currentMargins = Presets._detectCurrentMargins(docXml);
+      if (currentMargins) {
+        const marginParts = [];
+        if (currentMargins.top !== config.margins.top) marginParts.push(`top ${currentMargins.top}" -> ${config.margins.top}"`);
+        if (currentMargins.bottom !== config.margins.bottom) marginParts.push(`bottom ${currentMargins.bottom}" -> ${config.margins.bottom}"`);
+        if (currentMargins.left !== config.margins.left) marginParts.push(`left ${currentMargins.left}" -> ${config.margins.left}"`);
+        if (currentMargins.right !== config.margins.right) marginParts.push(`right ${currentMargins.right}" -> ${config.margins.right}"`);
+        if (marginParts.length > 0) {
+          changes.push(`margins: ${marginParts.join(', ')}`);
+        }
+      }
+    }
+
+    // 6. Check indent
+    if (config.indent) {
+      const currentIndent = Presets._detectCurrentIndent(stylesXml);
+      if (currentIndent !== null && currentIndent !== config.indent) {
+        changes.push(`first-line indent: ${currentIndent}" -> ${config.indent}"`);
+      } else if (currentIndent === null) {
+        changes.push(`first-line indent: none -> ${config.indent}"`);
+      }
+    }
+
+    return { changes };
+  }
+
+  // --------------------------------------------------------------------------
+  // Detection helpers for compareStyles
+  // --------------------------------------------------------------------------
+
+  /**
+   * Detect the current default font from styles.xml.
+   * @param {string} stylesXml
+   * @returns {string|null}
+   * @private
+   */
+  static _detectCurrentFont(stylesXml) {
+    // Look in rPrDefault for rFonts
+    const m = stylesXml.match(/<w:rPrDefault>[\s\S]*?<w:rFonts[^>]*w:ascii="([^"]+)"/);
+    return m ? m[1] : null;
+  }
+
+  /**
+   * Detect the current default font size from styles.xml.
+   * @param {string} stylesXml
+   * @returns {number|null} Size in points
+   * @private
+   */
+  static _detectCurrentSize(stylesXml) {
+    const m = stylesXml.match(/<w:rPrDefault>[\s\S]*?<w:sz\s+w:val="(\d+)"/);
+    return m ? parseInt(m[1], 10) / 2 : null;
+  }
+
+  /**
+   * Detect the current line spacing from the Normal style.
+   * @param {string} stylesXml
+   * @returns {string|null} 'single', '1.15', '1.5', or 'double'
+   * @private
+   */
+  static _detectCurrentSpacing(stylesXml) {
+    // Look in the Normal style
+    const normalStyleRe = /(<w:style\s+w:type="paragraph"\s+w:default="1"[^>]*>)([\s\S]*?)(<\/w:style>)/;
+    const normalMatch = stylesXml.match(normalStyleRe);
+    if (!normalMatch) return null;
+
+    const spacingMatch = normalMatch[2].match(/<w:spacing[^>]*w:line="(\d+)"/);
+    if (!spacingMatch) return null;
+
+    const val = parseInt(spacingMatch[1], 10);
+    const reverseMap = { 240: 'single', 276: '1.15', 360: '1.5', 480: 'double' };
+    return reverseMap[val] || `${(val / 240).toFixed(2)}x`;
+  }
+
+  /**
+   * Detect the current paragraph alignment from the Normal style.
+   * @param {string} stylesXml
+   * @returns {string|null}
+   * @private
+   */
+  static _detectCurrentAlignment(stylesXml) {
+    const normalStyleRe = /(<w:style\s+w:type="paragraph"\s+w:default="1"[^>]*>)([\s\S]*?)(<\/w:style>)/;
+    const normalMatch = stylesXml.match(normalStyleRe);
+    if (!normalMatch) return null;
+
+    const jcMatch = normalMatch[2].match(/<w:jc\s+w:val="([^"]+)"/);
+    if (!jcMatch) return null;
+
+    const reverseMap = { 'start': 'left', 'center': 'center', 'end': 'right', 'both': 'justified' };
+    return reverseMap[jcMatch[1]] || jcMatch[1];
+  }
+
+  /**
+   * Detect current page margins from document.xml.
+   * @param {string} docXml
+   * @returns {{top: number, bottom: number, left: number, right: number}|null}
+   * @private
+   */
+  static _detectCurrentMargins(docXml) {
+    const m = docXml.match(/<w:pgMar\s+([^>]+)\/?>/);
+    if (!m) return null;
+
+    const attrs = m[1];
+    const top = (attrs.match(/w:top="(\d+)"/) || [])[1];
+    const bottom = (attrs.match(/w:bottom="(\d+)"/) || [])[1];
+    const left = (attrs.match(/w:left="(\d+)"/) || [])[1];
+    const right = (attrs.match(/w:right="(\d+)"/) || [])[1];
+
+    if (!top || !bottom || !left || !right) return null;
+
+    return {
+      top: Math.round(parseInt(top, 10) / 1440 * 100) / 100,
+      bottom: Math.round(parseInt(bottom, 10) / 1440 * 100) / 100,
+      left: Math.round(parseInt(left, 10) / 1440 * 100) / 100,
+      right: Math.round(parseInt(right, 10) / 1440 * 100) / 100,
+    };
+  }
+
+  /**
+   * Detect the current first-line indent from the Normal style.
+   * @param {string} stylesXml
+   * @returns {number|null} Indent in inches
+   * @private
+   */
+  static _detectCurrentIndent(stylesXml) {
+    const normalStyleRe = /(<w:style\s+w:type="paragraph"\s+w:default="1"[^>]*>)([\s\S]*?)(<\/w:style>)/;
+    const normalMatch = stylesXml.match(normalStyleRe);
+    if (!normalMatch) return null;
+
+    const indentMatch = normalMatch[2].match(/<w:ind[^>]*w:firstLine="(\d+)"/);
+    if (!indentMatch) return null;
+
+    return Math.round(parseInt(indentMatch[1], 10) / 1440 * 100) / 100;
+  }
 }
 
 // Export the PRESETS constant too for direct access

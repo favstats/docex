@@ -27,6 +27,8 @@ const { Paragraphs } = require('./paragraphs');
 const { Comments } = require('./comments');
 const { Figures } = require('./figures');
 const { Tables } = require('./tables');
+const { Citations } = require('./citations');
+const { Latex } = require('./latex');
 const { TextMap } = require('./textmap');
 const xml = require('./xml');
 
@@ -334,6 +336,56 @@ class DocexEngine {
   async text() {
     const ws = await this._ensureWorkspace();
     return Paragraphs.fullText(ws);
+  }
+
+  /**
+   * List all citation patterns found in the document text.
+   * No network access required -- just pattern matching.
+   *
+   * @returns {Array<{text: string, paragraph: number, pattern: string, authors: string, year: string}>}
+   */
+  async citations() {
+    const ws = await this._ensureWorkspace();
+    return Citations.list(ws);
+  }
+
+  /**
+   * Inject Zotero citation field codes into the document.
+   * Finds plain-text citation patterns, queries the Zotero Web API,
+   * and replaces them with OOXML ZOTERO_CITATION field codes.
+   *
+   * @param {object} options
+   * @param {string} options.zoteroApiKey - Zotero API key
+   * @param {string} options.zoteroUserId - Zotero user ID
+   * @param {string} [options.collectionId] - Limit matching to this Zotero collection
+   * @param {boolean} [options.bibliography] - Insert bibliography field (default: true)
+   * @returns {Promise<{found: number, matched: number, injected: number, unmatched: Array<string>}>}
+   */
+  async injectCitations(options) {
+    const ws = await this._ensureWorkspace();
+    return Citations.inject(ws, options);
+  }
+
+  // ── Export ──────────────────────────────────────────────────────────────
+
+  /**
+   * Convert the document to LaTeX.
+   * Read-only export -- does not modify the document or require save().
+   *
+   * @param {object} [options] - Conversion options
+   * @param {string} [options.documentClass='article'] - LaTeX document class
+   * @param {string[]} [options.packages] - Additional LaTeX packages
+   * @param {string} [options.bibFile='references'] - Bibliography file name (without .bib)
+   * @returns {Promise<string>} Complete LaTeX document string
+   *
+   * @example
+   *   const doc = docex("manuscript.docx");
+   *   const tex = await doc.toLatex();
+   *   // tex is a full LaTeX document string
+   */
+  async toLatex(options) {
+    const ws = await this._ensureWorkspace();
+    return Latex.convert(ws, options);
   }
 
   // ── Lifecycle ────────────────────────────────────────────────────────────

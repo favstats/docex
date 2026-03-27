@@ -15,6 +15,7 @@
  *   reply      <file> <comment-id> <text>      Reply to existing comment
  *   figure     <file> <position> <image> [caption]  Insert figure
  *   table      <file> <position> <json-file>   Insert table from JSON
+ *   cite       <file>                           Inject Zotero citations or list patterns
  *   list       <file> [type]                   List paragraphs|headings|comments|figures
  *
  * Options:
@@ -63,8 +64,8 @@ const C = {
  * @returns {{ command: string, positionals: string[], options: object }}
  */
 function parseArgs(argv) {
-  const booleanFlags = new Set(['--untracked', '--help', '--version']);
-  const valueFlags = new Set(['--author', '--by', '--output', '--width', '--style', '--caption', '--safe']);
+  const booleanFlags = new Set(['--untracked', '--help', '--version', '--list']);
+  const valueFlags = new Set(['--author', '--by', '--output', '--width', '--style', '--caption', '--safe', '--zotero-key', '--zotero-user', '--collection', '--doc-class', '--bib-file', '--packages']);
 
   const positionals = [];
   const options = {};
@@ -251,6 +252,8 @@ ${C.bold('Commands:')}
   ${C.cyan('reply')}      <file> <comment-id> <text>      Reply to existing comment
   ${C.cyan('figure')}     <file> <position> <image> [caption]  Insert figure
   ${C.cyan('table')}      <file> <position> <json-file>   Insert table from JSON
+  ${C.cyan('cite')}       <file>                           Inject Zotero citations or list patterns
+  ${C.cyan('latex')}      <file>                           Export document as LaTeX
   ${C.cyan('list')}       <file> [type]                   List paragraphs|headings|comments|figures
 
 ${C.bold('Options:')}
@@ -262,6 +265,13 @@ ${C.bold('Options:')}
   --style <style>     Table style: booktabs|plain (default: booktabs)
   --caption <text>    Figure/table caption
   --safe <path>       Wrap save through safe-modify.sh for manuscript protection
+  --zotero-key <key>  Zotero API key (for cite command)
+  --zotero-user <id>  Zotero user ID (for cite command)
+  --collection <id>   Zotero collection key (for cite command)
+  --list              List citation patterns only (for cite command)
+  --doc-class <cls>   LaTeX document class (default: article, for latex command)
+  --bib-file <name>   Bibliography file name without .bib (default: references)
+  --packages <list>   Comma-separated extra LaTeX packages (for latex command)
   --help              Show help
   --version           Show version
 
@@ -277,6 +287,18 @@ ${C.bold('Examples:')}
 
   ${C.dim('# Insert a figure')}
   docex figure manuscript.docx "after:Results" figures/fig03.png --caption "Figure 3. Status"
+
+  ${C.dim('# Inject Zotero citations')}
+  docex cite manuscript.docx --zotero-key KEY --zotero-user 6875557 --collection TUWJI72V
+
+  ${C.dim('# List citation patterns without injecting')}
+  docex cite manuscript.docx --list
+
+  ${C.dim('# Export to LaTeX (stdout)')}
+  docex latex manuscript.docx
+
+  ${C.dim('# Export to LaTeX (file)')}
+  docex latex manuscript.docx --output paper.tex
 
   ${C.dim('# List headings')}
   docex list manuscript.docx headings
@@ -540,6 +562,72 @@ async function cmdTable(positionals, options) {
 }
 
 /**
+ * docex cite <file> [--zotero-key KEY] [--zotero-user ID] [--collection ID] [--list] [--output]
+ *
+ * Inject Zotero citations or list found citation patterns.
+ */
+async function cmdCite(positionals, options) {
+  if (positionals.length < 1) {
+    die('cite requires: <file>\n  Use --list to show patterns, or --zotero-key + --zotero-user to inject');
+  }
+
+  const [file] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  if (options.list) {
+    // List-only mode: find citation patterns and print them
+    const cites = await doc.citations();
+    console.log(C.bold(`Citation patterns (${cites.length}):\n`));
+
+    for (const c of cites) {
+      const typeTag = c.pattern === 'narrative' ? C.cyan('narrative') : C.cyan('parenthetical');
+      console.log(`  ${C.dim(String(c.paragraph).padStart(3))}  ${c.text}  ${typeTag}`);
+      console.log(`        ${C.dim('authors: ' + c.authors + '  year: ' + c.year)}`);
+    }
+
+    if (cites.length === 0) {
+      console.log(C.dim('  No citation patterns found.'));
+    }
+
+    doc.discard();
+    return;
+  }
+
+  // Injection mode: requires Zotero credentials
+  if (!options['zotero-key'] || !options['zotero-user']) {
+    die('cite requires --zotero-key and --zotero-user for injection.\n  Use --list to just list found patterns.');
+  }
+
+  const injectOpts = {
+    zoteroApiKey: options['zotero-key'],
+    zoteroUserId: options['zotero-user'],
+  };
+  if (options.collection) {
+    injectOpts.collectionId = options.collection;
+  }
+
+  console.log(C.dim('Finding citation patterns...'));
+  const result = await doc.injectCitations(injectOpts);
+
+  console.log('');
+  console.log(C.green('  Found:    ') + result.found + ' citation patterns');
+  console.log(C.green('  Matched:  ') + result.matched + ' to Zotero items');
+  console.log(C.green('  Injected: ') + result.injected + ' field codes');
+
+  if (result.unmatched.length > 0) {
+    console.log(C.yellow('  Unmatched:'));
+    for (const u of result.unmatched) {
+      console.log(C.yellow('    - ') + u);
+    }
+  }
+
+  const saveOpts = buildSaveOpts(options, 'Inject Zotero citations');
+  const saveResult = await doc.save(saveOpts);
+  printResult(saveResult);
+}
+
+/**
  * docex list <file> [type]
  *
  * type: paragraphs (default) | headings | comments | figures
@@ -668,6 +756,11 @@ async function main() {
       case 'table':
       case 'tbl':
         await cmdTable(positionals, options);
+        break;
+
+      case 'cite':
+      case 'citations':
+        await cmdCite(positionals, options);
         break;
 
       case 'list':

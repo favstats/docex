@@ -1,0 +1,23 @@
+{
+  "name": "docex",
+  "version": "0.1.0",
+  "description": "LaTeX for .docx -- a zero-dependency Node.js library for programmatic document editing with tracked changes, comments, figures, and tables. Built for academic manuscript workflows.",
+  "type": "commonjs",
+  "main": "src/docex.js",
+  "bin": {
+    "docex": "./cli/docex-cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/docex.test.js test/integration.test.js"
+  },
+  "keywords": ["docx", "ooxml", "tracked-changes", "academic", "manuscript", "document-editing", "comments", "figures", "tables"],
+  "author": "Fabio Votta <fabio.votta@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/favstats/docex.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

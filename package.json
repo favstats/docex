@@ -8,7 +8,7 @@
     "docex": "./cli/docex-cli.js"
   },
   "scripts": {
-    "test": "node --test test/docex.test.js test/diff.test.js test/integration.test.js"
+    "test": "node --test test/*.test.js"
   },
   "keywords": ["docx", "ooxml", "tracked-changes", "academic", "manuscript", "document-editing", "comments", "figures", "tables"],
   "author": "Fabio Votta <fabio.votta@gmail.com>",

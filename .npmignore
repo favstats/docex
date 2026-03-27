@@ -1,0 +1,7 @@
+test/
+docs/
+reference/
+skill/
+.git/
+*.bak
+test/output/

@@ -30,6 +30,11 @@ const { Tables } = require('./tables');
 const { Citations } = require('./citations');
 const { Latex } = require('./latex');
 const { TextMap } = require('./textmap');
+const { Revisions } = require('./revisions');
+const { Formatting } = require('./formatting');
+const { Footnotes } = require('./footnotes');
+const { Metadata } = require('./metadata');
+const { Diff } = require('./diff');
 const xml = require('./xml');
 
 // ============================================================================
@@ -76,6 +81,43 @@ class PositionSelector {
   reply(text, opts = {}) {
     return this._engine._replyAt(this._anchor, text, opts);
   }
+
+  // ── Formatting at position ──────────────────────────────────────────────
+
+  /** Make the anchor text bold */
+  bold(opts) { return this._engine._format('bold', this._anchor, opts); }
+
+  /** Make the anchor text italic */
+  italic(opts) { return this._engine._format('italic', this._anchor, opts); }
+
+  /** Underline the anchor text */
+  underline(opts) { return this._engine._format('underline', this._anchor, opts); }
+
+  /** Strikethrough the anchor text */
+  strikethrough(opts) { return this._engine._format('strikethrough', this._anchor, opts); }
+
+  /** Make the anchor text superscript */
+  superscript(opts) { return this._engine._format('superscript', this._anchor, opts); }
+
+  /** Make the anchor text subscript */
+  subscript(opts) { return this._engine._format('subscript', this._anchor, opts); }
+
+  /** Make the anchor text small caps */
+  smallCaps(opts) { return this._engine._format('smallCaps', this._anchor, opts); }
+
+  /** Make the anchor text monospace (code) */
+  code(opts) { return this._engine._format('code', this._anchor, opts); }
+
+  /** Set font color on the anchor text */
+  color(colorName, opts) { return this._engine._format('color', this._anchor, { ...opts, colorName }); }
+
+  /** Highlight the anchor text */
+  highlight(colorName, opts) { return this._engine._format('highlight', this._anchor, { ...opts, colorName }); }
+
+  // ── Footnote at position ────────────────────────────────────────────────
+
+  /** Add a footnote anchored to text at this position */
+  footnote(text, opts) { return this._engine._footnoteAt(this._anchor, text, opts); }
 }
 
 // ============================================================================
@@ -222,6 +264,100 @@ class DocexEngine {
     return this;
   }
 
+  // ── Direct Formatting (apply to first match in document) ────────────────
+
+  /**
+   * Make text bold anywhere in the document.
+   * @param {string} text - Text to make bold
+   * @param {object} [opts] - Options (tracked, author)
+   */
+  bold(text, opts = {}) {
+    this._operations.push({
+      type: 'format',
+      formatType: 'bold',
+      text,
+      author: opts.author || this._author,
+      tracked: opts.tracked !== undefined ? opts.tracked : false,
+      date: this._date,
+    });
+    return this;
+  }
+
+  /**
+   * Make text italic anywhere in the document.
+   * @param {string} text - Text to make italic
+   * @param {object} [opts] - Options (tracked, author)
+   */
+  italic(text, opts = {}) {
+    this._operations.push({
+      type: 'format',
+      formatType: 'italic',
+      text,
+      author: opts.author || this._author,
+      tracked: opts.tracked !== undefined ? opts.tracked : false,
+      date: this._date,
+    });
+    return this;
+  }
+
+  /**
+   * Highlight text anywhere in the document.
+   * @param {string} text - Text to highlight
+   * @param {string} color - Highlight color name (e.g. 'yellow')
+   * @param {object} [opts] - Options (tracked, author)
+   */
+  highlight(text, color, opts = {}) {
+    this._operations.push({
+      type: 'format',
+      formatType: 'highlight',
+      text,
+      colorName: color || 'yellow',
+      author: opts.author || this._author,
+      tracked: opts.tracked !== undefined ? opts.tracked : false,
+      date: this._date,
+    });
+    return this;
+  }
+
+  /**
+   * Set font color on text anywhere in the document.
+   * @param {string} text - Text to color
+   * @param {string} colorName - Named color or hex
+   * @param {object} [opts] - Options (tracked, author)
+   */
+  color(text, colorName, opts = {}) {
+    this._operations.push({
+      type: 'format',
+      formatType: 'color',
+      text,
+      colorName: colorName || 'red',
+      author: opts.author || this._author,
+      tracked: opts.tracked !== undefined ? opts.tracked : false,
+      date: this._date,
+    });
+    return this;
+  }
+
+  /**
+   * Replace all occurrences of text in the document.
+   * Unlike replace() which only replaces the first match, this replaces all.
+   *
+   * @param {string} oldText - Text to find
+   * @param {string} newText - Replacement text
+   * @param {object} [opts] - Options
+   */
+  replaceAll(oldText, newText, opts = {}) {
+    this._operations.push({
+      type: 'replaceAll',
+      oldText,
+      newText,
+      author: opts.author || this._author,
+      tracked: opts.tracked !== undefined ? opts.tracked : this._tracked,
+      date: this._date,
+    });
+    return this;
+  }
+
   // ── Internal operation executors ─────────────────────────────────────────
 
   _insertAt(anchor, mode, text, opts) {
@@ -286,6 +422,30 @@ class DocexEngine {
       anchor,
       text,
       author: opts.by || opts.author || this._author,
+      date: this._date,
+    });
+    return this;
+  }
+
+  _format(formatType, text, opts = {}) {
+    this._operations.push({
+      type: 'format',
+      formatType,
+      text,
+      colorName: opts && opts.colorName,
+      author: (opts && opts.author) || this._author,
+      tracked: opts && opts.tracked !== undefined ? opts.tracked : false,
+      date: this._date,
+    });
+    return this;
+  }
+
+  _footnoteAt(anchor, text, opts = {}) {
+    this._operations.push({
+      type: 'footnote',
+      anchor,
+      text,
+      author: (opts && opts.author) || this._author,
       date: this._date,
     });
     return this;
@@ -366,6 +526,105 @@ class DocexEngine {
     return Citations.inject(ws, options);
   }
 
+  // ── Revisions ────────────────────────────────────────────────────────────
+
+  /**
+   * List all tracked changes in the document.
+   * @returns {Array<{id: number, type: string, author: string, date: string, text: string}>}
+   */
+  async revisions() {
+    return Revisions.list(await this._ensureWorkspace());
+  }
+
+  /**
+   * Accept tracked changes. If id is provided, accept only that change.
+   * If id is undefined, accept ALL changes.
+   * @param {number} [id] - Specific change ID to accept
+   */
+  async accept(id) {
+    Revisions.accept(await this._ensureWorkspace(), id);
+    return this;
+  }
+
+  /**
+   * Reject tracked changes. If id is provided, reject only that change.
+   * If id is undefined, reject ALL changes.
+   * @param {number} [id] - Specific change ID to reject
+   */
+  async reject(id) {
+    Revisions.reject(await this._ensureWorkspace(), id);
+    return this;
+  }
+
+  /**
+   * Produce a clean copy: accept all changes, remove all comments.
+   */
+  async cleanCopy() {
+    Revisions.cleanCopy(await this._ensureWorkspace());
+    return this;
+  }
+
+  // ── Footnotes ───────────────────────────────────────────────────────────
+
+  /**
+   * List all footnotes in the document.
+   * @returns {Array<{id: number, text: string}>}
+   */
+  async footnotes() {
+    return Footnotes.list(await this._ensureWorkspace());
+  }
+
+  // ── Metadata ────────────────────────────────────────────────────────────
+
+  /**
+   * Get or set document metadata.
+   * If props is provided, sets metadata and returns this for chaining.
+   * If props is omitted, returns the metadata object.
+   *
+   * @param {object} [props] - Properties to set (title, creator, keywords, etc.)
+   * @returns {Promise<object|DocexEngine>}
+   */
+  async metadata(props) {
+    const ws = await this._ensureWorkspace();
+    if (props) {
+      Metadata.set(ws, props);
+      return this;
+    }
+    return Metadata.get(ws);
+  }
+
+  // ── Word Count ──────────────────────────────────────────────────────────
+
+  /**
+   * Count words in the document, categorized by type.
+   * @returns {{total: number, body: number, headings: number, abstract: number, captions: number, footnotes: number}}
+   */
+  async wordCount() {
+    return Paragraphs.wordCount(await this._ensureWorkspace());
+  }
+
+  // ── Diff ────────────────────────────────────────────────────────────────
+
+  /**
+   * Compare this document with another document.
+   * Produces tracked changes (w:del + w:ins) showing what changed.
+   *
+   * @param {string} otherDocxPath - Path to the other .docx file
+   * @param {object} [opts] - Options
+   * @param {string} [opts.author] - Author name for tracked changes
+   * @returns {{added: number, removed: number, modified: number, unchanged: number}}
+   */
+  async diff(otherDocxPath, opts = {}) {
+    const ws = await this._ensureWorkspace();
+    const ws2 = Workspace.open(otherDocxPath);
+    const result = Diff.compare(ws, ws2, {
+      author: opts.author || this._author,
+      date: this._date,
+    });
+    ws2.cleanup();
+    return result;
+  }
+
   // ── Export ──────────────────────────────────────────────────────────────
 
   /**
@@ -428,7 +687,7 @@ class DocexEngine {
 
     // Apply operations in order (forward for comments/figures, backward index not needed
     // because we operate on XML strings with text search, not character offsets)
-    let opCount = { replace: 0, insert: 0, delete: 0, comment: 0, figure: 0, table: 0, reply: 0 };
+    let opCount = { replace: 0, insert: 0, delete: 0, comment: 0, figure: 0, table: 0, reply: 0, format: 0, footnote: 0, replaceAll: 0 };
 
     for (const op of this._operations) {
       try {
@@ -437,6 +696,21 @@ class DocexEngine {
             Paragraphs.replace(ws, op.oldText, op.newText, op);
             opCount.replace++;
             break;
+          case 'replaceAll': {
+            // Replace all occurrences by looping until no more matches
+            let count = 0;
+            const maxIter = 1000; // safety limit
+            while (count < maxIter) {
+              try {
+                Paragraphs.replace(ws, op.oldText, op.newText, op);
+                count++;
+              } catch (_) {
+                break; // no more matches
+              }
+            }
+            opCount.replaceAll += count;
+            break;
+          }
           case 'insert':
             Paragraphs.insert(ws, op.anchor, op.mode, op.text, op);
             opCount.insert++;
@@ -460,6 +734,47 @@ class DocexEngine {
           case 'table':
             Tables.insert(ws, op.anchor, op.mode, op.data, op);
             opCount.table++;
+            break;
+          case 'format': {
+            const fmtOpts = { tracked: op.tracked, author: op.author, date: op.date };
+            switch (op.formatType) {
+              case 'bold':
+                Formatting.bold(ws, op.text, fmtOpts);
+                break;
+              case 'italic':
+                Formatting.italic(ws, op.text, fmtOpts);
+                break;
+              case 'underline':
+                Formatting.underline(ws, op.text, fmtOpts);
+                break;
+              case 'strikethrough':
+                Formatting.strikethrough(ws, op.text, fmtOpts);
+                break;
+              case 'superscript':
+                Formatting.superscript(ws, op.text, fmtOpts);
+                break;
+              case 'subscript':
+                Formatting.subscript(ws, op.text, fmtOpts);
+                break;
+              case 'smallCaps':
+                Formatting.smallCaps(ws, op.text, fmtOpts);
+                break;
+              case 'code':
+                Formatting.code(ws, op.text, fmtOpts);
+                break;
+              case 'color':
+                Formatting.color(ws, op.text, op.colorName, fmtOpts);
+                break;
+              case 'highlight':
+                Formatting.highlight(ws, op.text, op.colorName || 'yellow', fmtOpts);
+                break;
+            }
+            opCount.format++;
+            break;
+          }
+          case 'footnote':
+            Footnotes.add(ws, op.anchor, op.text, op);
+            opCount.footnote++;
             break;
         }
       } catch (err) {

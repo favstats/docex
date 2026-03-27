@@ -15,6 +15,74 @@
 const xml = require('./xml');
 
 // ============================================================================
+// CLOSEST-MATCH HELPER
+// ============================================================================
+
+/**
+ * Score how similar two strings are by counting the longest common
+ * subsequence (character-level). Returns a value between 0 and 1.
+ *
+ * @param {string} a - First string
+ * @param {string} b - Second string
+ * @returns {number} Similarity score (0..1)
+ */
+function _lcsScore(a, b) {
+  if (!a || !b) return 0;
+  const al = a.toLowerCase();
+  const bl = b.toLowerCase();
+  // Fast path: substring match
+  if (bl.includes(al) || al.includes(bl)) return 1;
+
+  // LCS length via two-row DP (memory efficient)
+  const m = al.length;
+  const n = bl.length;
+  if (m === 0 || n === 0) return 0;
+  // Limit to avoid quadratic blow-up on very long paragraphs
+  const cap = 300;
+  const sa = m > cap ? al.slice(0, cap) : al;
+  const sb = n > cap ? bl.slice(0, cap) : bl;
+  const rows = 2;
+  const cols = sb.length + 1;
+  const dp = [new Uint16Array(cols), new Uint16Array(cols)];
+  for (let i = 1; i <= sa.length; i++) {
+    const cur = dp[i & 1];
+    const prev = dp[(i - 1) & 1];
+    for (let j = 1; j <= sb.length; j++) {
+      if (sa[i - 1] === sb[j - 1]) {
+        cur[j] = prev[j - 1] + 1;
+      } else {
+        cur[j] = Math.max(prev[j], cur[j - 1]);
+      }
+    }
+  }
+  const lcs = dp[sa.length & 1][sb.length];
+  return lcs / Math.max(sa.length, sb.length);
+}
+
+/**
+ * Find the closest matching paragraphs to a search string.
+ *
+ * @param {Array<{text: string}>} paragraphs - Paragraphs with .text
+ * @param {string} searchText - Text that was not found
+ * @param {number} [limit=3] - Max number of matches to return
+ * @returns {string[]} Array of truncated paragraph texts, best first
+ */
+function findClosestMatches(paragraphs, searchText, limit = 3) {
+  const scored = [];
+  for (const p of paragraphs) {
+    const decoded = xml.decodeXml(p.text);
+    if (!decoded.trim()) continue;
+    const score = _lcsScore(searchText, decoded);
+    scored.push({ text: decoded, score });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit).map(s => {
+    const t = s.text.trim();
+    return t.length > 60 ? t.slice(0, 57) + '...' : t;
+  });
+}
+
+// ============================================================================
 // PARAGRAPHS
 // ============================================================================
 
@@ -268,7 +336,12 @@ class Paragraphs {
       }
     }
     if (!anchorPara) {
-      throw new Error('Anchor text not found: "' + anchor.slice(0, 80) + '"');
+      const closest = findClosestMatches(paragraphs, anchor);
+      let msg = 'Anchor text not found: "' + anchor.slice(0, 80) + '"';
+      if (closest.length > 0) {
+        msg += '\nDid you mean:\n' + closest.map(c => '  - "' + c + '"').join('\n');
+      }
+      throw new Error(msg);
     }
 
     // Extract pPr from anchor paragraph for consistent formatting
@@ -337,6 +410,93 @@ class Paragraphs {
     }
   }
 
+  /**
+   * Replace ALL occurrences of oldText in the document (not just the first).
+   *
+   * @param {object} ws - Workspace with ws.docXml
+   * @param {string} oldText - Text to find
+   * @param {string} newText - Replacement text
+   * @param {object} [opts] - Options (same as replace)
+   * @returns {number} Count of replacements made
+   */
+  static replaceAll(ws, oldText, newText, opts = {}) {
+    let count = 0;
+    // Keep replacing until no more matches are found
+    while (true) {
+      const paragraphs = xml.findParagraphs(ws.docXml);
+      let found = false;
+      for (const para of paragraphs) {
+        if (xml.decodeXml(para.text).includes(oldText)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) break;
+      try {
+        Paragraphs.replace(ws, oldText, newText, opts);
+        count++;
+      } catch (_) {
+        break;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * Replace text matching a regular expression pattern.
+   *
+   * Finds paragraphs whose decoded text matches the pattern, then replaces
+   * each match using the standard replace() method. Pattern must have the
+   * global flag to replace all occurrences.
+   *
+   * @param {object} ws - Workspace with ws.docXml
+   * @param {RegExp} pattern - Regular expression to match
+   * @param {string} replacement - Replacement string (supports $1, $2, etc.)
+   * @param {object} [opts] - Options (same as replace)
+   * @returns {number} Count of replacements made
+   */
+  static replaceRegex(ws, pattern, replacement, opts = {}) {
+    const flags = pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g';
+    const globalRe = new RegExp(pattern.source, flags);
+    let count = 0;
+
+    // Collect all matches first by scanning paragraphs
+    while (true) {
+      const paragraphs = xml.findParagraphs(ws.docXml);
+      let matchFound = false;
+
+      for (const para of paragraphs) {
+        const decoded = xml.decodeXml(para.text);
+        // Reset regex state
+        globalRe.lastIndex = 0;
+        const m = globalRe.exec(decoded);
+        if (m) {
+          const matchedText = m[0];
+          // Build replacement string with group substitutions
+          let replaced = replacement;
+          for (let g = 0; g < m.length; g++) {
+            replaced = replaced.split('$' + g).join(m[g] || '');
+          }
+          // Also handle named groups would need more complex logic;
+          // for now support $1..$9
+          try {
+            Paragraphs.replace(ws, matchedText, replaced, opts);
+            count++;
+            matchFound = true;
+            break; // restart scan since XML changed
+          } catch (_) {
+            // If replace fails for this match, skip it
+            matchFound = false;
+            break;
+          }
+        }
+      }
+      if (!matchFound) break;
+    }
+
+    return count;
+  }
+
   // --------------------------------------------------------------------------
   // TRACKED CHANGE INTERNALS (ported from suggest-edit-safe.js)
   // --------------------------------------------------------------------------
@@ -378,7 +538,12 @@ class Paragraphs {
     }
 
     if (!found) {
-      throw new Error('Text not found for replacement: "' + oldText.slice(0, 80) + '"');
+      const closest = findClosestMatches(paragraphs, oldText);
+      let msg = 'Text not found for replacement: "' + oldText.slice(0, 80) + '"';
+      if (closest.length > 0) {
+        msg += '\nDid you mean:\n' + closest.map(c => '  - "' + c + '"').join('\n');
+      }
+      throw new Error(msg);
     }
 
     ws.docXml = docXml;
@@ -492,7 +657,12 @@ class Paragraphs {
     }
 
     if (!found) {
-      throw new Error('Text not found for replacement: "' + oldText.slice(0, 80) + '"');
+      const closest = findClosestMatches(paragraphs, oldText);
+      let msg = 'Text not found for replacement: "' + oldText.slice(0, 80) + '"';
+      if (closest.length > 0) {
+        msg += '\nDid you mean:\n' + closest.map(c => '  - "' + c + '"').join('\n');
+      }
+      throw new Error(msg);
     }
 
     ws.docXml = docXml;
@@ -532,7 +702,12 @@ class Paragraphs {
     }
 
     if (!found) {
-      throw new Error('Text not found for deletion: "' + text.slice(0, 80) + '"');
+      const closest = findClosestMatches(paragraphs, text);
+      let msg = 'Text not found for deletion: "' + text.slice(0, 80) + '"';
+      if (closest.length > 0) {
+        msg += '\nDid you mean:\n' + closest.map(c => '  - "' + c + '"').join('\n');
+      }
+      throw new Error(msg);
     }
 
     ws.docXml = docXml;
@@ -578,7 +753,12 @@ class Paragraphs {
     }
 
     if (!found) {
-      throw new Error('Text not found for deletion: "' + text.slice(0, 80) + '"');
+      const closest = findClosestMatches(paragraphs, text);
+      let msg = 'Text not found for deletion: "' + text.slice(0, 80) + '"';
+      if (closest.length > 0) {
+        msg += '\nDid you mean:\n' + closest.map(c => '  - "' + c + '"').join('\n');
+      }
+      throw new Error(msg);
     }
   }
 
@@ -902,4 +1082,4 @@ class Paragraphs {
   }
 }
 
-module.exports = { Paragraphs };
+module.exports = { Paragraphs, findClosestMatches };

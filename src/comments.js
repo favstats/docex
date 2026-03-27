@@ -16,6 +16,7 @@
 'use strict';
 
 const xml = require('./xml');
+const { findClosestMatches } = require('./paragraphs');
 
 // ---------------------------------------------------------------------------
 // Relationship type constants
@@ -192,6 +193,8 @@ class Comments {
         let charCount = 0;
         let startRunIdx = -1;
         let endRunIdx = -1;
+        let startCharOffset = -1; // offset within the start run
+        let endCharOffset = -1;   // offset within the end run
 
         const anchorStart = paraText.indexOf(anchor);
         const anchorEnd = anchorStart + anchor.length;
@@ -202,9 +205,11 @@ class Comments {
 
           if (startRunIdx === -1 && runEnd > anchorStart) {
             startRunIdx = r;
+            startCharOffset = anchorStart - charCount;
           }
           if (startRunIdx !== -1 && runEnd >= anchorEnd) {
             endRunIdx = r;
+            endCharOffset = anchorEnd - charCount;
             break;
           }
           charCount += runLen;
@@ -224,20 +229,90 @@ class Comments {
           + '<w:commentReference w:id="' + commentId + '"/>'
           + '</w:r>';
 
+        // Build a modified paragraph with run splitting for exact phrase anchoring.
+        // Process runs in reverse order to keep indices valid.
         let modPara = paraXml;
 
-        // Insert rangeEnd and reference after the last matched run
         if (textRuns.length > 0 && endRunIdx < textRuns.length) {
           const endRun = textRuns[endRunIdx];
-          const insertAfterPos = endRun.index + endRun.fullMatch.length;
-          modPara = modPara.slice(0, insertAfterPos) + rangeEnd + refRun + modPara.slice(insertAfterPos);
-        }
+          const endRunText = endRun.combinedText;
+          const endRunRPr = endRun.rPr;
 
-        // Insert rangeStart before the first matched run
-        if (textRuns.length > 0 && startRunIdx < textRuns.length) {
-          const startRun = textRuns[startRunIdx];
-          const insertBeforePos = startRun.index;
-          modPara = modPara.slice(0, insertBeforePos) + rangeStart + modPara.slice(insertBeforePos);
+          // If anchor ends partway through this run, split it
+          if (endCharOffset >= 0 && endCharOffset < endRunText.length) {
+            const insideText = endRunText.slice(0, endCharOffset);
+            const afterText = endRunText.slice(endCharOffset);
+            let splitXml = '';
+            if (insideText) {
+              splitXml += '<w:r>' + endRunRPr + '<w:t xml:space="preserve">' + xml.escapeXml(insideText) + '</w:t></w:r>';
+            }
+            splitXml += rangeEnd + refRun;
+            if (afterText) {
+              splitXml += '<w:r>' + endRunRPr + '<w:t xml:space="preserve">' + xml.escapeXml(afterText) + '</w:t></w:r>';
+            }
+            modPara = modPara.slice(0, endRun.index) + splitXml + modPara.slice(endRun.index + endRun.fullMatch.length);
+          } else {
+            // Anchor covers to end of run (or entire run) - just place markers after the run
+            const insertAfterPos = endRun.index + endRun.fullMatch.length;
+            modPara = modPara.slice(0, insertAfterPos) + rangeEnd + refRun + modPara.slice(insertAfterPos);
+          }
+
+          // If anchor starts partway through the start run, split it
+          // (recalculate startRun position since modPara may have changed only if startRunIdx != endRunIdx,
+          //  but if startRunIdx == endRunIdx the above replacement already includes the start portion)
+          if (startRunIdx === endRunIdx) {
+            // The end run was already split above. We need to place rangeStart before the
+            // inside-text run we just created. That's at endRun.index.
+            if (startCharOffset > 0) {
+              // We need to split the prefix portion out.
+              // The replacement at endRun.index currently starts with the insideText run.
+              // We need to split insideText further: prefix (before anchor) and anchor text.
+              const fullRunText = endRunText;
+              const prefixText = fullRunText.slice(0, startCharOffset);
+              const anchorText = fullRunText.slice(startCharOffset, endCharOffset);
+              const afterText = fullRunText.slice(endCharOffset);
+              let splitXml = '';
+              if (prefixText) {
+                splitXml += '<w:r>' + endRunRPr + '<w:t xml:space="preserve">' + xml.escapeXml(prefixText) + '</w:t></w:r>';
+              }
+              splitXml += rangeStart;
+              if (anchorText) {
+                splitXml += '<w:r>' + endRunRPr + '<w:t xml:space="preserve">' + xml.escapeXml(anchorText) + '</w:t></w:r>';
+              }
+              splitXml += rangeEnd + refRun;
+              if (afterText) {
+                splitXml += '<w:r>' + endRunRPr + '<w:t xml:space="preserve">' + xml.escapeXml(afterText) + '</w:t></w:r>';
+              }
+              // Replace the entire region we just built (from endRun.index)
+              modPara = paraXml.slice(0, endRun.index) + splitXml + paraXml.slice(endRun.index + endRun.fullMatch.length);
+            } else {
+              // Anchor starts at beginning of this run - just insert rangeStart before
+              // The endRun was replaced, so rangeStart goes at endRun.index
+              modPara = modPara.slice(0, endRun.index) + rangeStart + modPara.slice(endRun.index);
+            }
+          } else {
+            // startRunIdx != endRunIdx: split start run independently
+            const startRun = textRuns[startRunIdx];
+            const startRunText = startRun.combinedText;
+            const startRunRPr = startRun.rPr;
+
+            if (startCharOffset > 0) {
+              const prefixText = startRunText.slice(0, startCharOffset);
+              const anchorPartText = startRunText.slice(startCharOffset);
+              let splitXml = '';
+              if (prefixText) {
+                splitXml += '<w:r>' + startRunRPr + '<w:t xml:space="preserve">' + xml.escapeXml(prefixText) + '</w:t></w:r>';
+              }
+              splitXml += rangeStart;
+              if (anchorPartText) {
+                splitXml += '<w:r>' + startRunRPr + '<w:t xml:space="preserve">' + xml.escapeXml(anchorPartText) + '</w:t></w:r>';
+              }
+              modPara = modPara.slice(0, startRun.index) + splitXml + modPara.slice(startRun.index + startRun.fullMatch.length);
+            } else {
+              const insertBeforePos = startRun.index;
+              modPara = modPara.slice(0, insertBeforePos) + rangeStart + modPara.slice(insertBeforePos);
+            }
+          }
         }
 
         doc = doc.slice(0, para.start) + modPara + doc.slice(para.end);
@@ -247,7 +322,12 @@ class Comments {
       }
 
       if (!anchorFound) {
-        throw new Error('add(): could not find anchor text "' + anchor + '" in document');
+        const closest = findClosestMatches(paragraphs, anchor);
+        let msg = 'add(): could not find anchor text "' + anchor + '" in document';
+        if (closest.length > 0) {
+          msg += '\nDid you mean:\n' + closest.map(c => '  - "' + c + '"').join('\n');
+        }
+        throw new Error(msg);
       }
     }
 

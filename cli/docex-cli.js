@@ -64,8 +64,8 @@ const C = {
  * @returns {{ command: string, positionals: string[], options: object }}
  */
 function parseArgs(argv) {
-  const booleanFlags = new Set(['--untracked', '--help', '--version', '--list']);
-  const valueFlags = new Set(['--author', '--by', '--output', '--width', '--style', '--caption', '--safe', '--zotero-key', '--zotero-user', '--collection', '--doc-class', '--bib-file', '--packages']);
+  const booleanFlags = new Set(['--untracked', '--help', '--version', '--list', '--json']);
+  const valueFlags = new Set(['--author', '--by', '--output', '--width', '--style', '--caption', '--safe', '--zotero-key', '--zotero-user', '--collection', '--doc-class', '--bib-file', '--packages', '--title', '--keywords', '--color']);
 
   const positionals = [];
   const options = {};
@@ -255,6 +255,17 @@ ${C.bold('Commands:')}
   ${C.cyan('cite')}       <file>                           Inject Zotero citations or list patterns
   ${C.cyan('latex')}      <file>                           Export document as LaTeX
   ${C.cyan('list')}       <file> [type]                   List paragraphs|headings|comments|figures
+  ${C.cyan('accept')}     <file> [id]                     Accept tracked changes (all or by ID)
+  ${C.cyan('reject')}     <file> [id]                     Reject tracked changes (all or by ID)
+  ${C.cyan('clean')}      <file>                           Accept all changes, remove all comments
+  ${C.cyan('revisions')}  <file>                           List tracked changes
+  ${C.cyan('bold')}       <file> <text>                   Make text bold
+  ${C.cyan('italic')}     <file> <text>                   Make text italic
+  ${C.cyan('highlight')}  <file> <text> [--color C]       Highlight text (default: yellow)
+  ${C.cyan('footnote')}   <file> <anchor> <text>          Add footnote at anchor text
+  ${C.cyan('count')}      <file>                           Word count
+  ${C.cyan('meta')}       <file> [--title X] [--author X] [--keywords X]  Get/set metadata
+  ${C.cyan('diff')}       <file1> <file2>                  Compare two documents
 
 ${C.bold('Options:')}
   --author <name>     Author name (default: from git config)
@@ -272,6 +283,10 @@ ${C.bold('Options:')}
   --doc-class <cls>   LaTeX document class (default: article, for latex command)
   --bib-file <name>   Bibliography file name without .bib (default: references)
   --packages <list>   Comma-separated extra LaTeX packages (for latex command)
+  --title <text>      Document title (for meta command)
+  --keywords <text>   Document keywords (for meta command)
+  --color <color>     Color name for highlight command (default: yellow)
+  --json              Output as JSON (for list/meta/count commands)
   --help              Show help
   --version           Show version
 
@@ -288,23 +303,30 @@ ${C.bold('Examples:')}
   ${C.dim('# Insert a figure')}
   docex figure manuscript.docx "after:Results" figures/fig03.png --caption "Figure 3. Status"
 
-  ${C.dim('# Inject Zotero citations')}
-  docex cite manuscript.docx --zotero-key KEY --zotero-user 6875557 --collection TUWJI72V
+  ${C.dim('# Accept all tracked changes')}
+  docex accept manuscript.docx
 
-  ${C.dim('# List citation patterns without injecting')}
-  docex cite manuscript.docx --list
+  ${C.dim('# Highlight text in yellow')}
+  docex highlight manuscript.docx "important finding" --color yellow
 
-  ${C.dim('# Export to LaTeX (stdout)')}
-  docex latex manuscript.docx
+  ${C.dim('# Add a footnote')}
+  docex footnote manuscript.docx "platform governance" "See Gorwa 2019 for details."
 
-  ${C.dim('# Export to LaTeX (file)')}
-  docex latex manuscript.docx --output paper.tex
+  ${C.dim('# Word count')}
+  docex count manuscript.docx
+
+  ${C.dim('# Get/set metadata')}
+  docex meta manuscript.docx
+  docex meta manuscript.docx --title "New Title" --author "Author Name"
+
+  ${C.dim('# Compare two documents')}
+  docex diff original.docx revised.docx --output diff.docx
 
   ${C.dim('# List headings')}
   docex list manuscript.docx headings
 
-  ${C.dim('# List comments')}
-  docex list manuscript.docx comments
+  ${C.dim('# List tracked changes')}
+  docex revisions manuscript.docx
 
   ${C.dim('# Save to different file')}
   docex replace manuscript.docx "old" "new" --output manuscript_v2.docx
@@ -639,6 +661,7 @@ async function cmdList(positionals, options) {
 
   const [file] = positionals;
   const type = (positionals[1] || 'paragraphs').toLowerCase();
+  const jsonOutput = !!options.json;
 
   const docex = require('../src/docex');
   const doc = docex(file);
@@ -648,6 +671,10 @@ async function cmdList(positionals, options) {
     case 'paras':
     case 'p': {
       const items = await doc.paragraphs();
+      if (jsonOutput) {
+        console.log(JSON.stringify(items, null, 2));
+        break;
+      }
       console.log(C.bold(`Paragraphs (${items.length}):\n`));
       for (const p of items) {
         const styleTag = p.style ? C.dim(` [${p.style}]`) : '';
@@ -660,6 +687,10 @@ async function cmdList(positionals, options) {
     case 'headings':
     case 'h': {
       const items = await doc.headings();
+      if (jsonOutput) {
+        console.log(JSON.stringify(items, null, 2));
+        break;
+      }
       console.log(C.bold(`Headings (${items.length}):\n`));
       for (const h of items) {
         const indent = '  '.repeat(h.level);
@@ -671,6 +702,10 @@ async function cmdList(positionals, options) {
     case 'comments':
     case 'c': {
       const items = await doc.comments();
+      if (jsonOutput) {
+        console.log(JSON.stringify(items, null, 2));
+        break;
+      }
       console.log(C.bold(`Comments (${items.length}):\n`));
       for (const c of items) {
         console.log(`  ${C.cyan('#' + c.id)}  ${C.bold(c.author)} ${C.dim(c.date)}`);
@@ -684,6 +719,10 @@ async function cmdList(positionals, options) {
     case 'images':
     case 'f': {
       const items = await doc.figures();
+      if (jsonOutput) {
+        console.log(JSON.stringify(items, null, 2));
+        break;
+      }
       console.log(C.bold(`Figures (${items.length}):\n`));
       for (const f of items) {
         const dims = (f.width && f.height)
@@ -697,8 +736,44 @@ async function cmdList(positionals, options) {
       break;
     }
 
+    case 'revisions':
+    case 'changes':
+    case 'r': {
+      const items = await doc.revisions();
+      if (jsonOutput) {
+        console.log(JSON.stringify(items, null, 2));
+        break;
+      }
+      console.log(C.bold(`Tracked changes (${items.length}):\n`));
+      for (const r of items) {
+        const typeTag = r.type === 'insertion' ? C.green('ins') : C.red('del');
+        console.log(`  ${C.cyan('#' + String(r.id).padStart(3))}  ${typeTag}  ${C.bold(r.author)} ${C.dim(r.date)}`);
+        const preview = r.text.slice(0, 80) + (r.text.length > 80 ? '...' : '');
+        console.log(`        ${preview}`);
+        console.log('');
+      }
+      break;
+    }
+
+    case 'footnotes':
+    case 'fn': {
+      const items = await doc.footnotes();
+      if (jsonOutput) {
+        console.log(JSON.stringify(items, null, 2));
+        break;
+      }
+      console.log(C.bold(`Footnotes (${items.length}):\n`));
+      for (const fn of items) {
+        console.log(`  ${C.cyan('#' + String(fn.id).padStart(3))}  ${fn.text}`);
+      }
+      if (items.length === 0) {
+        console.log(C.dim('  No footnotes found.'));
+      }
+      break;
+    }
+
     default:
-      die(`Unknown list type: "${type}". Choose: paragraphs, headings, comments, figures`);
+      die(`Unknown list type: "${type}". Choose: paragraphs, headings, comments, figures, revisions, footnotes`);
   }
 
   // Clean up workspace (list is read-only, no save needed)
@@ -737,6 +812,328 @@ async function cmdLatex(positionals, options) {
 
   // Clean up workspace (read-only, no save needed)
   doc.discard();
+}
+
+// ============================================================================
+// New v0.2 command handlers
+// ============================================================================
+
+/**
+ * docex accept <file> [id]
+ * Accept tracked changes (all or by ID).
+ */
+async function cmdAccept(positionals, options) {
+  if (positionals.length < 1) {
+    die('accept requires: <file> [id]');
+  }
+
+  const [file] = positionals;
+  const id = positionals[1] ? parseInt(positionals[1], 10) : undefined;
+
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  if (id !== undefined) {
+    console.log(C.dim(`Accepting change #${id}...`));
+    await doc.accept(id);
+  } else {
+    console.log(C.dim('Accepting all tracked changes...'));
+    await doc.accept();
+  }
+
+  const saveOpts = buildSaveOpts(options, id ? `Accept change #${id}` : 'Accept all changes');
+  const result = await doc.save(saveOpts);
+  printResult(result);
+}
+
+/**
+ * docex reject <file> [id]
+ * Reject tracked changes (all or by ID).
+ */
+async function cmdReject(positionals, options) {
+  if (positionals.length < 1) {
+    die('reject requires: <file> [id]');
+  }
+
+  const [file] = positionals;
+  const id = positionals[1] ? parseInt(positionals[1], 10) : undefined;
+
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  if (id !== undefined) {
+    console.log(C.dim(`Rejecting change #${id}...`));
+    await doc.reject(id);
+  } else {
+    console.log(C.dim('Rejecting all tracked changes...'));
+    await doc.reject();
+  }
+
+  const saveOpts = buildSaveOpts(options, id ? `Reject change #${id}` : 'Reject all changes');
+  const result = await doc.save(saveOpts);
+  printResult(result);
+}
+
+/**
+ * docex clean <file>
+ * Accept all changes, remove all comments.
+ */
+async function cmdClean(positionals, options) {
+  if (positionals.length < 1) {
+    die('clean requires: <file>');
+  }
+
+  const [file] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  console.log(C.dim('Producing clean copy (accept all changes, remove comments)...'));
+  await doc.cleanCopy();
+
+  const saveOpts = buildSaveOpts(options, 'Clean copy: accept all changes, remove comments');
+  const result = await doc.save(saveOpts);
+  printResult(result);
+}
+
+/**
+ * docex revisions <file>
+ * List tracked changes.
+ */
+async function cmdRevisions(positionals, options) {
+  if (positionals.length < 1) {
+    die('revisions requires: <file>');
+  }
+
+  const [file] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  const revs = await doc.revisions();
+
+  if (options.json) {
+    console.log(JSON.stringify(revs, null, 2));
+  } else {
+    console.log(C.bold(`Tracked changes (${revs.length}):\n`));
+    for (const r of revs) {
+      const typeTag = r.type === 'insertion' ? C.green('ins') : C.red('del');
+      console.log(`  ${C.cyan('#' + String(r.id).padStart(3))}  ${typeTag}  ${C.bold(r.author)} ${C.dim(r.date)}`);
+      const preview = r.text.slice(0, 80) + (r.text.length > 80 ? '...' : '');
+      console.log(`        ${preview}`);
+      console.log('');
+    }
+    if (revs.length === 0) {
+      console.log(C.dim('  No tracked changes found.'));
+    }
+  }
+
+  doc.discard();
+}
+
+/**
+ * docex bold <file> <text> [--author] [--output]
+ */
+async function cmdBold(positionals, options) {
+  if (positionals.length < 2) {
+    die('bold requires: <file> <text>');
+  }
+
+  const [file, text] = positionals;
+  const author = resolveAuthor(options);
+
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  doc.author(author);
+  doc.bold(text);
+
+  console.log(C.dim(`Making bold: "${text.slice(0, 60)}${text.length > 60 ? '...' : ''}"`));
+
+  const saveOpts = buildSaveOpts(options, `Bold: "${text.slice(0, 40)}"`);
+  const result = await doc.save(saveOpts);
+  printResult(result);
+}
+
+/**
+ * docex italic <file> <text> [--author] [--output]
+ */
+async function cmdItalic(positionals, options) {
+  if (positionals.length < 2) {
+    die('italic requires: <file> <text>');
+  }
+
+  const [file, text] = positionals;
+  const author = resolveAuthor(options);
+
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  doc.author(author);
+  doc.italic(text);
+
+  console.log(C.dim(`Making italic: "${text.slice(0, 60)}${text.length > 60 ? '...' : ''}"`));
+
+  const saveOpts = buildSaveOpts(options, `Italic: "${text.slice(0, 40)}"`);
+  const result = await doc.save(saveOpts);
+  printResult(result);
+}
+
+/**
+ * docex highlight <file> <text> [--color <color>] [--author] [--output]
+ */
+async function cmdHighlight(positionals, options) {
+  if (positionals.length < 2) {
+    die('highlight requires: <file> <text>');
+  }
+
+  const [file, text] = positionals;
+  const color = options.color || 'yellow';
+  const author = resolveAuthor(options);
+
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  doc.author(author);
+  doc.highlight(text, color);
+
+  console.log(C.dim(`Highlighting "${text.slice(0, 60)}${text.length > 60 ? '...' : ''}" in ${color}`));
+
+  const saveOpts = buildSaveOpts(options, `Highlight: "${text.slice(0, 40)}" in ${color}`);
+  const result = await doc.save(saveOpts);
+  printResult(result);
+}
+
+/**
+ * docex footnote <file> <anchor> <text> [--author] [--output]
+ */
+async function cmdFootnote(positionals, options) {
+  if (positionals.length < 3) {
+    die('footnote requires: <file> <anchor-text> <footnote-text>');
+  }
+
+  const [file, anchor, text] = positionals;
+  const author = resolveAuthor(options);
+
+  const docex = require('../src/docex');
+  const doc = docex(file);
+  doc.author(author);
+  doc.at(anchor).footnote(text);
+
+  console.log(C.dim(`Adding footnote at "${anchor.slice(0, 40)}${anchor.length > 40 ? '...' : ''}"`));
+  console.log(C.dim(`Note: ${text.slice(0, 60)}${text.length > 60 ? '...' : ''}`));
+
+  const saveOpts = buildSaveOpts(options, `Footnote at: "${anchor.slice(0, 40)}"`);
+  const result = await doc.save(saveOpts);
+  printResult(result);
+}
+
+/**
+ * docex count <file> [--json]
+ * Word count.
+ */
+async function cmdCount(positionals, options) {
+  if (positionals.length < 1) {
+    die('count requires: <file>');
+  }
+
+  const [file] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  const wc = await doc.wordCount();
+
+  if (options.json) {
+    console.log(JSON.stringify(wc, null, 2));
+  } else {
+    console.log(C.bold('Word count:\n'));
+    console.log(C.green('  Total:     ') + wc.total);
+    console.log(C.green('  Body:      ') + wc.body);
+    console.log(C.green('  Headings:  ') + wc.headings);
+    console.log(C.green('  Abstract:  ') + wc.abstract);
+    console.log(C.green('  Captions:  ') + wc.captions);
+    console.log(C.green('  Footnotes: ') + wc.footnotes);
+  }
+
+  doc.discard();
+}
+
+/**
+ * docex meta <file> [--title X] [--author X] [--keywords X] [--json]
+ * Get or set metadata.
+ */
+async function cmdMeta(positionals, options) {
+  if (positionals.length < 1) {
+    die('meta requires: <file>');
+  }
+
+  const [file] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  // Determine if we're setting or getting
+  const setProps = {};
+  let isSet = false;
+  if (options.title !== undefined) { setProps.title = options.title; isSet = true; }
+  if (options.author !== undefined) { setProps.creator = options.author; isSet = true; }
+  if (options.by !== undefined) { setProps.creator = options.by; isSet = true; }
+  if (options.keywords !== undefined) { setProps.keywords = options.keywords; isSet = true; }
+
+  if (isSet) {
+    // Set metadata
+    await doc.metadata(setProps);
+
+    const setDesc = Object.entries(setProps).map(([k, v]) => `${k}="${v}"`).join(', ');
+    console.log(C.dim(`Setting metadata: ${setDesc}`));
+
+    const saveOpts = buildSaveOpts(options, `Set metadata: ${setDesc}`);
+    const result = await doc.save(saveOpts);
+    printResult(result);
+  } else {
+    // Get metadata
+    const meta = await doc.metadata();
+
+    if (options.json) {
+      console.log(JSON.stringify(meta, null, 2));
+    } else {
+      console.log(C.bold('Document metadata:\n'));
+      for (const [key, val] of Object.entries(meta)) {
+        if (val) {
+          console.log(C.green('  ' + key.padEnd(16)) + val);
+        }
+      }
+      const empty = Object.values(meta).every(v => !v);
+      if (empty) {
+        console.log(C.dim('  No metadata properties found.'));
+      }
+    }
+    doc.discard();
+  }
+}
+
+/**
+ * docex diff <file1> <file2> [--author] [--output]
+ * Compare two documents.
+ */
+async function cmdDiff(positionals, options) {
+  if (positionals.length < 2) {
+    die('diff requires: <file1> <file2>');
+  }
+
+  const [file1, file2] = positionals;
+  const author = resolveAuthor(options);
+
+  const docex = require('../src/docex');
+  const doc = docex(file1);
+  doc.author(author);
+
+  console.log(C.dim(`Comparing: ${path.basename(file1)} vs ${path.basename(file2)}`));
+  const stats = await doc.diff(file2, { author });
+
+  console.log('');
+  console.log(C.green('  Added:     ') + stats.added + ' paragraphs');
+  console.log(C.red('  Removed:   ') + stats.removed + ' paragraphs');
+  console.log(C.yellow('  Modified:  ') + stats.modified + ' paragraphs');
+  console.log(C.dim('  Unchanged: ') + stats.unchanged + ' paragraphs');
+
+  const saveOpts = buildSaveOpts(options, `Diff: ${path.basename(file1)} vs ${path.basename(file2)}`);
+  const result = await doc.save(saveOpts);
+  printResult(result);
 }
 
 // ============================================================================
@@ -805,6 +1202,55 @@ async function main() {
       case 'list':
       case 'ls':
         await cmdList(positionals, options);
+        break;
+
+      case 'accept':
+        await cmdAccept(positionals, options);
+        break;
+
+      case 'reject':
+        await cmdReject(positionals, options);
+        break;
+
+      case 'clean':
+        await cmdClean(positionals, options);
+        break;
+
+      case 'revisions':
+      case 'changes':
+        await cmdRevisions(positionals, options);
+        break;
+
+      case 'bold':
+        await cmdBold(positionals, options);
+        break;
+
+      case 'italic':
+        await cmdItalic(positionals, options);
+        break;
+
+      case 'highlight':
+        await cmdHighlight(positionals, options);
+        break;
+
+      case 'footnote':
+      case 'fn':
+        await cmdFootnote(positionals, options);
+        break;
+
+      case 'count':
+      case 'wc':
+        await cmdCount(positionals, options);
+        break;
+
+      case 'meta':
+      case 'metadata':
+        await cmdMeta(positionals, options);
+        break;
+
+      case 'diff':
+      case 'compare':
+        await cmdDiff(positionals, options);
         break;
 
       default:

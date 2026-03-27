@@ -705,6 +705,40 @@ async function cmdList(positionals, options) {
   doc.discard();
 }
 
+/**
+ * docex latex <file> [--output <path>] [--doc-class <cls>] [--bib-file <name>] [--packages <list>]
+ *
+ * Read-only export: converts the document to LaTeX and writes to stdout or file.
+ */
+async function cmdLatex(positionals, options) {
+  if (positionals.length < 1) {
+    die('latex requires: <file>');
+  }
+
+  const [file] = positionals;
+
+  const docex = require('../src/docex');
+  const doc = docex(file);
+
+  const latexOpts = {};
+  if (options['doc-class']) latexOpts.documentClass = options['doc-class'];
+  if (options['bib-file']) latexOpts.bibFile = options['bib-file'];
+  if (options.packages) latexOpts.packages = options.packages.split(',').map(s => s.trim());
+
+  const tex = await doc.toLatex(latexOpts);
+
+  if (options.output) {
+    const outputPath = path.resolve(options.output);
+    fs.writeFileSync(outputPath, tex, 'utf-8');
+    console.error(C.green('  Wrote: ') + outputPath + ' (' + (tex.length / 1024).toFixed(1) + ' KB)');
+  } else {
+    process.stdout.write(tex);
+  }
+
+  // Clean up workspace (read-only, no save needed)
+  doc.discard();
+}
+
 // ============================================================================
 // Main
 // ============================================================================
@@ -761,6 +795,11 @@ async function main() {
       case 'cite':
       case 'citations':
         await cmdCite(positionals, options);
+        break;
+
+      case 'latex':
+      case 'tex':
+        await cmdLatex(positionals, options);
         break;
 
       case 'list':

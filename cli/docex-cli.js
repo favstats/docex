@@ -25,6 +25,7 @@
  *   --width <inches>    Figure width in inches (default: 6)
  *   --style <style>     Table style: booktabs|plain (default: booktabs)
  *   --caption <text>    Figure/table caption
+ *   --safe <path>       Wrap save through safe-modify.sh for manuscript protection
  *   --help              Show help
  *   --version           Show version
  */
@@ -63,7 +64,7 @@ const C = {
  */
 function parseArgs(argv) {
   const booleanFlags = new Set(['--untracked', '--help', '--version']);
-  const valueFlags = new Set(['--author', '--by', '--output', '--width', '--style', '--caption']);
+  const valueFlags = new Set(['--author', '--by', '--output', '--width', '--style', '--caption', '--safe']);
 
   const positionals = [];
   const options = {};
@@ -144,6 +145,26 @@ function getDefaultAuthor() {
  */
 function resolveAuthor(options) {
   return options.by || options.author || getDefaultAuthor();
+}
+
+/**
+ * Build save options from CLI options.
+ * When --safe is provided, returns an options object for safe-modify.sh integration.
+ * Otherwise returns the output path string (or undefined) for backward compatibility.
+ *
+ * @param {object} options - Parsed CLI options
+ * @param {string} description - Description of the operation for safe-modify.sh
+ * @returns {string|object|undefined}
+ */
+function buildSaveOpts(options, description) {
+  if (options.safe) {
+    return {
+      outputPath: options.output || undefined,
+      safeModify: options.safe,
+      description: description || 'docex CLI edit',
+    };
+  }
+  return options.output;
 }
 
 /**
@@ -240,6 +261,7 @@ ${C.bold('Options:')}
   --width <inches>    Figure width in inches (default: 6)
   --style <style>     Table style: booktabs|plain (default: booktabs)
   --caption <text>    Figure/table caption
+  --safe <path>       Wrap save through safe-modify.sh for manuscript protection
   --help              Show help
   --version           Show version
 
@@ -295,7 +317,8 @@ async function cmdReplace(positionals, options) {
   console.log(C.dim(`Replacing "${oldText.slice(0, 40)}${oldText.length > 40 ? '...' : ''}" with "${newText.slice(0, 40)}${newText.length > 40 ? '...' : ''}"`));
   console.log(C.dim(`Author: ${author}` + (options.untracked ? ' (untracked)' : ' (tracked)')));
 
-  const result = await doc.save(options.output);
+  const saveOpts = buildSaveOpts(options, `Replace: "${oldText.slice(0, 40)}" -> "${newText.slice(0, 40)}"`);
+  const result = await doc.save(saveOpts);
   printResult(result);
 }
 
@@ -328,7 +351,8 @@ async function cmdInsert(positionals, options) {
   console.log(C.dim(`Inserting ${mode} "${anchor.slice(0, 40)}${anchor.length > 40 ? '...' : ''}"`));
   console.log(C.dim(`Author: ${author}` + (options.untracked ? ' (untracked)' : ' (tracked)')));
 
-  const result = await doc.save(options.output);
+  const saveOpts = buildSaveOpts(options, `Insert ${mode} "${anchor.slice(0, 40)}"`);
+  const result = await doc.save(saveOpts);
   printResult(result);
 }
 
@@ -356,7 +380,8 @@ async function cmdDelete(positionals, options) {
   console.log(C.dim(`Deleting "${text.slice(0, 60)}${text.length > 60 ? '...' : ''}"`));
   console.log(C.dim(`Author: ${author}` + (options.untracked ? ' (untracked)' : ' (tracked)')));
 
-  const result = await doc.save(options.output);
+  const saveOpts = buildSaveOpts(options, `Delete: "${text.slice(0, 40)}"`);
+  const result = await doc.save(saveOpts);
   printResult(result);
 }
 
@@ -380,7 +405,8 @@ async function cmdComment(positionals, options) {
   console.log(C.dim(`Commenting on "${anchor.slice(0, 40)}${anchor.length > 40 ? '...' : ''}"`));
   console.log(C.dim(`By: ${author}`));
 
-  const result = await doc.save(options.output);
+  const saveOpts = buildSaveOpts(options, `Comment on: "${anchor.slice(0, 40)}"`);
+  const result = await doc.save(saveOpts);
   printResult(result);
 }
 
@@ -412,7 +438,8 @@ async function cmdReply(positionals, options) {
   console.log(C.dim(`Replying to ${idDisplay}`));
   console.log(C.dim(`By: ${author}`));
 
-  const result = await doc.save(options.output);
+  const saveOpts = buildSaveOpts(options, `Reply to ${idDisplay}`);
+  const result = await doc.save(saveOpts);
   printResult(result);
 }
 
@@ -450,7 +477,8 @@ async function cmdFigure(positionals, options) {
   console.log(C.dim(`Image: ${path.basename(imagePath)}` + (caption ? ` | Caption: ${caption.slice(0, 40)}` : '')));
   console.log(C.dim(`Width: ${width} inches`));
 
-  const result = await doc.save(options.output);
+  const saveOpts = buildSaveOpts(options, `Insert figure ${mode} "${anchor.slice(0, 40)}"`);
+  const result = await doc.save(saveOpts);
   printResult(result);
 }
 
@@ -506,7 +534,8 @@ async function cmdTable(positionals, options) {
   console.log(C.dim(`Inserting ${data.length}x${data[0].length} table ${mode} "${anchor.slice(0, 40)}${anchor.length > 40 ? '...' : ''}"`));
   console.log(C.dim(`Style: ${style}` + (caption ? ` | Caption: ${caption.slice(0, 40)}` : '')));
 
-  const result = await doc.save(options.output);
+  const saveOpts = buildSaveOpts(options, `Insert table ${mode} "${anchor.slice(0, 40)}"`);
+  const result = await doc.save(saveOpts);
   printResult(result);
 }
 

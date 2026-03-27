@@ -245,16 +245,63 @@ class Workspace {
   /**
    * Write all modified XML files back to the temp directory, rezip,
    * verify integrity, and clean up.
-   * @param {string} [outputPath] - Target path (defaults to original docx path)
+   *
+   * @param {string|object} [outputPathOrOpts] - Target path string, or options object:
+   *   - outputPath {string}    Target path (defaults to original docx path)
+   *   - safeModify {string}    Path to safe-modify.sh script
+   *   - description {string}   Description for safe-modify.sh commit message
    * @returns {{path: string, fileSize: number, paragraphCount: number, verified: boolean}}
    */
-  save(outputPath) {
-    const target = outputPath ? path.resolve(outputPath) : this._docxPath;
+  save(outputPathOrOpts) {
+    let target;
+    let safeModify = null;
+    let description = 'docex edit';
+
+    if (typeof outputPathOrOpts === 'object' && outputPathOrOpts !== null) {
+      target = outputPathOrOpts.outputPath
+        ? path.resolve(outputPathOrOpts.outputPath)
+        : this._docxPath;
+      safeModify = outputPathOrOpts.safeModify || null;
+      description = outputPathOrOpts.description || 'docex edit';
+    } else {
+      target = outputPathOrOpts ? path.resolve(outputPathOrOpts) : this._docxPath;
+    }
 
     // Write all dirty XML files back to disk
     this._flush();
 
-    // Rezip
+    if (safeModify) {
+      // Safe-modify path: save to temp file, then use safe-modify.sh to copy over
+      const tmpFile = path.join('/tmp', `docex-safe-${crypto.randomBytes(8).toString('hex')}.docx`);
+      try {
+        this._rezip(tmpFile);
+
+        // Call safe-modify.sh: bash <script> "<description>" cp <temp> <target>
+        execFileSync('bash', [safeModify, description, 'cp', tmpFile, target], {
+          stdio: 'inherit',
+          timeout: 60000,
+        });
+
+        // Gather stats from the target (safe-modify.sh copied tmpFile there)
+        const stat = fs.statSync(target);
+        const newCount = this._countParagraphsInXml(this.docXml);
+        const verified = this._verify(target, newCount, stat.size);
+
+        this.cleanup();
+
+        return {
+          path: target,
+          fileSize: stat.size,
+          paragraphCount: newCount,
+          verified,
+        };
+      } finally {
+        // Clean up temp file
+        try { fs.unlinkSync(tmpFile); } catch (_) { /* already removed */ }
+      }
+    }
+
+    // Direct save path (original behavior)
     if (fs.existsSync(target)) {
       fs.unlinkSync(target);
     }

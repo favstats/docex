@@ -342,12 +342,35 @@ class DocexEngine {
    * Execute all queued operations and save the document.
    * Single pass: unzip once, apply all operations, rezip once, verify.
    *
-   * @param {string} [outputPath] - Save to a different path (default: overwrite original)
+   * @param {string|object} [outputPathOrOpts] - Save path string, or options object:
+   *   - outputPath {string}    Save to a different path (default: overwrite original)
+   *   - safeModify {string}    Path to safe-modify.sh script for manuscript protection
+   *   - description {string}   Description for safe-modify.sh commit message
    * @returns {object} - { path, operations, paragraphCount, fileSize, verified }
+   *
+   * @example
+   *   // Simple save
+   *   await doc.save();
+   *   await doc.save("output.docx");
+   *
+   *   // Safe-modify save (wraps through safe-modify.sh)
+   *   await doc.save({ safeModify: "/path/to/safe-modify.sh", description: "Fix typo" });
    */
-  async save(outputPath) {
+  async save(outputPathOrOpts) {
     const ws = await this._ensureWorkspace();
-    const target = outputPath ? path.resolve(outputPath) : this._docxPath;
+
+    // Normalize arguments: string -> { outputPath }, object -> pass through
+    let saveOpts;
+    if (typeof outputPathOrOpts === 'object' && outputPathOrOpts !== null) {
+      saveOpts = outputPathOrOpts;
+    } else {
+      // String or undefined -- original behavior
+      saveOpts = outputPathOrOpts || undefined;
+    }
+
+    const target = (typeof saveOpts === 'object' && saveOpts !== null)
+      ? (saveOpts.outputPath ? path.resolve(saveOpts.outputPath) : this._docxPath)
+      : (saveOpts ? path.resolve(saveOpts) : this._docxPath);
 
     console.log(`[docex] Applying ${this._operations.length} operations...`);
 
@@ -393,8 +416,8 @@ class DocexEngine {
       }
     }
 
-    // Save and verify
-    const result = ws.save(target);
+    // Save and verify -- pass through options to workspace
+    const result = ws.save(saveOpts);
 
     const summary = Object.entries(opCount).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${k}`).join(', ');
     console.log(`[docex] Done: ${summary}`);

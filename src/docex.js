@@ -44,6 +44,10 @@ const { Macros } = require('./macros');
 const { Presets } = require('./presets');
 const { Verify } = require('./verify');
 const { Submission } = require('./submission');
+const { Compile } = require('./compile');
+const { Batch } = require('./batch');
+const { Template, createEmpty } = require('./template');
+const { ResponseLetter } = require('./response-letter');
 const xml = require('./xml');
 
 // ============================================================================
@@ -896,6 +900,74 @@ class DocexEngine {
     return Latex.convert(ws, options);
   }
 
+  // ── Pandoc-based Export ────────────────────────────────────────────────
+
+  /**
+   * Convert the document to HTML via pandoc.
+   * Requires pandoc to be installed.
+   *
+   * @param {object} [opts] - Options
+   * @param {string} [opts.output] - Write HTML to this file path
+   * @returns {Promise<string>} HTML string
+   */
+  async toHtml(opts = {}) {
+    await this._ensureWorkspace();
+    // Save to a temp file for pandoc to read
+    const tmpDocx = path.join('/tmp', `docex-html-${crypto.randomBytes(8).toString('hex')}.docx`);
+    try {
+      const ws = this._workspace;
+      ws.save({ outputPath: tmpDocx, backup: false });
+      // Re-open workspace since save() cleans it up
+      this._workspace = Workspace.open(this._docxPath);
+
+      const result = execFileSync('pandoc', [tmpDocx, '--from', 'docx', '--to', 'html5', '--standalone'], {
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 60000,
+      });
+
+      if (opts.output) {
+        fs.writeFileSync(path.resolve(opts.output), result, 'utf-8');
+      }
+
+      return result;
+    } finally {
+      try { if (fs.existsSync(tmpDocx)) fs.unlinkSync(tmpDocx); } catch (_) { /* ignore */ }
+    }
+  }
+
+  /**
+   * Convert the document to Markdown via pandoc.
+   * Requires pandoc to be installed.
+   *
+   * @param {object} [opts] - Options
+   * @param {string} [opts.output] - Write Markdown to this file path
+   * @returns {Promise<string>} Markdown string
+   */
+  async toMarkdown(opts = {}) {
+    await this._ensureWorkspace();
+    const tmpDocx = path.join('/tmp', `docex-md-${crypto.randomBytes(8).toString('hex')}.docx`);
+    try {
+      const ws = this._workspace;
+      ws.save({ outputPath: tmpDocx, backup: false });
+      this._workspace = Workspace.open(this._docxPath);
+
+      const result = execFileSync('pandoc', [tmpDocx, '--from', 'docx', '--to', 'markdown'], {
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 60000,
+      });
+
+      if (opts.output) {
+        fs.writeFileSync(path.resolve(opts.output), result, 'utf-8');
+      }
+
+      return result;
+    } finally {
+      try { if (fs.existsSync(tmpDocx)) fs.unlinkSync(tmpDocx); } catch (_) { /* ignore */ }
+    }
+  }
+
   // ── Preview ─────────────────────────────────────────────────────────────
 
   /**
@@ -1330,7 +1402,20 @@ docex.listStyles = function() {
   return Presets.list();
 };
 
+// v0.4.0: LaTeX pipeline, batch, templates, response letter
+docex.compile = Compile.fromLatex;
+docex.decompile = Compile.decompile;
+docex.watch = Compile.watch;
+docex.batch = function(paths) { return new Batch(paths); };
+docex.fromTemplate = Template.create;
+docex.responseLetter = ResponseLetter.generate;
+docex.create = createEmpty;
+
 module.exports = docex;
 module.exports.DocexEngine = DocexEngine;
 module.exports.PositionSelector = PositionSelector;
 module.exports.Presets = Presets;
+module.exports.Compile = Compile;
+module.exports.Batch = Batch;
+module.exports.Template = Template;
+module.exports.ResponseLetter = ResponseLetter;

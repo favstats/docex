@@ -65,8 +65,8 @@ const C = {
  * @returns {{ command: string, positionals: string[], options: object }}
  */
 function parseArgs(argv) {
-  const booleanFlags = new Set(['--untracked', '--help', '--version', '--list', '--json', '--dry-run']);
-  const valueFlags = new Set(['--author', '--by', '--output', '--width', '--style', '--caption', '--safe', '--zotero-key', '--zotero-user', '--collection', '--doc-class', '--bib-file', '--packages', '--title', '--keywords', '--color', '--preset', '--vars']);
+  const booleanFlags = new Set(['--untracked', '--help', '--version', '--list', '--json', '--dry-run', '--preserve-changes', '--preserve-comments']);
+  const valueFlags = new Set(['--author', '--by', '--output', '--width', '--style', '--caption', '--safe', '--zotero-key', '--zotero-user', '--collection', '--doc-class', '--bib-file', '--packages', '--title', '--keywords', '--color', '--preset', '--vars', '--bib', '--csl', '--abstract', '--sections', '--journal', '--responses', '--affiliation', '--email', '--suffix', '--output-dir']);
 
   const positionals = [];
   const options = {};
@@ -280,6 +280,14 @@ ${C.bold('Commands:')}
   ${C.cyan('diff')}       <file1> <file2>                  Compare two documents
   ${C.cyan('doctor')}     <file>                           Run diagnostic checks
   ${C.cyan('init')}                                        Create .docexrc in current directory
+  ${C.cyan('compile')}    <tex-file>                         Compile LaTeX to .docx via pandoc
+  ${C.cyan('decompile')} <docx-file>                         Convert .docx to .tex (preserves changes)
+  ${C.cyan('template')}   <preset> [--title X] [--author X]  Create new .docx from template
+  ${C.cyan('response-letter')} <docx-file> <responses.json>  Generate reviewer response letter
+  ${C.cyan('watch')}      <tex-file>                         Watch .tex and recompile on change
+  ${C.cyan('html')}       <docx-file>                        Convert .docx to HTML
+  ${C.cyan('markdown')}   <docx-file>                        Convert .docx to Markdown
+  ${C.cyan('create')}                                        Create a minimal empty .docx
 
 ${C.bold('Options:')}
   --author <name>     Author name (default: from git config)
@@ -1377,6 +1385,251 @@ async function cmdExpand(positionals, options) {
 }
 
 // ============================================================================
+// v0.4 command handlers: compile, decompile, template, response-letter, watch, html, markdown, create
+// ============================================================================
+
+/**
+ * docex compile <tex-file> [--style X] [--output X] [--bib X] [--csl X]
+ */
+async function cmdCompile(positionals, options) {
+  if (positionals.length < 1) {
+    die('compile requires: <tex-file>');
+  }
+
+  const [texFile] = positionals;
+  const { Compile } = require('../src/compile');
+
+  const opts = {};
+  if (options.style) opts.style = options.style;
+  if (options.output) opts.output = options.output;
+  if (options.bib) opts.bibFile = options.bib;
+  if (options.csl) opts.cslFile = options.csl;
+
+  console.log(C.dim(`Compiling ${path.basename(texFile)} -> .docx`));
+  if (opts.style) console.log(C.dim(`Style: ${opts.style}`));
+  if (opts.bibFile) console.log(C.dim(`Bibliography: ${opts.bibFile}`));
+
+  const result = await Compile.fromLatex(texFile, opts);
+
+  console.log('');
+  console.log(C.green('  Output: ') + result.path);
+  console.log(C.green('  Size:   ') + formatSize(result.fileSize));
+  console.log(C.green('  Paras:  ') + result.paragraphCount);
+  if (result.style) console.log(C.green('  Style:  ') + result.style);
+}
+
+/**
+ * docex decompile <docx-file> [--output X] [--preserve-changes] [--preserve-comments]
+ */
+async function cmdDecompile(positionals, options) {
+  if (positionals.length < 1) {
+    die('decompile requires: <docx-file>');
+  }
+
+  const [docxFile] = positionals;
+  const { Compile } = require('../src/compile');
+
+  const opts = {};
+  if (options.output) opts.output = options.output;
+  // decompile implies preserve by default
+  opts.preserveChanges = options['preserve-changes'] !== false;
+  opts.preserveComments = options['preserve-comments'] !== false;
+
+  console.log(C.dim(`Decompiling ${path.basename(docxFile)} -> .tex`));
+
+  const result = await Compile.decompile(docxFile, opts);
+
+  if (result.path) {
+    console.log('');
+    console.log(C.green('  Output:   ') + result.path);
+    console.log(C.green('  Changes:  ') + result.changes);
+    console.log(C.green('  Comments: ') + result.comments);
+  } else {
+    // Output to stdout
+    process.stdout.write(result.tex);
+  }
+}
+
+/**
+ * docex template <preset> [--title X] [--author X] [--abstract X] [--keywords X] [--output X]
+ */
+async function cmdTemplate(positionals, options) {
+  if (positionals.length < 1) {
+    die('template requires: <preset-name>\n  Available: academic, polcomm, apa7, jcmc, joc');
+  }
+
+  const [presetName] = positionals;
+  const { Template } = require('../src/template');
+
+  const metadata = {};
+  if (options.title) metadata.title = options.title;
+  if (options.output) metadata.output = options.output;
+  if (options.abstract) metadata.abstract = options.abstract;
+  if (options.keywords) metadata.keywords = options.keywords.split(',').map(s => s.trim());
+
+  // Build authors array from options
+  if (options.author || options.by) {
+    const authorName = options.author || options.by;
+    const author = { name: authorName };
+    if (options.affiliation) author.affiliation = options.affiliation;
+    if (options.email) author.email = options.email;
+    metadata.authors = [author];
+  }
+
+  console.log(C.dim(`Creating template: ${presetName}`));
+  if (metadata.title) console.log(C.dim(`Title: ${metadata.title}`));
+
+  const result = await Template.create(presetName, metadata);
+
+  console.log('');
+  console.log(C.green('  Created: ') + result.path);
+  console.log(C.green('  Size:    ') + formatSize(result.fileSize));
+  console.log(C.green('  Paras:   ') + result.paragraphCount);
+}
+
+/**
+ * docex response-letter <docx-file> <responses.json> [--title X] [--journal X] [--output X]
+ */
+async function cmdResponseLetter(positionals, options) {
+  if (positionals.length < 2) {
+    die('response-letter requires: <docx-file> <responses.json>');
+  }
+
+  const [docxFile, responsesFile] = positionals;
+
+  // Read comments from the docx
+  const docex = require('../src/docex');
+  const doc = docex(docxFile);
+  const comments = await doc.comments();
+  doc.discard();
+
+  // Read responses JSON
+  const resolvedResponses = path.resolve(responsesFile);
+  if (!fs.existsSync(resolvedResponses)) {
+    die(`Responses file not found: ${resolvedResponses}`);
+  }
+
+  let responses;
+  try {
+    responses = JSON.parse(fs.readFileSync(resolvedResponses, 'utf-8'));
+  } catch (err) {
+    die(`Failed to parse responses JSON: ${err.message}`);
+  }
+
+  const { ResponseLetter } = require('../src/response-letter');
+
+  const opts = {};
+  if (options.title) opts.title = options.title;
+  if (options.journal) opts.journal = options.journal;
+  if (options.output) opts.output = options.output;
+  if (options.author) opts.authors = [options.author];
+
+  console.log(C.dim(`Generating response letter from ${comments.length} comments`));
+
+  const result = await ResponseLetter.generate(comments, responses, opts);
+
+  console.log('');
+  console.log(C.green('  Output:    ') + result.path);
+  console.log(C.green('  Size:      ') + formatSize(result.fileSize));
+  console.log(C.green('  Reviewers: ') + result.reviewers);
+  console.log(C.green('  Addressed: ') + result.commentsAddressed + '/' + comments.length);
+}
+
+/**
+ * docex watch <tex-file> [--style X] [--output X] [--bib X] [--csl X]
+ */
+async function cmdWatch(positionals, options) {
+  if (positionals.length < 1) {
+    die('watch requires: <tex-file>');
+  }
+
+  const [texFile] = positionals;
+  const { Compile } = require('../src/compile');
+
+  const opts = {};
+  if (options.style) opts.style = options.style;
+  if (options.output) opts.output = options.output;
+  if (options.bib) opts.bibFile = options.bib;
+  if (options.csl) opts.cslFile = options.csl;
+
+  console.log(C.bold(`[docex] Watching ${path.basename(texFile)}`));
+  console.log(C.dim('Press Ctrl+C to stop.\n'));
+
+  const watcher = Compile.watch(texFile, opts);
+
+  // Keep process alive
+  process.on('SIGINT', () => {
+    watcher.close();
+    console.log(C.dim('\n[docex] Watch stopped.'));
+    process.exit(0);
+  });
+}
+
+/**
+ * docex html <docx-file> [--output X]
+ */
+async function cmdHtml(positionals, options) {
+  if (positionals.length < 1) {
+    die('html requires: <docx-file>');
+  }
+
+  const [docxFile] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(docxFile);
+
+  const html = await doc.toHtml({ output: options.output });
+
+  if (options.output) {
+    console.log(C.green('  Wrote: ') + path.resolve(options.output));
+  } else {
+    process.stdout.write(html);
+  }
+
+  doc.discard();
+}
+
+/**
+ * docex markdown <docx-file> [--output X]
+ */
+async function cmdMarkdown(positionals, options) {
+  if (positionals.length < 1) {
+    die('markdown requires: <docx-file>');
+  }
+
+  const [docxFile] = positionals;
+  const docex = require('../src/docex');
+  const doc = docex(docxFile);
+
+  const md = await doc.toMarkdown({ output: options.output });
+
+  if (options.output) {
+    console.log(C.green('  Wrote: ') + path.resolve(options.output));
+  } else {
+    process.stdout.write(md);
+  }
+
+  doc.discard();
+}
+
+/**
+ * docex create [--output X]
+ */
+async function cmdCreate(positionals, options) {
+  const { createEmpty } = require('../src/template');
+
+  const opts = {};
+  if (options.output) opts.output = options.output;
+
+  console.log(C.dim('Creating minimal empty .docx'));
+
+  const result = await createEmpty(opts);
+
+  console.log('');
+  console.log(C.green('  Created: ') + result.path);
+  console.log(C.green('  Size:    ') + formatSize(result.fileSize));
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
@@ -1518,6 +1771,41 @@ async function main() {
 
       case 'expand':
         await cmdExpand(positionals, options);
+        break;
+
+      case 'compile':
+        await cmdCompile(positionals, options);
+        break;
+
+      case 'decompile':
+        await cmdDecompile(positionals, options);
+        break;
+
+      case 'template':
+      case 'tpl':
+        await cmdTemplate(positionals, options);
+        break;
+
+      case 'response-letter':
+      case 'response':
+        await cmdResponseLetter(positionals, options);
+        break;
+
+      case 'watch':
+        await cmdWatch(positionals, options);
+        break;
+
+      case 'html':
+        await cmdHtml(positionals, options);
+        break;
+
+      case 'markdown':
+      case 'md':
+        await cmdMarkdown(positionals, options);
+        break;
+
+      case 'create':
+        await cmdCreate(positionals, options);
         break;
 
       default:

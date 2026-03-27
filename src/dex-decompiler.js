@@ -17,21 +17,14 @@ const { Metadata } = require('./metadata');
 class DexDecompiler {
 
   static decompile(wsOrPath) {
-    // Accept either a Workspace object or a path string
-    let ws = wsOrPath;
-    let shouldCleanup = false;
+    // When given a path string, use the lossless binary format (for round-trip fidelity).
+    // When given a Workspace object, use the human-readable markdown format.
     if (typeof wsOrPath === 'string') {
-      const { Workspace } = require('./workspace');
-      ws = Workspace.open(wsOrPath);
-      shouldCleanup = true;
+      const { serializeDex } = require('./dex-lossless');
+      const ast = DexDecompiler.toAst(wsOrPath);
+      return serializeDex(ast);
     }
-    try {
-      return DexDecompiler._decompileWorkspace(ws);
-    } finally {
-      if (shouldCleanup) {
-        try { ws.cleanup(); } catch (_) {}
-      }
-    }
+    return DexDecompiler._decompileWorkspace(wsOrPath);
   }
 
   static _decompileWorkspace(ws) {
@@ -115,7 +108,9 @@ class DexDecompiler {
    * Accepts either a Workspace or a path string.
    */
   static toAst(wsOrPath) {
-    const { parseDex } = require('./dex-lossless');
+    const fs = require('fs');
+    const path = require('path');
+    const { parseXml, isXmlishPart } = require('./dex-lossless');
     let ws = wsOrPath;
     let shouldCleanup = false;
     if (typeof wsOrPath === 'string') {
@@ -124,18 +119,22 @@ class DexDecompiler {
       shouldCleanup = true;
     }
     try {
-      // Use the dex-format decompiler (which outputs parts-based AST)
-      const { DexDecompilerParts } = require('./dex-lossless');
-      if (DexDecompilerParts) return DexDecompilerParts.toAst(ws);
-      // Fallback: use zip-based approach
-      const path = require('path');
-      const tmpDocx = require('os').tmpdir() + '/docex-toAst-' + Date.now() + '.docx';
-      ws.save({ outputPath: tmpDocx, backup: false });
-      const dexStr = require('./dex-decompiler').DexDecompiler._decompileViaZip(tmpDocx);
-      return parseDex(dexStr);
-    } catch (_) {
-      // Last resort: parse from workspace directly
-      return { type: 'dex', version: '0.5.0', parts: [] };
+      const rootDir = ws.tmpDir;
+      const relPaths = listFiles(rootDir);
+      const parts = [];
+      for (const relPath of relPaths.sort()) {
+        const absPath = path.join(rootDir, relPath);
+        if (isXmlishPart(relPath)) {
+          const xmlStr = fs.readFileSync(absPath, 'utf8');
+          let nodes;
+          try { nodes = parseXml(xmlStr); } catch (_) { nodes = [{ type: 'text', value: xmlStr }]; }
+          parts.push({ type: 'part', path: relPath, partType: 'xml', nodes });
+        } else {
+          const buf = fs.readFileSync(absPath);
+          parts.push({ type: 'part', path: relPath, partType: 'binary', data: buf.toString('base64'), encoding: 'base64' });
+        }
+      }
+      return { type: 'dex', version: '0.5.0', parts };
     } finally {
       if (shouldCleanup) {
         try { ws.cleanup(); } catch (_) {}

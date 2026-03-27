@@ -315,9 +315,9 @@ class DexCompiler {
 
   static assertRoundTrip(docxPath, opts = {}) {
     const { DexDecompiler } = require('./dex-decompiler');
-    const dex = DexDecompiler.decompile(docxPath, opts);
-    const { DexParser } = require('./dex-markdown-parser');
-    const ast = DexParser.parse(dex);
+    const { serializeDex } = require('./dex-lossless');
+    const ast = DexDecompiler.toAst(docxPath);
+    const dex = serializeDex(ast);
     const output = opts.output || '/tmp/dex-roundtrip-' + crypto.randomBytes(8).toString('hex') + '.docx';
     const compiled = DexCompiler.compile(ast, {
       ...opts,

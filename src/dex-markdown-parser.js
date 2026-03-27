@@ -6,6 +6,11 @@
 
 class DexParser {
   static parse(dexString) {
+    const trimmed = (dexString || '').trimStart();
+    if (trimmed.startsWith('\\dex[') || trimmed.startsWith('\\dex{')) {
+      const { parseDex } = require('./dex-lossless');
+      return parseDex(dexString);
+    }
     const { frontmatter, body: bodyStr } = DexParser._extractFrontmatter(dexString);
     const body = DexParser._parseBody(bodyStr);
     return { frontmatter, body };

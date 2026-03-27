@@ -1287,6 +1287,136 @@ class Paragraphs {
 
     return '';
   }
+
+  /**
+   * Find paragraphs/runs that match the given text and formatting criteria.
+   * @param {object} ws - Workspace
+   * @param {{ text?: string, bold?: boolean, italic?: boolean }} criteria
+   * @returns {Array<{text: string, paraId: string}>}
+   */
+  static findFormatted(ws, criteria = {}) {
+    const xmlLib = require('./xml');
+    const paragraphs = xmlLib.findParagraphs(ws.docXml);
+    const results = [];
+    for (const p of paragraphs) {
+      const runs = xmlLib.parseRuns(p.xml);
+      for (const run of runs) {
+        const runText = xmlLib.decodeXml(run.combinedText);
+        if (!runText) continue;
+        if (criteria.text && !runText.includes(criteria.text)) continue;
+        if (criteria.bold !== undefined) {
+          const hasBold = /<w:b\s*\/?>/.test(run.rPr) || /<w:b\s/.test(run.rPr);
+          if (criteria.bold !== hasBold) continue;
+        }
+        if (criteria.italic !== undefined) {
+          const hasItalic = /<w:i\s*\/?>/.test(run.rPr) || /<w:i\s/.test(run.rPr);
+          if (criteria.italic !== hasItalic) continue;
+        }
+        const pidM = p.xml.match(/w14:paraId="([^"]+)"/);
+        results.push({ text: runText, paraId: pidM ? pidM[1] : null });
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Replace text and formatting for matching runs.
+   * @param {object} ws - Workspace
+   * @param {{ text?: string, bold?: boolean, italic?: boolean }} find
+   * @param {{ text?: string, bold?: boolean, italic?: boolean }} replace
+   * @returns {number} Count of replacements made
+   */
+  static replaceFormatted(ws, find = {}, replace = {}) {
+    const xmlLib = require('./xml');
+    let docXml = ws.docXml;
+    const paragraphs = xmlLib.findParagraphs(docXml);
+    let count = 0;
+    for (let pi = paragraphs.length - 1; pi >= 0; pi--) {
+      const p = paragraphs[pi];
+      const runs = xmlLib.parseRuns(p.xml);
+      let newPXml = p.xml;
+      let modified = false;
+      for (let ri = runs.length - 1; ri >= 0; ri--) {
+        const run = runs[ri];
+        const runText = xmlLib.decodeXml(run.combinedText);
+        if (!runText) continue;
+        if (find.text && !runText.includes(find.text)) continue;
+        if (find.bold !== undefined) {
+          const hasBold = /<w:b\s*\/?>/.test(run.rPr) || /<w:b\s/.test(run.rPr);
+          if (find.bold !== hasBold) continue;
+        }
+        if (find.italic !== undefined) {
+          const hasItalic = /<w:i\s*\/?>/.test(run.rPr) || /<w:i\s/.test(run.rPr);
+          if (find.italic !== hasItalic) continue;
+        }
+        // Build new rPr
+        let rPr = run.rPr || '';
+        if (replace.bold === true && !/<w:b[\s/>]/.test(rPr)) {
+          rPr = rPr ? rPr.replace('<w:rPr>', '<w:rPr><w:b/>') : '<w:rPr><w:b/></w:rPr>';
+        }
+        if (replace.italic === true && !/<w:i[\s/>]/.test(rPr)) {
+          rPr = rPr ? rPr.replace('<w:rPr>', '<w:rPr><w:i/>') : '<w:rPr><w:i/></w:rPr>';
+        }
+        const newText = replace.text || runText;
+        const rOpenM = run.fullMatch.match(/^<w:r([^>]*)>/);
+        const rAttrs = rOpenM ? rOpenM[1] : '';
+        const newRun = '<w:r' + rAttrs + '>'
+          + rPr + '<w:t xml:space="preserve">' + xmlLib.escapeXml(newText) + '</w:t></w:r>';
+        newPXml = newPXml.slice(0, run.index) + newRun + newPXml.slice(run.index + run.fullMatch.length);
+        modified = true;
+        count++;
+      }
+      if (modified) {
+        docXml = docXml.slice(0, p.start) + newPXml + docXml.slice(p.end);
+      }
+    }
+    ws.docXml = docXml;
+    return count;
+  }
+
+  /**
+   * Find paragraphs/runs that match the given formatting properties (font, size, etc).
+   * @param {object} ws - Workspace
+   * @param {{ font?: string, size?: number, bold?: boolean, italic?: boolean }} criteria
+   * @returns {Array<{text: string, paraId: string, font: string, size: number}>}
+   */
+  static findByFormatting(ws, criteria = {}) {
+    const xmlLib = require('./xml');
+    const paragraphs = xmlLib.findParagraphs(ws.docXml);
+    const results = [];
+    for (const p of paragraphs) {
+      const runs = xmlLib.parseRuns(p.xml);
+      for (const run of runs) {
+        const runText = xmlLib.decodeXml(run.combinedText);
+        if (!runText) continue;
+        const rPr = run.rPr || '';
+        if (criteria.font) {
+          const fMatch = rPr.match(/w:ascii="([^"]+)"/);
+          const font = fMatch ? fMatch[1] : null;
+          if (!font || !font.includes(criteria.font)) continue;
+        }
+        if (criteria.size !== undefined) {
+          const sMatch = rPr.match(/<w:sz\s+w:val="(\d+)"/);
+          const size = sMatch ? parseInt(sMatch[1], 10) / 2 : null;
+          if (size !== criteria.size) continue;
+        }
+        if (criteria.bold !== undefined) {
+          const hasBold = /<w:b[\s/>]/.test(rPr);
+          if (criteria.bold !== hasBold) continue;
+        }
+        const pidM = p.xml.match(/w14:paraId="([^"]+)"/);
+        const fMatch = rPr.match(/w:ascii="([^"]+)"/);
+        const sMatch = rPr.match(/<w:sz\s+w:val="(\d+)"/);
+        results.push({
+          text: runText,
+          paraId: pidM ? pidM[1] : null,
+          font: fMatch ? fMatch[1] : null,
+          size: sMatch ? parseInt(sMatch[1], 10) / 2 : null,
+        });
+      }
+    }
+    return results;
+  }
 }
 
 module.exports = { Paragraphs, findClosestMatches, fuzzyFindText };

@@ -48,6 +48,9 @@ const { Compile } = require('./compile');
 const { Batch } = require('./batch');
 const { Template, createEmpty } = require('./template');
 const { ResponseLetter } = require('./response-letter');
+const { Layout } = require('./layout');
+const { Provenance } = require('./provenance');
+const { Workflow } = require('./workflow');
 const xml = require('./xml');
 
 // ============================================================================

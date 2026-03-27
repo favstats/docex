@@ -1,7 +1,7 @@
 {
   "name": "docex",
-  "version": "0.1.0",
-  "description": "LaTeX for .docx -- a zero-dependency Node.js library for programmatic document editing with tracked changes, comments, figures, and tables. Built for academic manuscript workflows.",
+  "version": "0.4.0",
+  "description": "LaTeX for .docx -- a zero-dependency Node.js library that makes .docx files programmable. Tracked changes, comments, figures, tables, journal styles, citations, LaTeX pipeline, and more. Built for academic manuscript workflows.",
   "type": "commonjs",
   "main": "src/docex.js",
   "bin": {

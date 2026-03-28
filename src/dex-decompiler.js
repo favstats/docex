@@ -52,7 +52,7 @@ class DexDecompiler {
 
       if (level > 0) {
         // Use _decompileRuns for headings too, so comment anchors are preserved
-        const result = DexDecompiler._decompileRuns(pXml, footnoteMap);
+        const result = DexDecompiler._decompileRuns(pXml, footnoteMap, commentMap);
         const content = result.text;
         const hashes = '#'.repeat(level);
         const idAttr = paraId ? ' {id:' + paraId + '}' : '';
@@ -62,7 +62,7 @@ class DexDecompiler {
         parts.push(DexDecompiler._decompileFigure(pXml, paraId, ws));
         parts.push('');
       } else {
-        const result = DexDecompiler._decompileRuns(pXml, footnoteMap);
+        const result = DexDecompiler._decompileRuns(pXml, footnoteMap, commentMap);
         const content = result.text;
         const pProps = result.props;
         if (content.trim() === '') {
@@ -83,17 +83,27 @@ class DexDecompiler {
         parts.push('');
       }
 
+      // Detect inline section breaks (<w:sectPr> inside <w:pPr>)
+      const pPrForSect = pXml.match(/<w:pPr>([\s\S]*?)<\/w:pPr>/);
+      if (pPrForSect) {
+        const sectInPara = pPrForSect[1].match(/<w:sectPr[\s>][\s\S]*?<\/w:sectPr>/);
+        if (sectInPara) {
+          const sectLine = DexDecompiler._formatSectionFromXml(sectInPara[0]);
+          if (sectLine) parts.push(sectLine.trim());
+        }
+      }
+
+      // Only emit separate blocks for comment replies (main comments are now inline)
       const commentsForPara = commentRanges.filter(cr => cr.endParaIndex === i);
       for (const cr of commentsForPara) {
         const comment = commentMap.get(cr.commentId);
         if (!comment) continue;
-        parts.push(DexDecompiler._formatComment(comment));
-        if (comment.replies) {
+        if (comment.replies && comment.replies.length > 0) {
           for (const reply of comment.replies) {
             parts.push(DexDecompiler._formatReply(reply, cr.commentId));
           }
+          parts.push('');
         }
-        parts.push('');
       }
     }
 
@@ -155,7 +165,7 @@ class DexDecompiler {
       const idMatch = attrs.match(/w:id="(\d+)"/);
       if (!idMatch) continue;
       const id = parseInt(idMatch[1], 10);
-      const text = xml.extractTextDecoded(m[2]);
+      const text = DexDecompiler._extractFormattedText(m[2]);
       if (text.trim()) map.set(id, text.trim());
     }
     return map;
@@ -218,6 +228,97 @@ class DexDecompiler {
     return lines.join('\n');
   }
 
+  /**
+   * Extract formatted text from XML that contains <w:p> paragraphs with <w:r> runs.
+   * Preserves inline formatting (bold, italic, underline, hyperlinks, etc.)
+   * by reusing _extractFormatting and _wrapFormatting. Multiple paragraphs
+   * are joined with newline characters.
+   */
+  static _extractFormattedText(bodyXml) {
+    const paraRe = /<w:p[\s>][\s\S]*?<\/w:p>/g;
+    let pm;
+    const paragraphs = [];
+    while ((pm = paraRe.exec(bodyXml)) !== null) {
+      paragraphs.push(pm[0]);
+    }
+    if (paragraphs.length === 0) {
+      return DexDecompiler._extractFormattedRunsFromXml(bodyXml);
+    }
+    const paraTexts = [];
+    for (const pXml of paragraphs) {
+      const text = DexDecompiler._extractFormattedRunsFromXml(pXml);
+      paraTexts.push(text);
+    }
+    return paraTexts.join('\n');
+  }
+
+  /**
+   * Extract formatted text from runs (<w:r>) within a chunk of XML.
+   * Handles hyperlinks, text, formatting, tabs, breaks, and symbols.
+   */
+  static _extractFormattedRunsFromXml(xmlStr) {
+    const parts = [];
+    let pos = 0;
+    const len = xmlStr.length;
+    while (pos < len) {
+      if (xmlStr[pos] !== '<') { pos++; continue; }
+      if (xmlStr.startsWith('<w:hyperlink', pos)) {
+        const endTag = '</w:hyperlink>';
+        const endIdx = xmlStr.indexOf(endTag, pos);
+        if (endIdx === -1) { pos++; continue; }
+        const hlXml = xmlStr.slice(pos, endIdx + endTag.length);
+        const rIdMatch = hlXml.match(/r:id="([^"]*)"/);
+        const anchorMatch = hlXml.match(/w:anchor="([^"]*)"/);
+        const innerText = DexDecompiler._extractFormattedRunsFromXml(
+          hlXml.slice(hlXml.indexOf('>') + 1, hlXml.lastIndexOf('<'))
+        );
+        if (rIdMatch) {
+          parts.push('{link rId:' + rIdMatch[1] + '}' + innerText + '{/link}');
+        } else if (anchorMatch) {
+          parts.push('{link anchor:' + DexDecompiler._dexStr(anchorMatch[1]) + '}' + innerText + '{/link}');
+        } else {
+          parts.push(innerText);
+        }
+        pos = endIdx + endTag.length;
+        continue;
+      }
+      if (xmlStr.startsWith('<w:r>', pos) || xmlStr.startsWith('<w:r ', pos)) {
+        const endTag = '</w:r>';
+        const endIdx = xmlStr.indexOf(endTag, pos);
+        if (endIdx === -1) { pos++; continue; }
+        const runXml = xmlStr.slice(pos, endIdx + endTag.length);
+        const texts = [];
+        const runBody = runXml.replace(/<w:rPr>[\s\S]*?<\/w:rPr>/g, '');
+        const elemRe = /<w:t[^>]*>([^<]*)<\/w:t>|<w:tab\s*\/>|<w:br\s*\/?>|<w:br\s+w:type="([^"]*)"[^>]*\/?>|<w:sym\s+[^>]*w:char="([^"]*)"[^>]*\/?>/g;
+        let tMatch;
+        while ((tMatch = elemRe.exec(runBody)) !== null) {
+          if (tMatch[0].startsWith('<w:t')) {
+            texts.push(xml.decodeXml(tMatch[1]));
+          } else if (tMatch[0].startsWith('<w:tab')) {
+            texts.push('\t');
+          } else if (tMatch[0].startsWith('<w:br')) {
+            const brType = tMatch[2] || '';
+            if (brType === 'column') texts.push('{colbreak}');
+            else texts.push('{br}');
+          } else if (tMatch[0].startsWith('<w:sym')) {
+            texts.push('{sym ' + (tMatch[3] || '') + '}');
+          }
+        }
+        const text = texts.join('');
+        if (text) {
+          const fmt = DexDecompiler._extractFormatting(runXml);
+          parts.push(DexDecompiler._wrapFormatting(text, fmt));
+        }
+        pos = endIdx + endTag.length;
+        continue;
+      }
+      const closeAngle = xmlStr.indexOf('>', pos);
+      if (closeAngle === -1) break;
+      pos = closeAngle + 1;
+    }
+    return parts.join('');
+  }
+
   static _buildFootnoteMap(ws) {
     const map = new Map();
     let footnotesXml;
@@ -233,12 +334,12 @@ class DexDecompiler {
       if (!id) continue;
       const idNum = parseInt(id, 10);
       if (idNum <= 1) continue;
-      map.set(idNum, xml.extractTextDecoded(body));
+      map.set(idNum, DexDecompiler._extractFormattedText(body));
     }
     return map;
   }
 
-  static _decompileRuns(pXml, footnoteMap) {
+  static _decompileRuns(pXml, footnoteMap, commentMap) {
     const parts = [];
     let bodyXml = pXml;
     const pOpenEnd = bodyXml.indexOf('>');
@@ -253,7 +354,7 @@ class DexDecompiler {
     // Pre-process field codes: replace fldChar begin..separate..end sequences
     // with {field "INSTRUCTION"}display{/field} markers
     bodyXml = DexDecompiler._preprocessFieldCodes(bodyXml);
-    DexDecompiler._walkElements(bodyXml, parts, footnoteMap);
+    DexDecompiler._walkElements(bodyXml, parts, footnoteMap, commentMap);
     return { text: parts.join(''), props: pProps };
   }
 
@@ -346,7 +447,7 @@ class DexDecompiler {
     return ' ' + parts.join(' ');
   }
 
-  static _walkElements(xmlStr, parts, footnoteMap) {
+  static _walkElements(xmlStr, parts, footnoteMap, commentMap) {
     let pos = 0;
     const len = xmlStr.length;
     while (pos < len) {
@@ -360,7 +461,7 @@ class DexDecompiler {
         // Recurse into inner content to preserve formatting (bold, italic, etc.)
         const innerParts = [];
         const innerXml = insXml.slice(insXml.indexOf('>') + 1, insXml.lastIndexOf('</w:ins>'));
-        DexDecompiler._walkElements(innerXml, innerParts, footnoteMap);
+        DexDecompiler._walkElements(innerXml, innerParts, footnoteMap, commentMap);
         const insContent = innerParts.join('');
         if (insContent) {
           const id = attrs['w:id'] || '';
@@ -408,7 +509,7 @@ class DexDecompiler {
         // Recurse: inner runs use w:t (same as w:ins)
         const innerParts = [];
         const innerXml = mtXml.slice(mtXml.indexOf('>') + 1, mtXml.lastIndexOf('</w:moveTo>'));
-        DexDecompiler._walkElements(innerXml, innerParts, footnoteMap);
+        DexDecompiler._walkElements(innerXml, innerParts, footnoteMap, commentMap);
         const mtContent = innerParts.join('');
         if (mtContent) {
           const id = attrs['w:id'] || '';
@@ -425,8 +526,10 @@ class DexDecompiler {
         const fnRefMatch = runXml.match(/<w:footnoteReference\s+w:id="(\d+)"/);
         if (fnRefMatch) {
           const fnId = parseInt(fnRefMatch[1], 10);
-          const fnText = footnoteMap.get(fnId) || '';
-          parts.push('{footnote id:' + fnId + '}' + fnText + '{/footnote}');
+          if (fnId > 1) {
+            const fnText = footnoteMap.get(fnId) || '';
+            parts.push('{footnote id:' + fnId + '}' + fnText + '{/footnote}');
+          }
           pos = endIdx + endTag.length;
           continue;
         }
@@ -472,7 +575,7 @@ class DexDecompiler {
         const rIdMatch = hlXml.match(/r:id="([^"]*)"/);
         const anchorMatch = hlXml.match(/w:anchor="([^"]*)"/);
         const linkParts = [];
-        DexDecompiler._walkElements(hlXml.slice(hlXml.indexOf('>') + 1, hlXml.lastIndexOf('<')), linkParts, footnoteMap);
+        DexDecompiler._walkElements(hlXml.slice(hlXml.indexOf('>') + 1, hlXml.lastIndexOf('<')), linkParts, footnoteMap, commentMap);
         const linkText = linkParts.join('');
         if (rIdMatch) {
           parts.push('{link rId:' + rIdMatch[1] + '}' + linkText + '{/link}');
@@ -490,7 +593,7 @@ class DexDecompiler {
         const fldXml = xmlStr.slice(pos, endIdx + endTag.length);
         const instrMatch = fldXml.match(/w:instr="([^"]*)"/);
         const fldParts = [];
-        DexDecompiler._walkElements(fldXml.slice(fldXml.indexOf('>') + 1, fldXml.lastIndexOf('<')), fldParts, footnoteMap);
+        DexDecompiler._walkElements(fldXml.slice(fldXml.indexOf('>') + 1, fldXml.lastIndexOf('<')), fldParts, footnoteMap, commentMap);
         const displayText = fldParts.join('');
         const instrText = instrMatch ? instrMatch[1].trim() : '';
         parts.push('{field ' + DexDecompiler._dexStr(instrText) + '}' + displayText + '{/field}');
@@ -509,7 +612,7 @@ class DexDecompiler {
         const contentMatch = sdtXml.match(/<w:sdtContent>([\s\S]*)<\/w:sdtContent>/);
         if (contentMatch) {
           if (sdtName) parts.push('{sdt ' + DexDecompiler._dexStr(sdtName) + '}');
-          DexDecompiler._walkElements(contentMatch[1], parts, footnoteMap);
+          DexDecompiler._walkElements(contentMatch[1], parts, footnoteMap, commentMap);
           if (sdtName) parts.push('{/sdt}');
         }
         pos = endIdx + endTag.length;
@@ -517,13 +620,29 @@ class DexDecompiler {
         const closeAngle = xmlStr.indexOf('>', pos);
         const tag = xmlStr.slice(pos, closeAngle + 1);
         const idMatch = tag.match(/w:id="(\d+)"/);
-        if (idMatch) parts.push('{comment-start id:' + idMatch[1] + '}');
+        if (idMatch) {
+          const cId = parseInt(idMatch[1], 10);
+          const comment = commentMap ? commentMap.get(cId) : null;
+          if (comment && !comment.isReply) {
+            parts.push('{comment-start id:' + idMatch[1] + ' by:' + DexDecompiler._dexStr(comment.author) + ' date:' + DexDecompiler._dexStr(comment.date) + '}');
+          } else {
+            parts.push('{comment-start id:' + idMatch[1] + '}');
+          }
+        }
         pos = closeAngle + 1;
       } else if (xmlStr.startsWith('<w:commentRangeEnd', pos)) {
         const closeAngle = xmlStr.indexOf('>', pos);
         const tag = xmlStr.slice(pos, closeAngle + 1);
         const idMatch = tag.match(/w:id="(\d+)"/);
-        if (idMatch) parts.push('{comment-end id:' + idMatch[1] + '}');
+        if (idMatch) {
+          const cId = parseInt(idMatch[1], 10);
+          const comment = commentMap ? commentMap.get(cId) : null;
+          if (comment && !comment.isReply) {
+            parts.push('{comment-end id:' + idMatch[1] + ' | ' + comment.text + '}');
+          } else {
+            parts.push('{comment-end id:' + idMatch[1] + '}');
+          }
+        }
         pos = closeAngle + 1;
       } else if (xmlStr.startsWith('<w:bookmarkStart', pos)) {
         const closeAngle = xmlStr.indexOf('>', pos);
@@ -540,6 +659,67 @@ class DexDecompiler {
         const idMatch = tag.match(/w:id="(\d+)"/);
         if (idMatch) parts.push('{bookmark-end id:' + idMatch[1] + '}');
         pos = closeAngle + 1;
+      } else if (xmlStr.startsWith('<m:oMath', pos) || xmlStr.startsWith('<m:oMathPara', pos)) {
+        // Math equations: preserve raw XML via base64 and extract text representation
+        const isParaWrap = xmlStr.startsWith('<m:oMathPara', pos);
+        const endTag = isParaWrap ? '</m:oMathPara>' : '</m:oMath>';
+        const endIdx = xmlStr.indexOf(endTag, pos);
+        if (endIdx === -1) { pos++; continue; }
+        const mathXml = xmlStr.slice(pos, endIdx + endTag.length);
+        // Extract text representation from m:t elements
+        const textParts = [];
+        const mtRe = /<m:t[^>]*>([^<]*)<\/m:t>/g;
+        let mt;
+        while ((mt = mtRe.exec(mathXml)) !== null) textParts.push(mt[1]);
+        const textRepr = textParts.join('');
+        // Encode the raw XML for preservation (base64 to avoid .dex syntax conflicts)
+        const rawB64 = Buffer.from(mathXml).toString('base64');
+        parts.push('{math data:' + rawB64 + '}' + textRepr + '{/math}');
+        pos = endIdx + endTag.length;
+      } else if (xmlStr.startsWith('<w:txbxContent', pos)) {
+        // Text box content: recursively decompile inner paragraphs
+        const endTag = '</w:txbxContent>';
+        const endIdx = xmlStr.indexOf(endTag, pos);
+        if (endIdx === -1) { pos++; continue; }
+        const openClose = xmlStr.indexOf('>', pos);
+        const tbXml = xmlStr.slice(openClose + 1, endIdx);
+        const tbParts = [];
+        DexDecompiler._walkElements(tbXml, tbParts, footnoteMap, commentMap);
+        parts.push('{textbox}' + tbParts.join('') + '{/textbox}');
+        pos = endIdx + endTag.length;
+      } else if (xmlStr.startsWith('<mc:AlternateContent', pos)) {
+        // Alternate content: prefer Choice, fallback to Fallback
+        const endTag = '</mc:AlternateContent>';
+        const endIdx = xmlStr.indexOf(endTag, pos);
+        if (endIdx === -1) { pos++; continue; }
+        const acXml = xmlStr.slice(pos, endIdx + endTag.length);
+        const choiceMatch = acXml.match(/<mc:Choice[^>]*>([\s\S]*?)<\/mc:Choice>/);
+        if (choiceMatch) {
+          DexDecompiler._walkElements(choiceMatch[1], parts, footnoteMap, commentMap);
+        }
+        pos = endIdx + endTag.length;
+      } else if (xmlStr.startsWith('<w:ruby', pos)) {
+        // Ruby text (phonetic guides)
+        const endTag = '</w:ruby>';
+        const endIdx = xmlStr.indexOf(endTag, pos);
+        if (endIdx === -1) { pos++; continue; }
+        const rubyXml = xmlStr.slice(pos, endIdx + endTag.length);
+        const baseMatch = rubyXml.match(/<w:rubyBase>([\s\S]*?)<\/w:rubyBase>/);
+        const rtMatch = rubyXml.match(/<w:rt>([\s\S]*?)<\/w:rt>/);
+        const baseText = baseMatch ? xml.extractTextDecoded(baseMatch[1]) : '';
+        const rtText = rtMatch ? xml.extractTextDecoded(rtMatch[1]) : '';
+        parts.push('{ruby base:' + DexDecompiler._dexStr(baseText) + '}' + rtText + '{/ruby}');
+        pos = endIdx + endTag.length;
+      } else if (xmlStr.startsWith('<w:object', pos)) {
+        // Embedded OLE objects
+        const endTag = '</w:object>';
+        const endIdx = xmlStr.indexOf(endTag, pos);
+        if (endIdx === -1) { pos++; continue; }
+        const objXml = xmlStr.slice(pos, endIdx + endTag.length);
+        const progIdMatch = objXml.match(/ProgID="([^"]*)"/i) || objXml.match(/o:ProgID="([^"]*)"/i);
+        const progId = progIdMatch ? progIdMatch[1] : 'unknown';
+        parts.push('{object type:' + DexDecompiler._dexStr(progId) + '}');
+        pos = endIdx + endTag.length;
       } else {
         const closeAngle = xmlStr.indexOf('>', pos);
         if (closeAngle === -1) break;
@@ -779,7 +959,7 @@ class DexDecompiler {
       const id = xml.attrVal(attrs, 'w:id');
       const author = xml.decodeXml(xml.attrVal(attrs, 'w:author') || '');
       const date = xml.attrVal(attrs, 'w:date') || '';
-      const text = xml.extractTextDecoded(body);
+      const text = DexDecompiler._extractFormattedText(body);
       const innerParaIdMatch = body.match(/w14:paraId="([^"]+)"/);
       const innerParaId = innerParaIdMatch ? innerParaIdMatch[1] : '';
       if (id) map.set(parseInt(id, 10), { id: parseInt(id, 10), author, date, text, paraId: innerParaId, replies: [] });
@@ -855,14 +1035,25 @@ class DexDecompiler {
     const drawingMatch = pXml.match(/<w:drawing[\s>][\s\S]*?<\/w:drawing>/);
     if (!drawingMatch) { const text = xml.extractTextDecoded(pXml); return '{p id:' + paraId + '}\n' + text + '\n{/p}'; }
     const drawXml = drawingMatch[0];
+    // Extract dimensions from wp:extent (cx/cy in EMU), convert to inches
     const cxMatch = drawXml.match(/\bcx="(\d+)"/);
     const cyMatch = drawXml.match(/\bcy="(\d+)"/);
-    const width = cxMatch ? cxMatch[1] + 'emu' : '';
-    const height = cyMatch ? cyMatch[1] + 'emu' : '';
+    const EMU_PER_INCH = 914400;
+    const width = cxMatch ? (parseInt(cxMatch[1], 10) / EMU_PER_INCH).toFixed(2) + 'in' : '';
+    const height = cyMatch ? (parseInt(cyMatch[1], 10) / EMU_PER_INCH).toFixed(2) + 'in' : '';
     const rIdMatch = drawXml.match(/r:embed="([^"]+)"/);
     const rId = rIdMatch ? rIdMatch[1] : '';
     let src = '';
-    if (rId) { try { const relsXml = ws.relsXml; const relRe = new RegExp('Id="' + rId + '"[^>]*Target="([^"]+)"', 'g'); const relMatch = relRe.exec(relsXml); if (relMatch) src = relMatch[1].startsWith('media/') ? 'word/' + relMatch[1] : 'word/' + relMatch[1].replace(/^\.\.\//, ''); } catch (_) {} }
+    if (rId) {
+      try {
+        const relsXml = ws.relsXml;
+        const relRe = new RegExp('Id="' + rId + '"[^>]*Target="([^"]+)"', 'g');
+        const relMatch = relRe.exec(relsXml);
+        if (relMatch) {
+          src = relMatch[1].startsWith('media/') ? 'word/' + relMatch[1] : 'word/' + relMatch[1].replace(/^\.\.\//, '');
+        }
+      } catch (_) {}
+    }
     const altMatch = drawXml.match(/descr="([^"]*)"/);
     const alt = altMatch ? xml.decodeXml(altMatch[1]) : '';
     const caption = xml.extractTextDecoded(pXml);
@@ -900,9 +1091,24 @@ class DexDecompiler {
     const firstRow = tblXml.match(/<w:tr[\s>][\s\S]*?<\/w:tr>/);
     let colCount = 0;
     if (firstRow) colCount = (firstRow[0].match(/<w:tc[\s>]/g) || []).length;
+
+    // Table-level properties
     const styleMatch = tblXml.match(/<w:tblStyle\s+w:val="([^"]+)"/);
     const style = styleMatch ? styleMatch[1] : 'plain';
-    parts.push('{table style:' + style + ' cols:' + colCount + '}');
+    let tblAttrs = 'style:' + style + ' cols:' + colCount;
+
+    // Table width
+    const tblWMatch = tblXml.match(/<w:tblW\s+[^>]*w:w="(\d+)"/);
+    if (tblWMatch) tblAttrs += ' width:' + tblWMatch[1];
+
+    // Table alignment
+    const tblPrMatch = tblXml.match(/<w:tblPr>([\s\S]*?)<\/w:tblPr>/);
+    if (tblPrMatch) {
+      const tblJcMatch = tblPrMatch[1].match(/<w:jc\s+w:val="([^"]+)"/);
+      if (tblJcMatch && tblJcMatch[1] !== 'left') tblAttrs += ' align:' + tblJcMatch[1];
+    }
+
+    parts.push('{table ' + tblAttrs + '}');
     const rowRe = /<w:tr[\s>][\s\S]*?<\/w:tr>/g;
     let rm;
     const rows = [];
@@ -910,7 +1116,19 @@ class DexDecompiler {
       const rowXml = rm[0]; const cells = [];
       const cellRe = /<w:tc[\s>][\s\S]*?<\/w:tc>/g;
       let cm;
-      while ((cm = cellRe.exec(rowXml)) !== null) cells.push(xml.extractTextDecoded(cm[0]).trim());
+      while ((cm = cellRe.exec(rowXml)) !== null) {
+        const cellXml = cm[0];
+        // Extract cell properties
+        const tcPrMatch = cellXml.match(/<w:tcPr>([\s\S]*?)<\/w:tcPr>/);
+        const tcProps = DexDecompiler._extractCellProperties(tcPrMatch ? tcPrMatch[1] : '');
+
+        // Extract cell content using _walkElements for inline formatting
+        const cellContent = DexDecompiler._extractCellContent(cellXml);
+
+        // Build {tc ...} prefix if cell has non-default properties
+        const tcPrefix = DexDecompiler._formatCellProps(tcProps);
+        cells.push(tcPrefix + cellContent);
+      }
       rows.push(cells);
     }
     if (rows.length > 0) {
@@ -922,21 +1140,155 @@ class DexDecompiler {
     return parts.join('\n');
   }
 
-  static _extractSectionProperties(docXml) {
-    const sectPrMatch = docXml.match(/<w:sectPr[\s>][\s\S]*?<\/w:sectPr>/);
-    if (!sectPrMatch) return null;
-    const sectPr = sectPrMatch[0];
-    const pgMar = sectPr.match(/<w:pgMar\s+([^>]+)/);
-    let margins = '';
-    if (pgMar) {
-      const top = xml.attrVal(pgMar[1], 'w:top') || '0';
-      const right = xml.attrVal(pgMar[1], 'w:right') || '0';
-      const bottom = xml.attrVal(pgMar[1], 'w:bottom') || '0';
-      const left = xml.attrVal(pgMar[1], 'w:left') || '0';
-      margins = top + ' ' + right + ' ' + bottom + ' ' + left;
+  /**
+   * Extract cell-level properties from <w:tcPr> content.
+   */
+  static _extractCellProperties(tcPrContent) {
+    const props = {};
+    if (!tcPrContent) return props;
+
+    // Grid span (column merge)
+    const spanMatch = tcPrContent.match(/<w:gridSpan\s+w:val="(\d+)"/);
+    if (spanMatch && spanMatch[1] !== '1') props.span = spanMatch[1];
+
+    // Vertical merge
+    const vMergeMatch = tcPrContent.match(/<w:vMerge(\s+w:val="([^"]*)")?/);
+    if (vMergeMatch) {
+      props.vmerge = vMergeMatch[2] === 'restart' ? 'restart' : 'continue';
     }
-    if (margins) return '\n{section margins:"' + margins + '"}';
-    return null;
+
+    // Shading (background color)
+    const shdMatch = tcPrContent.match(/<w:shd\s+[^>]*w:fill="([^"]+)"/);
+    if (shdMatch && shdMatch[1] !== 'auto' && shdMatch[1] !== 'FFFFFF') props.shd = shdMatch[1];
+
+    // Cell width
+    const tcWMatch = tcPrContent.match(/<w:tcW\s+[^>]*w:w="(\d+)"/);
+    if (tcWMatch) props.width = tcWMatch[1];
+
+    // Vertical alignment
+    const vAlignMatch = tcPrContent.match(/<w:vAlign\s+w:val="([^"]+)"/);
+    if (vAlignMatch && vAlignMatch[1] !== 'top') props.valign = vAlignMatch[1];
+
+    // Borders
+    const bordersMatch = tcPrContent.match(/<w:tcBorders>([\s\S]*?)<\/w:tcBorders>/);
+    if (bordersMatch) {
+      const bordersXml = bordersMatch[1];
+      const borderParts = [];
+      for (const side of ['top', 'bottom', 'left', 'right']) {
+        const sideRe = new RegExp('<w:' + side + '\\s+([^>]+)');
+        const sideMatch = sideRe.exec(bordersXml);
+        if (sideMatch) {
+          const valM = sideMatch[1].match(/w:val="([^"]+)"/);
+          const szM = sideMatch[1].match(/w:sz="([^"]+)"/);
+          const colorM = sideMatch[1].match(/w:color="([^"]+)"/);
+          if (valM && valM[1] !== 'nil') {
+            let b = side + ':' + valM[1];
+            if (szM) b += ':' + szM[1];
+            if (colorM && colorM[1] !== 'auto') b += ':' + colorM[1];
+            borderParts.push(b);
+          }
+        }
+      }
+      if (borderParts.length > 0) props.borders = borderParts.join(',');
+    }
+
+    return props;
+  }
+
+  /**
+   * Format cell properties as a {tc ...} prefix string.
+   * Returns empty string if no non-default properties.
+   */
+  static _formatCellProps(props) {
+    if (!props || Object.keys(props).length === 0) return '';
+    const parts = [];
+    if (props.shd) parts.push('shd:' + props.shd);
+    if (props.span) parts.push('span:' + props.span);
+    if (props.vmerge) parts.push('vmerge:' + props.vmerge);
+    if (props.width) parts.push('width:' + props.width);
+    if (props.valign) parts.push('valign:' + props.valign);
+    if (props.borders) parts.push('borders:"' + props.borders + '"');
+    return '{tc ' + parts.join(' ') + '} ';
+  }
+
+  /**
+   * Extract cell content using _walkElements for inline formatting preservation.
+   */
+  static _extractCellContent(cellXml) {
+    // Remove tcPr to get just the content paragraphs
+    const withoutTcPr = cellXml.replace(/<w:tcPr>[\s\S]*?<\/w:tcPr>/g, '');
+    // Find all paragraphs in the cell
+    const paraRe = /<w:p[\s>][\s\S]*?<\/w:p>/g;
+    let pm;
+    const paraTexts = [];
+    while ((pm = paraRe.exec(withoutTcPr)) !== null) {
+      const pXml = pm[0];
+      const result = DexDecompiler._decompileRuns(pXml, new Map());
+      if (result.text.trim()) paraTexts.push(result.text.trim());
+    }
+    return paraTexts.join('{br}');
+  }
+
+  static _extractSectionProperties(docXml) {
+    const allSectPrs = [];
+    const sectRe = /<w:sectPr[\s>][\s\S]*?<\/w:sectPr>/g;
+    let sm;
+    while ((sm = sectRe.exec(docXml)) !== null) allSectPrs.push(sm[0]);
+    if (allSectPrs.length === 0) return null;
+    return DexDecompiler._formatSectionFromXml(allSectPrs[allSectPrs.length - 1]);
+  }
+
+  static _formatSectionFromXml(sectPr) {
+    const attrs = [];
+    const typeMatch = sectPr.match(/<w:type\s+w:val="([^"]+)"/);
+    if (typeMatch) attrs.push('type:' + typeMatch[1]);
+    const pgSzMatch = sectPr.match(/<w:pgSz\s+([^>]+)/);
+    if (pgSzMatch) {
+      const a = pgSzMatch[1];
+      const wM = a.match(/w:w="(\d+)"/); const hM = a.match(/w:h="(\d+)"/);
+      const oM = a.match(/w:orient="([^"]+)"/);
+      if (oM) attrs.push('orient:' + oM[1]);
+      if (wM) attrs.push('pgw:' + wM[1]);
+      if (hM) attrs.push('pgh:' + hM[1]);
+    }
+    const pgMar = sectPr.match(/<w:pgMar\s+([^>]+)/);
+    if (pgMar) {
+      const a = pgMar[1];
+      const top = xml.attrVal(a, 'w:top') || '0';
+      const right = xml.attrVal(a, 'w:right') || '0';
+      const bottom = xml.attrVal(a, 'w:bottom') || '0';
+      const left = xml.attrVal(a, 'w:left') || '0';
+      const hdr = xml.attrVal(a, 'w:header') || '';
+      const ftr = xml.attrVal(a, 'w:footer') || '';
+      const gut = xml.attrVal(a, 'w:gutter') || '';
+      let margins = top + ',' + right + ',' + bottom + ',' + left;
+      if (hdr || ftr || gut) margins += ',' + hdr + ',' + ftr + ',' + gut;
+      attrs.push('margins:"' + margins + '"');
+    }
+    const colsMatch = sectPr.match(/<w:cols\s+([^>]+)/);
+    if (colsMatch) {
+      const nM = colsMatch[1].match(/w:num="(\d+)"/);
+      const sM = colsMatch[1].match(/w:space="(\d+)"/);
+      if (nM && nM[1] !== '1') {
+        attrs.push('cols:' + nM[1]);
+        if (sM) attrs.push('colspace:' + sM[1]);
+      }
+    }
+    const pgNumMatch = sectPr.match(/<w:pgNumType\s+([^>]+)/);
+    if (pgNumMatch) {
+      const sM = pgNumMatch[1].match(/w:start="(\d+)"/);
+      if (sM) attrs.push('pgstart:' + sM[1]);
+    }
+    const hfRe = /<w:(header|footer)Reference\s+([^>]+)/g;
+    let hfM;
+    while ((hfM = hfRe.exec(sectPr)) !== null) {
+      const tag = hfM[1]; const ha = hfM[2];
+      const tM = ha.match(/w:type="([^"]+)"/);
+      const rM = ha.match(/r:id="([^"]+)"/);
+      if (tM && rM) attrs.push(tag + '-' + tM[1] + ':' + rM[1]);
+    }
+    if (attrs.length === 0) return null;
+    return '\n{section ' + attrs.join(' ') + '}';
   }
 
   static _extractParaId(pXml) { const m = pXml.match(/w14:paraId="([^"]+)"/); return m ? m[1] : ''; }

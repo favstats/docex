@@ -134,10 +134,11 @@ describe('DexDecompiler', () => {
     const ws = Workspace.open(outPath);
     const dex = DexDecompiler.decompile(ws);
     ws.cleanup();
-    assert.ok(dex.includes('{comment'), 'should contain comment block');
+    // Comments are now inline: {comment-start id:N by:"Author"} ... {comment-end id:N | text}
+    assert.ok(dex.includes('{comment-start'), 'should contain comment-start marker');
     assert.ok(dex.includes('Reviewer 1'), 'should preserve comment author');
     assert.ok(dex.includes('Needs citation here'), 'should preserve comment text');
-    assert.ok(dex.includes('{/comment}'), 'should close comment');
+    assert.ok(dex.includes('{comment-end'), 'should contain comment-end marker');
   });
 });
 
@@ -236,8 +237,8 @@ describe('DexParser', () => {
     assert.equal(tbl.style, 'booktabs');
     assert.equal(tbl.cols, 3);
     assert.equal(tbl.rows.length, 3);
-    assert.equal(tbl.rows[0][0], 'Party');
-    assert.equal(tbl.rows[1][0], 'PAX');
+    assert.equal(tbl.rows[0][0].text, 'Party');
+    assert.equal(tbl.rows[1][0].text, 'PAX');
   });
 
   it('parses footnotes', () => {

@@ -157,6 +157,39 @@ class DexCompiler {
           + '<w:r><w:fldChar w:fldCharType="end"/></w:r>';
       }
       if (run.type === 'sdt') return '<w:sdt><w:sdtPr><w:tag w:val="' + esc(run.name || '') + '"/></w:sdtPr><w:sdtContent><w:r><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r></w:sdtContent></w:sdt>';
+      if (run.type === 'math') {
+        // Decode base64 data back to raw XML
+        if (run.data) {
+          try { return Buffer.from(run.data, 'base64').toString('utf-8'); } catch (_) {}
+        }
+        // Fallback: emit text in a basic math wrapper
+        return '<m:oMath><m:r><m:t>' + esc(run.text || '') + '</m:t></m:r></m:oMath>';
+      }
+      if (run.type === 'textbox') {
+        return '<w:r><w:rPr><w:noProof/></w:rPr>'
+          + '<mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">'
+          + '<mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="251659264" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1">'
+          + '<wp:extent cx="2971800" cy="914400"/>'
+          + '<wp:docPr id="1" name="Text Box 1"/>'
+          + '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">'
+          + '<wps:wsp xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:txbx>'
+          + '<w:txbxContent><w:p><w:r><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r></w:p></w:txbxContent>'
+          + '</wps:txbx></wps:wsp>'
+          + '</a:graphicData></a:graphic>'
+          + '</wp:anchor></w:drawing></mc:Choice>'
+          + '<mc:Fallback><w:r><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r></mc:Fallback>'
+          + '</mc:AlternateContent>'
+          + '</w:r>';
+      }
+      if (run.type === 'ruby') {
+        return '<w:ruby><w:rubyPr><w:rubyAlign w:val="distributeSpace"/></w:rubyPr>'
+          + '<w:rt><w:r><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r></w:rt>'
+          + '<w:rubyBase><w:r><w:t xml:space="preserve">' + esc(run.base || '') + '</w:t></w:r></w:rubyBase>'
+          + '</w:ruby>';
+      }
+      if (run.type === 'object') {
+        return '<w:r><w:object><o:OLEObject Type="Embed" ProgID="' + esc(run.progId || 'unknown') + '"/></w:object></w:r>';
+      }
       return '<w:r><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r>';
     }
 
@@ -205,10 +238,90 @@ class DexCompiler {
       return '<w:pPr>' + parts.join('') + '</w:pPr>';
     }
 
+    function buildTcPrXml(tcProps, defaultWidth) {
+      let tcPr = '<w:tcPr>';
+      const w = (tcProps && tcProps.width) ? tcProps.width : defaultWidth;
+      tcPr += '<w:tcW w:w="' + w + '" w:type="dxa"/>';
+      if (tcProps) {
+        if (tcProps.span) tcPr += '<w:gridSpan w:val="' + esc(tcProps.span) + '"/>';
+        if (tcProps.vmerge === 'restart') tcPr += '<w:vMerge w:val="restart"/>';
+        else if (tcProps.vmerge === 'continue' || tcProps.vmerge === '') tcPr += '<w:vMerge/>';
+        if (tcProps.shd) tcPr += '<w:shd w:val="clear" w:color="auto" w:fill="' + esc(tcProps.shd) + '"/>';
+        if (tcProps.valign) tcPr += '<w:vAlign w:val="' + esc(tcProps.valign) + '"/>';
+        if (tcProps.borders) {
+          tcPr += '<w:tcBorders>';
+          const bParts = tcProps.borders.split(',');
+          for (const bp of bParts) {
+            const segs = bp.split(':');
+            if (segs.length >= 2) {
+              const side = segs[0]; const val = segs[1];
+              const sz = segs[2] || '4'; const color = segs[3] || 'auto';
+              tcPr += '<w:' + esc(side) + ' w:val="' + esc(val) + '" w:sz="' + esc(sz) + '" w:color="' + esc(color) + '" w:space="0"/>';
+            }
+          }
+          tcPr += '</w:tcBorders>';
+        }
+      }
+      tcPr += '</w:tcPr>';
+      return tcPr;
+    }
+
+    function buildCellContentXml(cell) {
+      // cell can be a string (old format) or object with tcProps/text/runs (new format)
+      if (typeof cell === 'string') {
+        return '<w:p><w:r><w:t xml:space="preserve">' + esc(cell) + '</w:t></w:r></w:p>';
+      }
+      if (cell.runs) {
+        return '<w:p>' + cell.runs.map(buildRunXml).join('') + '</w:p>';
+      }
+      return '<w:p><w:r><w:t xml:space="preserve">' + esc(cell.text || '') + '</w:t></w:r></w:p>';
+    }
+
+    function buildSectionXml(node) {
+      let sp = '<w:sectPr>';
+      if (node.sectionType) sp += '<w:type w:val="' + esc(node.sectionType) + '"/>';
+      // Page size
+      const pgw = node.pgw || '12240'; const pgh = node.pgh || '15840';
+      let pgSzAttrs = ' w:w="' + esc(pgw) + '" w:h="' + esc(pgh) + '"';
+      if (node.orient) pgSzAttrs += ' w:orient="' + esc(node.orient) + '"';
+      sp += '<w:pgSz' + pgSzAttrs + '/>';
+      // Margins
+      if (node.margins) {
+        const mParts = node.margins.includes(',') ? node.margins.split(',') : node.margins.split(/\s+/);
+        const top = mParts[0] || '1440'; const right = mParts[1] || '1440';
+        const bottom = mParts[2] || '1440'; const left = mParts[3] || '1440';
+        const hdr = mParts[4] || '720'; const ftr = mParts[5] || '720';
+        const gut = mParts[6] || '0';
+        sp += '<w:pgMar w:top="' + esc(top) + '" w:right="' + esc(right) + '" w:bottom="' + esc(bottom) + '" w:left="' + esc(left) + '" w:header="' + esc(hdr) + '" w:footer="' + esc(ftr) + '" w:gutter="' + esc(gut) + '"/>';
+      } else {
+        sp += '<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>';
+      }
+      // Columns
+      if (node.cols) {
+        let colAttrs = ' w:num="' + esc(node.cols) + '"';
+        if (node.colspace) colAttrs += ' w:space="' + esc(node.colspace) + '"';
+        sp += '<w:cols' + colAttrs + '/>';
+      }
+      // Page number start
+      if (node.pgstart) sp += '<w:pgNumType w:start="' + esc(node.pgstart) + '"/>';
+      // Header/footer references
+      for (const [k, v] of Object.entries(node)) {
+        const hfMatch = k.match(/^(header|footer)-(.+)$/);
+        if (hfMatch) sp += '<w:' + hfMatch[1] + 'Reference w:type="' + esc(hfMatch[2]) + '" r:id="' + esc(v) + '"/>';
+      }
+      sp += '</w:sectPr>';
+      return sp;
+    }
+
     const footnotes = [];
     const comments = [];
+    const imageRels = [];
+    let imageCount = 0;
     let bodyXml = '';
-    const sectPr = '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>';
+    // Build final section properties from last section node, or use defaults
+    let finalSectNode = null;
+    for (const node of body) { if (node.type === 'section') finalSectNode = node; }
+    const sectPr = finalSectNode ? buildSectionXml(finalSectNode) : '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>';
 
     for (const node of body) {
       if (node.type === 'heading') {
@@ -237,21 +350,34 @@ class DexCompiler {
       } else if (node.type === 'table') {
         const rows = node.rows || [];
         const cols = node.cols || (rows[0] ? rows[0].length : 0);
-        const colWidth = cols > 0 ? Math.floor(9360 / cols) : 9360;
-        let tblXml = '<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="9360" w:type="dxa"/></w:tblPr><w:tblGrid>';
+        const tblWidth = node.width ? parseInt(node.width, 10) : 9360;
+        const colWidth = cols > 0 ? Math.floor(tblWidth / cols) : tblWidth;
+        // Table properties
+        const tblStyleName = (node.style && node.style !== 'plain') ? node.style : 'TableGrid';
+        let tblPrXml = '<w:tblPr><w:tblStyle w:val="' + esc(tblStyleName) + '"/><w:tblW w:w="' + tblWidth + '" w:type="dxa"/>';
+        if (node.align) tblPrXml += '<w:jc w:val="' + esc(node.align) + '"/>';
+        tblPrXml += '</w:tblPr>';
+        let tblXml = '<w:tbl>' + tblPrXml + '<w:tblGrid>';
         for (let c = 0; c < cols; c++) tblXml += '<w:gridCol w:w="' + colWidth + '"/>';
         tblXml += '</w:tblGrid>';
         for (let r = 0; r < rows.length; r++) {
           tblXml += '<w:tr>';
           for (let c = 0; c < rows[r].length; c++) {
-            tblXml += '<w:tc><w:tcPr><w:tcW w:w="' + colWidth + '" w:type="dxa"/></w:tcPr>'
-              + '<w:p><w:r><w:t xml:space="preserve">' + esc(rows[r][c]) + '</w:t></w:r></w:p>'
-              + '</w:tc>';
+            const cell = rows[r][c];
+            const tcProps = (typeof cell === 'object' && cell.tcProps) ? cell.tcProps : {};
+            const tcPrXml = buildTcPrXml(tcProps, colWidth);
+            const contentXml = buildCellContentXml(cell);
+            tblXml += '<w:tc>' + tcPrXml + contentXml + '</w:tc>';
           }
           tblXml += '</w:tr>';
         }
         tblXml += '</w:tbl>';
         bodyXml += tblXml;
+      } else if (node.type === 'section' && node !== finalSectNode) {
+        // Inline section break: emit as an empty paragraph with sectPr in pPr
+        bodyXml += '<w:p w14:paraId="' + genId() + '" w14:textId="' + genId() + '">'
+          + '<w:pPr>' + buildSectionXml(node) + '</w:pPr>'
+          + '</w:p>';
       } else if (node.type === 'comment') {
         comments.push(node);
       } else if (node.type === 'reply') {
@@ -267,6 +393,9 @@ class DexCompiler {
       + 'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" '
       + 'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
       + 'xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" '
+      + 'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" '
+      + 'xmlns:o="urn:schemas-microsoft-com:office:office" '
+      + 'xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" '
       + 'mc:Ignorable="w14 w15">'
       + '<w:body>' + bodyXml + sectPr + '</w:body></w:document>';
 

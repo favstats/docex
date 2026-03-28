@@ -87,7 +87,23 @@ class DexParser {
       }
       if (trimmed === '{pagebreak}') { nodes.push({ type: 'pagebreak' }); i++; continue; }
       const sectionMatch = trimmed.match(/^\{section\s+(.*)\}$/);
-      if (sectionMatch) { const attrs = DexParser._parseBlockAttrs(sectionMatch[1]); nodes.push({ type: 'section', margins: attrs.margins || '', header: attrs.header || '', footer: attrs.footer || '' }); i++; continue; }
+      if (sectionMatch) {
+        const attrs = DexParser._parseBlockAttrs(sectionMatch[1]);
+        const sNode = { type: 'section', margins: attrs.margins || '' };
+        if (attrs.type) sNode.sectionType = attrs.type;
+        if (attrs.orient) sNode.orient = attrs.orient;
+        if (attrs.pgw) sNode.pgw = attrs.pgw;
+        if (attrs.pgh) sNode.pgh = attrs.pgh;
+        if (attrs.cols) sNode.cols = attrs.cols;
+        if (attrs.colspace) sNode.colspace = attrs.colspace;
+        if (attrs.pgstart) sNode.pgstart = attrs.pgstart;
+        // Collect header/footer references (header-default, footer-first, etc.)
+        for (const [k, v] of Object.entries(attrs)) {
+          if (k.startsWith('header-') || k.startsWith('footer-')) sNode[k] = v;
+        }
+        nodes.push(sNode);
+        i++; continue;
+      }
       if (trimmed.startsWith('{figure')) { const r = DexParser._parseFigureBlock(lines, i); nodes.push(r.node); i = r.endLine + 1; continue; }
       if (trimmed.startsWith('{table')) { const r = DexParser._parseTableBlock(lines, i); nodes.push(r.node); i = r.endLine + 1; continue; }
       if (trimmed.startsWith('{comment') && !trimmed.startsWith('{comment-')) { const r = DexParser._parseCommentBlock(lines, i); nodes.push(r.node); i = r.endLine + 1; continue; }
@@ -157,9 +173,35 @@ class DexParser {
     for (const line of contentLines) {
       if (!line.startsWith('|')) continue;
       if (/^\|[-|]+\|$/.test(line.replace(/\s/g, ''))) continue;
-      rows.push(line.split('|').slice(1, -1).map(c => c.trim()));
+      const rawCells = line.split('|').slice(1, -1);
+      const parsedCells = rawCells.map(c => {
+        const trimmed = c.trim();
+        // Check for {tc ...} prefix
+        if (trimmed.startsWith('{tc')) {
+          const tcEnd = trimmed.indexOf('}');
+          if (tcEnd !== -1) {
+            const tcAttrStr = trimmed.slice(3, tcEnd).trim();
+            const tcAttrs = DexParser._parseBlockAttrs(tcAttrStr);
+            const cellText = trimmed.slice(tcEnd + 1).trim();
+            return { tcProps: tcAttrs, text: cellText, runs: DexParser._hasInlineTags(cellText) ? DexParser._parseInlineContent(cellText) : null };
+          }
+        }
+        return { tcProps: {}, text: trimmed, runs: DexParser._hasInlineTags(trimmed) ? DexParser._parseInlineContent(trimmed) : null };
+      });
+      rows.push(parsedCells);
     }
-    return { node: { type: 'table', id: attrs.id || null, style: attrs.style || 'plain', cols: parseInt(attrs.cols, 10) || (rows.length > 0 ? rows[0].length : 0), caption: captionText, rows }, endLine: i };
+    const node = {
+      type: 'table', id: attrs.id || null, style: attrs.style || 'plain',
+      cols: parseInt(attrs.cols, 10) || (rows.length > 0 ? rows[0].length : 0),
+      caption: captionText, rows
+    };
+    if (attrs.width) node.width = attrs.width;
+    if (attrs.align) node.align = attrs.align;
+    return { node, endLine: i };
+  }
+
+  static _hasInlineTags(text) {
+    return /\{(comment-start|comment-end|del|ins|b|i|u|footnote|sup|sub|strike|dstrike|smallcaps|caps|hidden|size|highlight|color|font|movefrom|moveto|fmtchange|br|link|field|sdt)\b/.test(text);
   }
 
   static _parseCommentBlock(lines, startLine) {
@@ -318,6 +360,34 @@ class DexParser {
       const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
       const charCode = content.slice(pos + '{sym '.length, closeAngle).trim();
       return { node: { type: 'sym', char: charCode }, endPos: closeAngle + 1 };
+    }
+    // Math equations: {math data:BASE64}text{/math}
+    if (content.startsWith('{math ', pos)) {
+      const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
+      const attrStr = content.slice(pos + '{math '.length, closeAngle).trim();
+      const attrs = DexParser._parseBlockAttrs(attrStr);
+      const closeIdx = content.indexOf('{/math}', closeAngle + 1); if (closeIdx === -1) return null;
+      return { node: { type: 'math', data: attrs.data || '', text: content.slice(closeAngle + 1, closeIdx) }, endPos: closeIdx + '{/math}'.length };
+    }
+    // Text boxes: {textbox}content{/textbox}
+    if (content.startsWith('{textbox}', pos)) {
+      const closeIdx = content.indexOf('{/textbox}', pos + '{textbox}'.length); if (closeIdx === -1) return null;
+      return { node: { type: 'textbox', text: content.slice(pos + '{textbox}'.length, closeIdx) }, endPos: closeIdx + '{/textbox}'.length };
+    }
+    // Ruby text: {ruby base:"text"}rt{/ruby}
+    if (content.startsWith('{ruby ', pos)) {
+      const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
+      const attrStr = content.slice(pos + '{ruby '.length, closeAngle).trim();
+      const attrs = DexParser._parseBlockAttrs(attrStr);
+      const closeIdx = content.indexOf('{/ruby}', closeAngle + 1); if (closeIdx === -1) return null;
+      return { node: { type: 'ruby', base: attrs.base || '', text: content.slice(closeAngle + 1, closeIdx) }, endPos: closeIdx + '{/ruby}'.length };
+    }
+    // Embedded objects: {object type:"progid"} (self-closing, no close tag)
+    if (content.startsWith('{object ', pos)) {
+      const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
+      const attrStr = content.slice(pos + '{object '.length, closeAngle).trim();
+      const attrs = DexParser._parseBlockAttrs(attrStr);
+      return { node: { type: 'object', progId: attrs.type || 'unknown' }, endPos: closeAngle + 1 };
     }
     return null;
   }

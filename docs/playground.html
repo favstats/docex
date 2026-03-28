@@ -337,7 +337,8 @@ function triggerCompile() {
     hideSpinner();
   }).catch(function(err) {
     console.error('Compile failed:', err);
-    statusEl.textContent = 'Compile error: ' + err.message;
+    // Keep the last good preview visible — don't clear it
+    statusEl.textContent = 'Syntax error — last good preview shown';
     statusEl.style.color = 'var(--red)';
     hideSpinner();
   });

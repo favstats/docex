@@ -53,10 +53,8 @@
   <div class="playground-header">
     <h2>Playground</h2>
     <button class="btn btn-small btn-secondary" id="copyBtn">Copy .dex</button>
-    <div class="tooltip-wrap">
-      <button class="btn btn-small btn-secondary" disabled id="downloadBtn">Download .docx</button>
-      <span class="tooltip">Coming soon: client-side .docx building</span>
-    </div>
+    <button class="btn btn-small btn-accent" id="rebuildBtn">Rebuild Preview</button>
+    <button class="btn btn-small btn-secondary" id="downloadBtn">Download .docx</button>
   </div>
 
   <!-- Drop zone -->
@@ -253,6 +251,69 @@ function handleFile(file) {
 // Keep docx preview visible when editing .dex
 // The .dex editor and docx preview are independent views of the same document
 // User sees: left = editable .dex source, right = last rendered .docx (read-only reference)
+
+// ---------- Rebuild Preview (compile .dex -> .docx) ----------
+var rebuildBtn = document.getElementById('rebuildBtn');
+var downloadBtn = document.getElementById('downloadBtn');
+
+rebuildBtn.addEventListener('click', function() {
+  rebuildBtn.textContent = 'Building...';
+  rebuildBtn.disabled = true;
+
+  DexCompiler.compile(editor.value).then(function(arrayBuffer) {
+    // Render the compiled .docx in the preview pane
+    previewEl.style.display = 'none';
+    docxPreviewPane.style.display = 'block';
+    docxPreviewPane.textContent = '';
+    previewModeEl.textContent = 'compiled from .dex';
+
+    docx.renderAsync(arrayBuffer, docxPreviewPane, null, {
+      className: 'docx-preview',
+      inWrapper: true,
+      breakPages: true,
+      renderHeaders: true,
+      renderFooters: true,
+      renderFootnotes: true,
+      renderEndnotes: true,
+      renderChanges: true,
+      renderComments: true,
+      ignoreWidth: true,
+      ignoreHeight: true
+    });
+
+    // Store for download
+    window._lastCompiledDocx = arrayBuffer;
+    downloadBtn.disabled = false;
+    rebuildBtn.textContent = 'Rebuild Preview';
+    rebuildBtn.disabled = false;
+    statusEl.textContent = 'Preview rebuilt from .dex';
+    statusEl.style.color = 'var(--green)';
+  }).catch(function(err) {
+    rebuildBtn.textContent = 'Rebuild Preview';
+    rebuildBtn.disabled = false;
+    statusEl.textContent = 'Build error: ' + err.message;
+    statusEl.style.color = 'var(--red)';
+    console.error(err);
+  });
+});
+
+downloadBtn.addEventListener('click', function() {
+  if (!window._lastCompiledDocx) {
+    // No compiled docx yet, trigger a build first
+    rebuildBtn.click();
+    return;
+  }
+  var blob = new Blob([window._lastCompiledDocx], {
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'document.docx';
+  a.click();
+  URL.revokeObjectURL(url);
+});
 </script>
+<script src="compiler.js"></script>
 </body>
 </html>

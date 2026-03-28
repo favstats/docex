@@ -125,6 +125,7 @@
   <div class="status-bar" id="statusBar">
     <div class="status-bar-left">
       <span class="compile-spinner" id="compileSpinner"></span>
+      <span class="compile-indicator" id="compileIndicator"><span></span><span></span><span></span></span>
       <span id="status"></span>
     </div>
     <div class="status-bar-right">
@@ -215,9 +216,16 @@ var fileInput = document.getElementById('fileInput');
 var copyBtn = document.getElementById('copyBtn');
 
 var lastUploadedFile = null; // Store last uploaded file
+var compileIndicator = document.getElementById('compileIndicator');
 
-function showSpinner() { compileSpinner.classList.add('active'); }
-function hideSpinner() { compileSpinner.classList.remove('active'); }
+function showSpinner() {
+  compileSpinner.classList.add('active');
+  compileIndicator.classList.add('active');
+}
+function hideSpinner() {
+  compileSpinner.classList.remove('active');
+  compileIndicator.classList.remove('active');
+}
 
 // Load example
 editor.value = EXAMPLE_DEX;
@@ -232,6 +240,15 @@ window.addEventListener('load', function() {
 editor.addEventListener('scroll', function() {
   highlightEl.scrollTop = editor.scrollTop;
   highlightEl.scrollLeft = editor.scrollLeft;
+
+  // Synced scroll: editor scrolls, preview scrolls proportionally
+  if (docxPreviewPane.style.display !== 'none') {
+    var ratio = editor.scrollTop / (editor.scrollHeight - editor.clientHeight || 1);
+    var wrapper = docxPreviewPane.querySelector('.docx-wrapper');
+    if (wrapper) {
+      wrapper.scrollTop = ratio * (wrapper.scrollHeight - wrapper.clientHeight);
+    }
+  }
 });
 
 // Live update — line count + auto-rebuild docx preview
@@ -279,6 +296,11 @@ function triggerCompile() {
       renderHeaders: true, renderFooters: true, renderFootnotes: true,
       renderEndnotes: true, renderChanges: true, renderComments: true,
       ignoreWidth: false, ignoreHeight: false
+    }).then(function() {
+      // Amber glow pulse when edits land
+      docxPreviewPane.classList.remove('preview-pulse');
+      void docxPreviewPane.offsetWidth; // force reflow
+      docxPreviewPane.classList.add('preview-pulse');
     });
     window._lastCompiledDocx = arrayBuffer;
     statusEl.textContent = 'Preview updated';
@@ -334,6 +356,10 @@ function handleFile(file) {
     statusEl.style.color = 'var(--red)';
     return;
   }
+  // Drop zone "received" animation
+  dropZone.classList.add('file-landed');
+  setTimeout(function() { dropZone.style.display = 'none'; }, 400);
+
   statusEl.textContent = 'Decompiling ' + file.name + '...';
   statusEl.style.color = 'var(--accent)';
   showSpinner();

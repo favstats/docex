@@ -378,6 +378,73 @@ class DexCompiler {
         bodyXml += '<w:p w14:paraId="' + genId() + '" w14:textId="' + genId() + '">'
           + '<w:pPr>' + buildSectionXml(node) + '</w:pPr>'
           + '</w:p>';
+      } else if (node.type === 'figure') {
+        imageCount++;
+        const imgRId = node.rId || ('rIdImg' + imageCount);
+        // Parse dimensions: support "Nemu" or plain inches
+        let widthInches = 6;
+        let heightInches = 4;
+        if (node.width) {
+          const wStr = String(node.width);
+          if (wStr.endsWith('emu')) {
+            widthInches = parseInt(wStr, 10) / 914400;
+          } else {
+            widthInches = parseFloat(wStr) || 6;
+          }
+        }
+        if (node.height) {
+          const hStr = String(node.height);
+          if (hStr.endsWith('emu')) {
+            heightInches = parseInt(hStr, 10) / 914400;
+          } else {
+            heightInches = parseFloat(hStr) || 4;
+          }
+        }
+        const cx = Math.round(widthInches * 914400);
+        const cy = Math.round(heightInches * 914400);
+        const alt = esc(node.alt || node.caption || '');
+        const picName = 'image' + imageCount + '.png';
+        const docPrId = imageCount;
+
+        const drawingXml = '<w:p w14:paraId="' + (node.id || genId()) + '" w14:textId="' + genId() + '">'
+          + '<w:r>'
+          + '<w:drawing>'
+          + '<wp:inline distT="0" distB="0" distL="0" distR="0">'
+          + '<wp:extent cx="' + cx + '" cy="' + cy + '"/>'
+          + '<wp:docPr id="' + docPrId + '" name="Picture ' + docPrId + '" descr="' + alt + '"/>'
+          + '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+          + '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+          + '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+          + '<pic:nvPicPr>'
+          + '<pic:cNvPr id="' + docPrId + '" name="' + esc(picName) + '"/>'
+          + '<pic:cNvPicPr/>'
+          + '</pic:nvPicPr>'
+          + '<pic:blipFill>'
+          + '<a:blip r:embed="' + esc(imgRId) + '"/>'
+          + '</pic:blipFill>'
+          + '<pic:spPr>'
+          + '<a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm>'
+          + '<a:prstGeom prst="rect"/>'
+          + '</pic:spPr>'
+          + '</pic:pic>'
+          + '</a:graphicData>'
+          + '</a:graphic>'
+          + '</wp:inline>'
+          + '</w:drawing>'
+          + '</w:r>'
+          + '</w:p>';
+        bodyXml += drawingXml;
+
+        // Caption paragraph
+        if (node.caption) {
+          bodyXml += '<w:p w14:paraId="' + genId() + '" w14:textId="' + genId() + '">'
+            + '<w:pPr><w:pStyle w:val="Caption"/></w:pPr>'
+            + '<w:r><w:t xml:space="preserve">' + esc(node.caption) + '</w:t></w:r>'
+            + '</w:p>';
+        }
+
+        // Track the image relationship
+        imageRels.push({ rId: imgRId, src: node.src || '', name: picName });
       } else if (node.type === 'comment') {
         comments.push(node);
       } else if (node.type === 'reply') {
@@ -468,14 +535,30 @@ class DexCompiler {
     if (footnotesXmlStr) {
       relBody += '<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes" Target="footnotes.xml"/>';
     }
+    // Image relationships
+    for (const imgRel of imageRels) {
+      const target = imgRel.src ? 'media/' + path.basename(imgRel.src) : 'media/' + imgRel.name;
+      relBody += '<Relationship Id="' + esc(imgRel.rId) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="' + esc(target) + '"/>';
+    }
     const wordRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
       + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
       + relBody + '</Relationships>';
 
     // Build content types
+    const imageExtensions = new Set();
+    for (const imgRel of imageRels) {
+      const srcName = imgRel.src ? path.basename(imgRel.src) : imgRel.name;
+      const ext = path.extname(srcName).slice(1).toLowerCase() || 'png';
+      imageExtensions.add(ext);
+    }
     let ctBody = '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
-      + '<Default Extension="xml" ContentType="application/xml"/>'
-      + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+      + '<Default Extension="xml" ContentType="application/xml"/>';
+    const extContentTypes = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', tiff: 'image/tiff', tif: 'image/tiff', emf: 'image/x-emf', wmf: 'image/x-wmf', svg: 'image/svg+xml' };
+    for (const ext of imageExtensions) {
+      const ct = extContentTypes[ext] || 'image/png';
+      ctBody += '<Default Extension="' + esc(ext) + '" ContentType="' + ct + '"/>';
+    }
+    ctBody += '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
       + '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>';
     if (commentsXmlStr) {
       ctBody += '<Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/>';

@@ -382,24 +382,24 @@ WHO WROTE THIS???
     'docex: "0.4.0"',
     '---',
     '',
-    '# Platform Governance and Ad Transparency',
+    '# The Ban That Wasn\u2019t',
     '',
-    'We analyzed {b}300,000{/b} political ads from',
-    'the Meta Ad Library covering 2024.',
-    '',
-    '## Methods',
-    '',
-    'We address the {del by:"Fabio"}enforcement',
-    'gap{/del}{ins by:"Fabio"}regulatory gap{/ins}',
-    'in platform governance.',
+    'Meta imposed a blanket ban on political',
+    'advertising across the EU, choosing',
+    'prohibition over compliance with the',
+    '{del by:"Fabio"}TTPA{/del}',
+    '{ins by:"Fabio"}TTPA/PAR{/ins}',
+    '(Regulation EU 2024/900).',
     '',
     '{comment by:"Reviewer 2"}',
-    'Cite something more recent here.',
+    'Clarify acronym on first use.',
     '{/comment}',
     '',
-    '{reply by:"Fabio Votta"}',
-    'Added Suzor 2019.',
-    '{/reply}',
+    '## Method',
+    '',
+    'We collected {b}268,635{/b} ads from',
+    'Meta\u2019s Ad Library and classified',
+    '193,505 unique advertisers.',
   ];
 
   var heroCodeEl = document.getElementById('heroDexCode');
@@ -419,88 +419,78 @@ WHO WROTE THIS???
   }
 
   function buildPreview() {
-    // Word-like document preview (all static content)
+    // Word-like document preview — matches the .dex content faithfully
     var container = document.createElement('div');
-    container.style.cssText = 'font-family:Calibri,Carlito,Segoe UI,sans-serif;font-size:13px;line-height:1.5;color:#1a1a1a';
+    container.className = 'hero-word-preview';
 
+    // Title
     var h1 = document.createElement('h1');
-    h1.style.cssText = 'font-family:Calibri,Carlito,sans-serif;font-size:1.05rem;font-weight:700;margin:0 0 8px;color:#1a1a1a;line-height:1.3;border:none;padding:0';
-    h1.textContent = 'Platform Governance and Ad Transparency';
+    h1.textContent = 'The Ban That Wasn\u2019t';
     container.appendChild(h1);
 
-    var p1 = document.createElement('p');
-    p1.style.cssText = 'margin:0 0 10px;text-indent:0;font-size:13px';
-    p1.textContent = 'We analyzed ';
-    var bold = document.createElement('strong');
-    bold.textContent = '300,000';
-    p1.appendChild(bold);
-    p1.appendChild(document.createTextNode(' political ads from the Meta Ad Library covering 2024.'));
-    container.appendChild(p1);
+    // First paragraph with tracked change + comment in margin
+    var row = document.createElement('div');
+    row.className = 'hero-word-row';
 
+    var textCol = document.createElement('div');
+    textCol.className = 'hero-word-text';
+    var p1 = document.createElement('p');
+    p1.appendChild(document.createTextNode('Meta imposed a blanket ban on political advertising across the EU, choosing prohibition over compliance with the '));
+    var del = document.createElement('span');
+    del.className = 'word-del';
+    del.textContent = 'TTPA';
+    p1.appendChild(del);
+    var ins = document.createElement('span');
+    ins.className = 'word-ins';
+    ins.textContent = 'TTPA/PAR';
+    p1.appendChild(ins);
+    p1.appendChild(document.createTextNode(' (Regulation EU 2024/900).'));
+    // Revision bar
+    var revBar = document.createElement('div');
+    revBar.className = 'word-revision-bar';
+    textCol.appendChild(revBar);
+    textCol.appendChild(p1);
+    row.appendChild(textCol);
+
+    // Comment in margin
+    var marginCol = document.createElement('div');
+    marginCol.className = 'hero-word-margin';
+    var balloon = document.createElement('div');
+    balloon.className = 'word-comment-balloon';
+    var bHead = document.createElement('div');
+    bHead.className = 'word-comment-header';
+    var bAvatar = document.createElement('span');
+    bAvatar.className = 'word-comment-avatar';
+    bAvatar.textContent = 'R2';
+    var bNameWrap = document.createElement('span');
+    var bName = document.createElement('strong');
+    bName.className = 'word-comment-author';
+    bName.textContent = 'Reviewer 2';
+    bNameWrap.appendChild(bName);
+    bHead.appendChild(bAvatar);
+    bHead.appendChild(bNameWrap);
+    balloon.appendChild(bHead);
+    var bText = document.createElement('div');
+    bText.className = 'word-comment-text';
+    bText.textContent = 'Clarify acronym on first use.';
+    balloon.appendChild(bText);
+    marginCol.appendChild(balloon);
+    row.appendChild(marginCol);
+    container.appendChild(row);
+
+    // Method heading
     var h2 = document.createElement('h2');
-    h2.style.cssText = 'font-family:Calibri,Carlito,sans-serif;font-size:0.9rem;font-weight:700;margin:14px 0 6px;color:#1a1a1a;line-height:1.3';
-    h2.textContent = 'Methods';
+    h2.textContent = 'Method';
     container.appendChild(h2);
 
-    // Revision bar
-    var revWrap = document.createElement('div');
-    revWrap.style.cssText = 'position:relative;padding-left:10px;border-left:3px solid #c0392b;margin-bottom:10px';
+    // Method paragraph
     var p2 = document.createElement('p');
-    p2.style.cssText = 'margin:0;font-size:13px';
-    p2.appendChild(document.createTextNode('We address the '));
-    var del = document.createElement('span');
-    del.style.cssText = 'color:#c0392b;text-decoration:line-through';
-    del.textContent = 'enforcement gap';
-    var ins = document.createElement('span');
-    ins.style.cssText = 'color:#c0392b;text-decoration:underline';
-    ins.textContent = 'regulatory gap';
-    p2.appendChild(del);
-    p2.appendChild(ins);
-    p2.appendChild(document.createTextNode(' in platform governance.'));
-    revWrap.appendChild(p2);
-    container.appendChild(revWrap);
-
-    // Comment balloon (Word-style)
-    var cBalloon = document.createElement('div');
-    cBalloon.style.cssText = 'background:#fff;border:1px solid #d4d4d4;border-radius:4px;padding:8px 10px;margin:8px 0;box-shadow:0 1px 2px rgba(0,0,0,0.05);font-size:11px';
-
-    var cHead = document.createElement('div');
-    cHead.style.cssText = 'display:flex;align-items:center;gap:5px;margin-bottom:4px';
-    var cAvatar = document.createElement('span');
-    cAvatar.style.cssText = 'width:18px;height:18px;border-radius:50%;background:#4472c4;color:#fff;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0';
-    cAvatar.textContent = 'R2';
-    var cName = document.createElement('strong');
-    cName.style.cssText = 'font-size:11px;color:#4472c4';
-    cName.textContent = 'Reviewer 2';
-    cHead.appendChild(cAvatar);
-    cHead.appendChild(cName);
-    cBalloon.appendChild(cHead);
-
-    var cText = document.createElement('div');
-    cText.style.cssText = 'color:#333;font-size:11px;line-height:1.4';
-    cText.textContent = 'Cite something more recent here.';
-    cBalloon.appendChild(cText);
-    container.appendChild(cBalloon);
-
-    // Reply
-    var rBalloon = document.createElement('div');
-    rBalloon.style.cssText = 'background:#fff;border:1px solid #d4d4d4;border-radius:4px;padding:8px 10px;margin:4px 0 0 16px;box-shadow:0 1px 2px rgba(0,0,0,0.05);font-size:11px';
-    var rHead = document.createElement('div');
-    rHead.style.cssText = 'display:flex;align-items:center;gap:5px;margin-bottom:4px';
-    var rAvatar = document.createElement('span');
-    rAvatar.style.cssText = 'width:18px;height:18px;border-radius:50%;background:#ed7d31;color:#fff;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0';
-    rAvatar.textContent = 'FV';
-    var rName = document.createElement('strong');
-    rName.style.cssText = 'font-size:11px;color:#ed7d31';
-    rName.textContent = 'Fabio Votta';
-    rHead.appendChild(rAvatar);
-    rHead.appendChild(rName);
-    rBalloon.appendChild(rHead);
-    var rText = document.createElement('div');
-    rText.style.cssText = 'color:#333;font-size:11px;line-height:1.4';
-    rText.textContent = 'Added Suzor 2019.';
-    rBalloon.appendChild(rText);
-    container.appendChild(rBalloon);
+    p2.appendChild(document.createTextNode('We collected '));
+    var bold = document.createElement('strong');
+    bold.textContent = '268,635';
+    p2.appendChild(bold);
+    p2.appendChild(document.createTextNode(' ads from Meta\u2019s Ad Library and classified 193,505 unique advertisers.'));
+    container.appendChild(p2);
 
     return container;
   }

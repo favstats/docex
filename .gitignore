@@ -1,4 +1,6 @@
 node_modules/
 test/output/
 *.bak
+*.png
 .DS_Store
+.impeccable.md

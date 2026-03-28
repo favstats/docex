@@ -457,10 +457,12 @@ WHO WROTE THIS???
     'advertising across the EU, choosing',
     'prohibition over compliance with the',
     '{del by:"Fabio"}TTPA{/del}',
+    '{comment-start id:0}',
     '{ins by:"Fabio"}TTPA/PAR{/ins}',
+    '{comment-end id:0}',
     '(Regulation EU 2024/900).',
     '',
-    '{comment by:"Reviewer 2"}',
+    '{comment id:0 by:"Reviewer 2"}',
     'Clarify acronym on first use.',
     '{/comment}',
     '',
@@ -509,43 +511,42 @@ WHO WROTE THIS???
     del.className = 'word-del';
     del.textContent = 'TTPA';
     p1.appendChild(del);
-    var ins = document.createElement('span');
-    ins.className = 'word-ins';
-    ins.textContent = 'TTPA/PAR';
-    p1.appendChild(ins);
+    // Comment-anchored insertion: TTPA/PAR is highlighted + has hover comment
+    var commentWrap = document.createElement('span');
+    commentWrap.className = 'word-comment-hover-wrap';
+    var anchor = document.createElement('span');
+    anchor.className = 'word-comment-anchor word-ins';
+    anchor.textContent = 'TTPA/PAR';
+    commentWrap.appendChild(anchor);
+    // Popup balloon
+    var popup = document.createElement('span');
+    popup.className = 'word-comment-popup';
+    var popHead = document.createElement('span');
+    popHead.className = 'word-comment-header';
+    var popAvatar = document.createElement('span');
+    popAvatar.className = 'word-comment-avatar';
+    popAvatar.textContent = 'R2';
+    var popNameWrap = document.createElement('span');
+    var popName = document.createElement('strong');
+    popName.className = 'word-comment-author';
+    popName.textContent = 'Reviewer 2';
+    popNameWrap.appendChild(popName);
+    popHead.appendChild(popAvatar);
+    popHead.appendChild(popNameWrap);
+    popup.appendChild(popHead);
+    var popText = document.createElement('span');
+    popText.className = 'word-comment-text';
+    popText.textContent = 'Clarify acronym on first use.';
+    popup.appendChild(popText);
+    commentWrap.appendChild(popup);
+    p1.appendChild(commentWrap);
     p1.appendChild(document.createTextNode(' (Regulation EU 2024/900).'));
     // Revision bar
     var revBar = document.createElement('div');
     revBar.className = 'word-revision-bar';
     textCol.appendChild(revBar);
     textCol.appendChild(p1);
-    row.appendChild(textCol);
-
-    // Comment in margin
-    var marginCol = document.createElement('div');
-    marginCol.className = 'hero-word-margin';
-    var balloon = document.createElement('div');
-    balloon.className = 'word-comment-balloon';
-    var bHead = document.createElement('div');
-    bHead.className = 'word-comment-header';
-    var bAvatar = document.createElement('span');
-    bAvatar.className = 'word-comment-avatar';
-    bAvatar.textContent = 'R2';
-    var bNameWrap = document.createElement('span');
-    var bName = document.createElement('strong');
-    bName.className = 'word-comment-author';
-    bName.textContent = 'Reviewer 2';
-    bNameWrap.appendChild(bName);
-    bHead.appendChild(bAvatar);
-    bHead.appendChild(bNameWrap);
-    balloon.appendChild(bHead);
-    var bText = document.createElement('div');
-    bText.className = 'word-comment-text';
-    bText.textContent = 'Clarify acronym on first use.';
-    balloon.appendChild(bText);
-    marginCol.appendChild(balloon);
-    row.appendChild(marginCol);
-    container.appendChild(row);
+    container.appendChild(textCol);
 
     // Method heading
     var h2 = document.createElement('h2');

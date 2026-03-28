@@ -303,7 +303,7 @@ class DexDecompiler {
         const runXml = xmlStr.slice(pos, endIdx + endTag.length);
         const texts = [];
         const runBody = runXml.replace(/<w:rPr>[\s\S]*?<\/w:rPr>/g, '');
-        const elemRe = /<w:t[^>]*>([^<]*)<\/w:t>|<w:tab\s*\/>|<w:br\s*\/?>|<w:br\s+w:type="([^"]*)"[^>]*\/?>|<w:sym\s+[^>]*w:char="([^"]*)"[^>]*\/?>/g;
+        const elemRe = /<w:t[^>]*>([^<]*)<\/w:t>|<w:tab\s*\/>|<w:br\s*\/?>|<w:br\s+w:type="([^"]*)"[^>]*\/?>|<w:sym\s+[^>]*w:char="([^"]*)"[^>]*\/?>|<w:softHyphen\s*\/>|<w:noBreakHyphen\s*\/?>/g;
         let tMatch;
         while ((tMatch = elemRe.exec(runBody)) !== null) {
           if (tMatch[0].startsWith('<w:t')) {
@@ -316,6 +316,10 @@ class DexDecompiler {
             else texts.push('{br}');
           } else if (tMatch[0].startsWith('<w:sym')) {
             texts.push('{sym ' + (tMatch[3] || '') + '}');
+          } else if (tMatch[0].startsWith('<w:softHyphen')) {
+            texts.push('\u00AD'); // Unicode soft hyphen
+          } else if (tMatch[0].startsWith('<w:noBreakHyphen')) {
+            texts.push('\u2011'); // Unicode non-breaking hyphen
           }
         }
         const text = texts.join('');
@@ -620,7 +624,7 @@ class DexDecompiler {
         // Extract text, tabs, breaks, and symbols from the run
         const texts = [];
         const runBody = runXml.replace(/<w:rPr>[\s\S]*?<\/w:rPr>/g, '');
-        const elemRe = /<w:t[^>]*>([^<]*)<\/w:t>|<w:tab\s*\/>|<w:br\s*\/?>|<w:br\s+w:type="([^"]*)"[^>]*\/?>|<w:sym\s+[^>]*w:char="([^"]*)"[^>]*\/?>/g;
+        const elemRe = /<w:t[^>]*>([^<]*)<\/w:t>|<w:tab\s*\/>|<w:br\s*\/?>|<w:br\s+w:type="([^"]*)"[^>]*\/?>|<w:sym\s+[^>]*w:char="([^"]*)"[^>]*\/?>|<w:softHyphen\s*\/>|<w:noBreakHyphen\s*\/?>/g;
         let tMatch;
         while ((tMatch = elemRe.exec(runBody)) !== null) {
           if (tMatch[0].startsWith('<w:t')) {
@@ -634,6 +638,10 @@ class DexDecompiler {
             else texts.push('{br}');
           } else if (tMatch[0].startsWith('<w:sym')) {
             texts.push('{sym ' + (tMatch[3] || '') + '}');
+          } else if (tMatch[0].startsWith('<w:softHyphen')) {
+            texts.push('\u00AD'); // Unicode soft hyphen
+          } else if (tMatch[0].startsWith('<w:noBreakHyphen')) {
+            texts.push('\u2011'); // Unicode non-breaking hyphen
           }
         }
         const text = texts.join('');

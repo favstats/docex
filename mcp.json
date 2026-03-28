@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "docex": {
+      "command": "node",
+      "args": ["/mnt/storage/docex/src/mcp-server.js"]
+    }
+  }
+}

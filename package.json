@@ -5,7 +5,8 @@
   "type": "commonjs",
   "main": "src/docex.js",
   "bin": {
-    "docex": "./cli/docex-cli.js"
+    "docex": "./cli/docex-cli.js",
+    "docex-mcp": "./src/mcp-server.js"
   },
   "scripts": {
     "test": "node --test test/*.test.js"

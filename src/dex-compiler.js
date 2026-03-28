@@ -475,6 +475,7 @@ class DexCompiler {
       + '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:pPr><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:i/></w:rPr></w:style>'
       + '<w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:pPr><w:outlineLvl w:val="2"/></w:pPr><w:rPr><w:b/></w:rPr></w:style>'
       + '<w:style w:type="table" w:styleId="TableGrid"><w:name w:val="Table Grid"/></w:style>'
+      + '<w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="caption"/><w:rPr><w:i/><w:sz w:val="20"/></w:rPr></w:style>'
       + '</w:styles>';
 
     // Build comments XML if needed
@@ -590,6 +591,32 @@ class DexCompiler {
       }
       if (footnotesXmlStr) {
         fs.writeFileSync(path.join(tmpDir, 'word', 'footnotes.xml'), footnotesXmlStr, 'utf-8');
+      }
+
+      // Copy image files to word/media/
+      if (imageRels.length > 0) {
+        const mediaDir = path.join(tmpDir, 'word', 'media');
+        fs.mkdirSync(mediaDir, { recursive: true });
+        for (const imgRel of imageRels) {
+          const targetName = imgRel.src ? path.basename(imgRel.src) : imgRel.name;
+          const destPath = path.join(mediaDir, targetName);
+          if (imgRel.src) {
+            // Try to read the source file (could be absolute or relative path)
+            try {
+              const srcPath = path.resolve(imgRel.src);
+              if (fs.existsSync(srcPath)) {
+                fs.copyFileSync(srcPath, destPath);
+                continue;
+              }
+            } catch (_) {}
+          }
+          // Create a minimal 1x1 transparent PNG placeholder if source not found
+          const placeholderPng = Buffer.from(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAB' +
+            'Nl7BcQAAAABJRU5ErkJggg==', 'base64'
+          );
+          fs.writeFileSync(destPath, placeholderPng);
+        }
       }
 
       const outputDir = path.dirname(absOutput);

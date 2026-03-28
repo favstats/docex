@@ -70,6 +70,15 @@ class DexDecompiler {
             parts.push('{pagebreak}');
             parts.push('');
           }
+          // Check for inline section break even in empty paragraphs
+          const pPrForSectEmpty = pXml.match(/<w:pPr>([\s\S]*?)<\/w:pPr>/);
+          if (pPrForSectEmpty) {
+            const sectInEmpty = pPrForSectEmpty[1].match(/<w:sectPr[\s>][\s\S]*?<\/w:sectPr>/);
+            if (sectInEmpty) {
+              const sectLine = DexDecompiler._formatSectionFromXml(sectInEmpty[0]);
+              if (sectLine) { parts.push(sectLine.trim()); parts.push(''); }
+            }
+          }
           continue;
         }
         if (/<w:br\s+w:type="page"/.test(pXml)) {
@@ -83,7 +92,7 @@ class DexDecompiler {
         parts.push('');
       }
 
-      // Detect inline section breaks (<w:sectPr> inside <w:pPr>)
+      // Detect inline section breaks (<w:sectPr> inside <w:pPr>) for non-empty paragraphs
       const pPrForSect = pXml.match(/<w:pPr>([\s\S]*?)<\/w:pPr>/);
       if (pPrForSect) {
         const sectInPara = pPrForSect[1].match(/<w:sectPr[\s>][\s\S]*?<\/w:sectPr>/);

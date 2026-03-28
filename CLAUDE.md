@@ -50,13 +50,11 @@ No `npm install` needed for the library itself. The only dependency is the syste
 | Structure | `docmap.js`, `crossref.js`, `sections.js`, `lists.js`, `footnotes.js`, `headers.js`, `fields.js` | Document map, cross-refs, lists, footnotes |
 | Revisions | `revisions.js`, `diff.js` | Tracked changes, two-document comparison |
 | Academic | `presets.js`, `verify.js`, `submission.js`, `citations.js`, `response-letter.js`, `template.js` | Journal styles, validation, anonymize, citations |
-| Dex format | `dex-decompiler.js`, `dex-compiler.js`, `dex-lossless.js`, `dex-parser.js`, `dex-markdown-parser.js` | `.docx` <-> `.dex` round-trip |
+| Dex format | `dex-decompiler.js`, `dex-compiler.js`, `dex-parser.js`, `dex-markdown-parser.js` | `.docx` <-> `.dex` round-trip |
 | Export | `latex.js`, `compile.js`, `metadata.js`, `layout.js` | LaTeX/HTML/Markdown export |
 | Workflow | `batch.js`, `macros.js`, `production.js`, `workflow.js`, `transaction.js`, `provenance.js`, `quality.js`, `redact.js` | Batch ops, variables, production pipelines |
 
-**The .dex format** is a YAML-frontmatter + markdown-like plain text representation of .docx content. Two compilation paths exist:
-- Human-readable: `DexDecompiler._decompileWorkspace()` / `DexParser.parse()` + `DexCompiler._compileHumanReadable()`
-- Lossless binary package: `dex-lossless.js` `serializeDex()`/`parseDex()` for perfect round-trips
+**The .dex format** is a YAML-frontmatter + markdown-like plain text representation of .docx content. The compilation path is: `DexDecompiler._decompileWorkspace()` / `DexParser.parse()` + `DexCompiler._compileHumanReadable()`
 
 **Plugin system:** `.claude-plugin/` contains `plugin.json` (skill + MCP server definition) and `marketplace.json` for the Claude Code plugin marketplace.
 

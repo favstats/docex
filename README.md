@@ -451,7 +451,7 @@ The source modules, grouped by purpose:
 | Revisions | `revisions.js`, `diff.js` | Tracked changes, document comparison |
 | Academic | `presets.js`, `verify.js`, `submission.js`, `citations.js`, `response-letter.js`, `template.js` | Journal styles, validation, anonymize, citations, R&R letters |
 | Export | `latex.js`, `compile.js`, `metadata.js`, `layout.js` | LaTeX/HTML/Markdown export, compile pipeline, metadata |
-| Dex format | `dex-decompiler.js`, `dex-compiler.js`, `dex-lossless.js`, `dex-parser.js`, `dex-markdown-parser.js` | .docx-to-.dex round-trip format |
+| Dex format | `dex-decompiler.js`, `dex-compiler.js`, `dex-parser.js`, `dex-markdown-parser.js` | .docx-to-.dex round-trip format |
 | Workflow | `batch.js`, `macros.js`, `production.js`, `workflow.js`, `transaction.js`, `provenance.js`, `quality.js`, `redact.js`, `extensions.js` | Batch ops, variables, production workflows |
 
 ---

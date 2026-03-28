@@ -28,6 +28,11 @@ class DexDecompiler {
   }
 
   static _decompileWorkspace(ws) {
+    // Detect default font from styles.xml to suppress redundant {font} wrappers
+    const stylesXml = ws.stylesXml || '';
+    const defaultFontMatch = stylesXml.match(/<w:rFonts[^>]*w:ascii="([^"]+)"/);
+    DexDecompiler._defaultFont = defaultFontMatch ? defaultFontMatch[1] : 'Times New Roman';
+
     const parts = [];
     parts.push(DexDecompiler._buildFrontmatter(ws));
     const docXml = ws.docXml;
@@ -364,7 +369,69 @@ class DexDecompiler {
     // with {field "INSTRUCTION"}display{/field} markers
     bodyXml = DexDecompiler._preprocessFieldCodes(bodyXml);
     DexDecompiler._walkElements(bodyXml, parts, footnoteMap, commentMap);
-    return { text: parts.join(''), props: pProps };
+    return { text: DexDecompiler._mergeAdjacentRuns(parts.join('')), props: pProps };
+  }
+
+  /**
+   * Merge adjacent runs that share identical formatting wrappers.
+   * For example: {font "Arial"}{b}Hello {/b}{/font}{font "Arial"}{b}World{/b}{/font}
+   * becomes:     {font "Arial"}{b}Hello World{/b}{/font}
+   *
+   * Tokenizes the text, then removes close/reopen pairs where the opening
+   * tag is identical. Multiple passes handle nested formatting.
+   */
+  static _mergeAdjacentRuns(text) {
+    if (!text) return text;
+    // Tokenize into tags and text segments
+    const tokenRe = /\{\/[a-z]+\}|\{[a-z]+(?:\s[^}]*)?\}/g;
+    const tokens = [];
+    let last = 0;
+    let m;
+    while ((m = tokenRe.exec(text)) !== null) {
+      if (m.index > last) tokens.push({ type: 'text', value: text.slice(last, m.index) });
+      const val = m[0];
+      if (val.startsWith('{/')) {
+        tokens.push({ type: 'close', value: val, tag: val.slice(2, -1) });
+      } else {
+        // Extract tag name (first word after {)
+        const spaceIdx = val.indexOf(' ');
+        const tag = spaceIdx > 0 ? val.slice(1, spaceIdx) : val.slice(1, -1);
+        tokens.push({ type: 'open', value: val, tag: tag });
+      }
+      last = m.index + val.length;
+    }
+    if (last < text.length) tokens.push({ type: 'text', value: text.slice(last) });
+
+    // Repeatedly scan for adjacent close/open pairs with identical full tags
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (let i = 0; i < tokens.length - 1; i++) {
+        const cur = tokens[i];
+        const next = tokens[i + 1];
+        if (cur.type === 'close' && next.type === 'open' && cur.tag === next.tag) {
+          // Find the matching opener for cur (the close tag) by scanning backwards
+          // through the open-tag stack to find the full open tag value
+          let depth = 0;
+          let matchingOpen = null;
+          for (let j = i - 1; j >= 0; j--) {
+            if (tokens[j].type === 'close' && tokens[j].tag === cur.tag) depth++;
+            if (tokens[j].type === 'open' && tokens[j].tag === cur.tag) {
+              if (depth === 0) { matchingOpen = tokens[j]; break; }
+              depth--;
+            }
+          }
+          // Only merge if the reopened tag has the same full value as the original opener
+          if (matchingOpen && matchingOpen.value === next.value) {
+            tokens.splice(i, 2); // Remove the close and open pair
+            changed = true;
+            break; // Restart scan
+          }
+        }
+      }
+    }
+
+    return tokens.map(t => t.value).join('');
   }
 
   /**
@@ -860,11 +927,15 @@ class DexDecompiler {
     if (fmt.highlight) result = '{highlight ' + fmt.highlight + '}' + result + '{/highlight}';
     if (fmt.color) result = '{color ' + fmt.color + '}' + result + '{/color}';
     if (fmt.font) {
-      let fontAttrs = '"' + fmt.font + '"';
-      if (fmt.fontHAnsi) fontAttrs += ' hAnsi:"' + fmt.fontHAnsi + '"';
-      if (fmt.fontCs) fontAttrs += ' cs:"' + fmt.fontCs + '"';
-      if (fmt.fontEastAsia) fontAttrs += ' eastAsia:"' + fmt.fontEastAsia + '"';
-      result = '{font ' + fontAttrs + '}' + result + '{/font}';
+      // Skip font wrapper if it matches the document's default font
+      const isDefault = fmt.font === DexDecompiler._defaultFont && !fmt.fontHAnsi && !fmt.fontCs && !fmt.fontEastAsia;
+      if (!isDefault) {
+        let fontAttrs = '"' + fmt.font + '"';
+        if (fmt.fontHAnsi) fontAttrs += ' hAnsi:"' + fmt.fontHAnsi + '"';
+        if (fmt.fontCs) fontAttrs += ' cs:"' + fmt.fontCs + '"';
+        if (fmt.fontEastAsia) fontAttrs += ' eastAsia:"' + fmt.fontEastAsia + '"';
+        result = '{font ' + fontAttrs + '}' + result + '{/font}';
+      }
     }
     if (fmt.fmtchange) {
       let fmtAttrs = '';
@@ -1338,5 +1409,8 @@ function listFiles(dir, base) {
   }
   return result;
 }
+
+// Default font set during decompilation; initialized to common default
+DexDecompiler._defaultFont = null;
 
 module.exports = { DexDecompiler, listFiles };

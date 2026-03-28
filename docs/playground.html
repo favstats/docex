@@ -91,14 +91,8 @@
   <div class="editor-panes">
     <div class="editor-pane">
       <div class="pane-header">
-        <div class="pane-header-tabs">
-          <button class="pane-tab active" id="tabHumanReadable" title="Human-readable .dex format — easy to read and edit by hand">Readable</button>
-          <button class="pane-tab" id="tabLossless" title="Lossless .dex format — preserves every XML detail, best for AI agents">Lossless <span class="pane-tab-badge">AI</span></button>
-        </div>
+        <span>.dex source</span>
         <span id="lineCount" class="pane-header-meta"></span>
-      </div>
-      <div class="lossless-info" id="losslessInfo">
-        <strong>Lossless mode</strong> preserves every XML detail from the original .docx — formatting properties, relationships, raw element structure. Best for <strong>AI agents</strong> and automated pipelines where perfect round-trip fidelity matters. Not meant for human editing.
       </div>
       <div class="pane-body">
         <div class="editor-container">
@@ -193,81 +187,7 @@ var dropZone = document.getElementById('dropZone');
 var fileInput = document.getElementById('fileInput');
 var copyBtn = document.getElementById('copyBtn');
 
-// ---------- Mode tabs (Readable / Lossless) ----------
-var tabHumanReadable = document.getElementById('tabHumanReadable');
-var tabLossless = document.getElementById('tabLossless');
-var losslessInfo = document.getElementById('losslessInfo');
-var currentMode = 'readable'; // 'readable' or 'lossless'
-var lastUploadedFile = null; // Store last uploaded file for mode switching
-var losslessDex = null; // Cached lossless output
-var readableDex = null; // Cached readable output
-
-tabHumanReadable.addEventListener('click', function() {
-  if (currentMode === 'readable') return;
-  currentMode = 'readable';
-  tabHumanReadable.classList.add('active');
-  tabLossless.classList.remove('active');
-  losslessInfo.classList.remove('visible');
-  if (readableDex) {
-    editor.value = readableDex;
-    updateEditor();
-  }
-});
-
-tabLossless.addEventListener('click', function() {
-  if (currentMode === 'lossless') return;
-  currentMode = 'lossless';
-  tabLossless.classList.add('active');
-  tabHumanReadable.classList.remove('active');
-  losslessInfo.classList.add('visible');
-  if (losslessDex) {
-    editor.value = losslessDex;
-    updateEditor();
-  } else if (lastUploadedFile) {
-    // Generate lossless version from last uploaded file
-    statusEl.textContent = 'Generating lossless .dex...';
-    showSpinner();
-    generateLossless(lastUploadedFile).then(function(dex) {
-      losslessDex = dex;
-      editor.value = dex;
-      updateEditor();
-      statusEl.textContent = 'Lossless mode (' + dex.split('\n').length + ' lines)';
-      statusEl.style.color = 'var(--green)';
-      hideSpinner();
-    }).catch(function(err) {
-      statusEl.textContent = 'Lossless generation failed: ' + err.message;
-      statusEl.style.color = 'var(--red)';
-      hideSpinner();
-    });
-  }
-});
-
-async function generateLossless(file) {
-  var zip = await JSZip.loadAsync(file);
-  var parts = [];
-  parts.push('# docex lossless format');
-  parts.push('# This preserves every XML detail for perfect round-trip fidelity.');
-  parts.push('# Best for AI agents and automated pipelines.');
-  parts.push('');
-  var fileNames = Object.keys(zip.files).sort();
-  for (var f = 0; f < fileNames.length; f++) {
-    var name = fileNames[f];
-    if (zip.files[name].dir) continue;
-    var isBinary = /\.(png|jpg|jpeg|gif|emf|wmf|bin|rels)$/i.test(name) || name.endsWith('.xml.rels');
-    parts.push('=== ' + name + ' ===');
-    if (isBinary && !/\.rels$/.test(name)) {
-      var data = await zip.files[name].async('base64');
-      parts.push('[binary: ' + data.length + ' chars base64]');
-    } else {
-      var content = await zip.files[name].async('string');
-      // Format XML for readability
-      content = content.replace(/></g, '>\n<');
-      parts.push(content);
-    }
-    parts.push('');
-  }
-  return parts.join('\n');
-}
+var lastUploadedFile = null; // Store last uploaded file
 
 function showSpinner() { compileSpinner.classList.add('active'); }
 function hideSpinner() { compileSpinner.classList.remove('active'); }
@@ -412,16 +332,9 @@ function handleFile(file) {
   statusEl.style.color = 'var(--accent)';
   showSpinner();
   lastUploadedFile = file;
-  losslessDex = null; // Reset cached lossless
-  // Switch to readable mode on new file
-  currentMode = 'readable';
-  tabHumanReadable.classList.add('active');
-  tabLossless.classList.remove('active');
-  losslessInfo.classList.remove('visible');
 
   // Decompile to .dex (left pane)
   DocxDecompiler.decompile(file).then(function(dex) {
-    readableDex = dex;
     editor.value = dex;
     updateEditor();
     statusEl.textContent = 'Decompiled ' + file.name + ' (' + dex.split('\n').length + ' lines)';

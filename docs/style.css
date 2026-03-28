@@ -13,7 +13,7 @@
   --bg:              #faf8f5;
   --bg-warm:         #f5f0ea;
   --bg-card:         #ffffff;
-  --bg-code:         #f0ece6;
+  --bg-code:         #eae5dd;
   --bg-surface:      #ede8e1;
   --border:          #d6cfc5;
   --border-subtle:   #e8e2da;
@@ -1662,10 +1662,10 @@ tr:hover td { background: rgba(180, 83, 9, 0.04); }
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.tag-green  { background: rgba(74,222,128,0.12); color: var(--green); }
+.tag-green  { background: rgba(46,125,50,0.1); color: var(--green); }
 .tag-yellow { background: rgba(250,204,21,0.12); color: var(--yellow); }
 .tag-red    { background: rgba(248,113,113,0.12); color: var(--red); }
-.tag-blue   { background: rgba(34,211,238,0.12); color: var(--cyan); }
+.tag-blue   { background: rgba(0,131,143,0.1); color: var(--cyan); }
 
 /* ============================================================================
    FOOTER

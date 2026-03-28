@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playground - docex</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">doc<span>ex</span></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="playground.html">Playground</a>
+      <a href="examples.html">Examples</a>
+      <a href="api.html">API</a>
+      <a href="cli.html">CLI</a>
+      <a href="dex-format.html">.dex Format</a>
+      <a href="vision.html">Vision</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="playground-header">
+    <h2>Playground</h2>
+    <button class="btn btn-small btn-secondary" id="copyBtn">Copy .dex</button>
+    <div class="tooltip-wrap">
+      <button class="btn btn-small btn-secondary" disabled id="downloadBtn">Download .docx</button>
+      <span class="tooltip">Coming soon: client-side .docx building</span>
+    </div>
+  </div>
+
+  <!-- Drop zone -->
+  <div class="drop-zone" id="dropZone">
+    <span class="drop-zone-icon">&#128196;</span>
+    <p><strong>Drop a .docx file here</strong> or click to browse</p>
+    <p style="font-size:0.8125rem;margin-top:4px">The file never leaves your browser. Everything runs locally.</p>
+    <input type="file" accept=".docx" id="fileInput">
+  </div>
+
+  <!-- Status -->
+  <div id="status" style="margin-bottom:12px;font-size:0.875rem;color:var(--text-dim)"></div>
+
+  <!-- Editor panes -->
+  <div class="editor-panes">
+    <div class="editor-pane">
+      <div class="pane-header">
+        <span>.dex source</span>
+        <span id="lineCount" style="font-weight:400;text-transform:none"></span>
+      </div>
+      <div class="pane-body">
+        <div class="editor-container">
+          <div class="editor-highlight" id="editorHighlight"></div>
+          <textarea class="dex-editor" id="dexEditor" spellcheck="false"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="editor-pane">
+      <div class="pane-header">
+        <span>Document preview</span>
+      </div>
+      <div class="pane-body">
+        <div class="preview-content" id="previewPane"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="footer">
+  <p>docex is MIT licensed. <a href="https://github.com/favstats/docex">View on GitHub</a></p>
+</footer>
+
+<script src="decompiler.js"></script>
+<script src="script.js"></script>
+<script>
+// ---------- Example content ----------
+var EXAMPLE_DEX = '---\ndocex: "0.4.0"\nauthors:\n  - name: "Un-named"\n---\n\n# QUARTERLY Strategic SYNERGY Report {id:BABCF972}\n\n{p id:9E7DD00E}\n{font "Lucida Handwriting"}{color 999999}Version 47.3b (DRAFT) (FINAL) (FINAL v2) (ACTUALLY FINAL) (USE THIS ONE){/color}{/font}\n{/p}\n\n{p id:9861D842}\n{font "Arial Black"}{color FF0000}{u}{b}CONFIDENTIAL{/b}{/u}{/color}{/font}\n{/p}\n\n{pagebreak}\n\n### Executive Summary (please actually read this one) {id:043C8211}\n\n{comment id:0 by:"The Intern" date:"2024-05-13T22:00:00.000Z"}\nWHO WROTE THIS???\n{/comment}\n\n{p id:0F9C1FA0}\n{font "Ravie"}{color 990000}{u}FYI {/u}{/color}{/font}{font "Algerian"}{color CC6600}{highlight darkYellow}{b}the formatting in {/b}{/highlight}{/color}{/font}{font "Showcard Gothic"}{color FF3399}this {/color}{/font}{font "Jokerman"}{color 0000FF}{highlight darkYellow}{b}section was done by someone {/b}{/highlight}{/color}{/font}{font "Snap ITC"}{color FF3399}who {/color}{/font}{font "Castellar"}{color 990000}{sub}just discovered {/sub}{/color}{/font}{font "Ravie"}{color 9900CC}Microsoft Word for the first {/color}{/font}{footnote id:1}{/footnote}{font "Castellar"}{color 66CC00}{highlight cyan}time. We apologize. {/highlight}{/color}{/font}\n{/p}\n\n{comment id:1 by:"someone\'s cat" date:"2024-04-17T22:00:00.000Z"}\nThis makes no sense\n{/comment}\n\n{p id:A83917BB}\n{font "Lucida Handwriting"}{color FF6600}{highlight cyan}{b}The {/b}{/highlight}{/color}{/font}{font "Wingdings"}{color 00FFFF}{highlight darkYellow}{i}{b}numbers in this {/b}{/i}{/highlight}{/color}{/font}{font "Chiller"}{color 3366FF}{highlight red}{sub}{i}section are from 2019 and {/i}{/sub}{/highlight}{/color}{/font}{font "Harlow Solid Italic"}{color 00FF00}nobody has updated them since. {/color}{/font}{font "Showcard Gothic"}{color FFFF00}Please pretend they\'re current. {/color}{/font}\n{/p}\n\n{p id:764C1B59}\n{font "Jokerman"}{color FF6600}{highlight magenta}{i}{b}Note to self: {/b}{/i}{/highlight}{/color}{/font}{font "Times New Roman"}{color CC6600}{i}remove {/i}{/color}{/font}{font "Snap ITC"}{color FF0000}{u}{i}{b}this paragraph before sending. {/b}{/i}{/u}{/color}{/font}{font "Arial Black"}{color 00FFFF}{b}Also remove the one about {/b}{/color}{/font}{font "Curlz MT"}{color 3366FF}{i}Dave\'s birthday party. Actually, where {/i}{/color}{/font}{font "Lucida Handwriting"}{color 990000}{highlight darkYellow}IS {/highlight}{/color}{/font}{font "Snap ITC"}{color FF00FF}{highlight darkYellow}{b}that paragraph? {/b}{/highlight}{/color}{/font}\n{/p}\n\n{p id:7E011118}\n{font "Curlz MT"}{color FF00FF}{highlight red}{i}{b}As {/b}{/i}{/highlight}{/color}{/font}{font "Papyrus"}{color 996633}{highlight cyan}{sub}{b}discussed in our previous {/b}{/sub}{/highlight}{/color}{/font}{font "Showcard Gothic"}{color FF6600}{highlight yellow}meeting, {/highlight}{/color}{/font}{font "Comic Sans MS"}{color CC6600}{highlight green}{sub}{u}{b}which nobody attended, the {/b}{/u}{/sub}{/highlight}{/color}{/font}{font "Curlz MT"}{color 006600}{b}strategic alignment of our {/b}{/color}{/font}{footnote id:2}Citation needed. Actually, everything needs a citation.{/footnote}{font "Ravie"}{color FF00FF}{sub}{sup}{i}core competencies {/i}{/sup}{/sub}{/color}{/font}{font "Arial Black"}{color 006600}{highlight red}{i}{b}vis-a-vis the synergistic paradigm shift {/b}{/i}{/highlight}{/color}{/font}{footnote id:3}The author was clearly not paying attention here.{/footnote}{font "Harlow Solid Italic"}{color 333399}{highlight cyan}{i}has resulted in {/i}{/highlight}{/color}{/font}{font "Bauhaus 93"}{color FF3399}a {/color}{/font}{font "Chiller"}{color FF3399}{i}net-positive disruption of the {/i}{/color}{/font}{font "Showcard Gothic"}{color FF6600}innovation {/color}{/font}{font "Harlow Solid Italic"}{color 00FFFF}{highlight yellow}{sup}pipeline. {/sup}{/highlight}{/color}{/font}{footnote id:4}This information may or may not be accurate.{/footnote}\n{/p}\n\n{comment id:2 by:"UNKNOWN" date:"2024-05-24T22:00:00.000Z"}\nFix this ASAP!!!\n{/comment}\n\n{p id:A4C3F026}\n{font "Times New Roman"}{color 3366FF}{highlight magenta}{sub}{i}{b}THIS TEXT IS {/b}{/i}{/sub}{/highlight}{/color}{/font}{font "Papyrus"}{color 996633}{highlight green}IN {/highlight}{/color}{/font}{font "Arial Black"}{color 006600}ALL {/color}{/font}{font "Arial Black"}{color 00CC99}{sub}{b}CAPS {/b}{/sub}{/color}{/font}{font "Arial Black"}{color FFFF00}{u}BECAUSE SOMEONE LEFT CAPS LOCK {/u}{/color}{/font}{font "Curlz MT"}{color 006600}{i}ON AND NOBODY {/i}{/color}{/font}{font "Snap ITC"}{color 990000}NOTICED {/color}{/font}{font "Curlz MT"}{color 00FF00}DURING REVIEW. {/color}{/font}{footnote id:5}Refer to the chart on page 847.{/footnote}\n{/p}\n';
+
+// ---------- Editor logic ----------
+var editor = document.getElementById('dexEditor');
+var highlightEl = document.getElementById('editorHighlight');
+var previewEl = document.getElementById('previewPane');
+var lineCountEl = document.getElementById('lineCount');
+var statusEl = document.getElementById('status');
+var dropZone = document.getElementById('dropZone');
+var fileInput = document.getElementById('fileInput');
+var copyBtn = document.getElementById('copyBtn');
+
+// Load example
+editor.value = EXAMPLE_DEX;
+updateEditor();
+
+// Sync scroll
+editor.addEventListener('scroll', function() {
+  highlightEl.scrollTop = editor.scrollTop;
+  highlightEl.scrollLeft = editor.scrollLeft;
+});
+
+// Live update
+editor.addEventListener('input', updateEditor);
+
+function updateEditor() {
+  // Syntax highlighting layer
+  highlightEl.textContent = '';
+  var highlighted = highlightDex(editor.value);
+  var tempDiv = document.createElement('div');
+  // The highlightDex function returns pre-escaped HTML with span tags
+  // for syntax coloring. This is safe because the source text has been
+  // HTML-escaped first, then span tags are added around known patterns.
+  tempDiv.innerHTML = highlighted;
+  while (tempDiv.firstChild) {
+    highlightEl.appendChild(tempDiv.firstChild);
+  }
+
+  // Line count
+  var lines = editor.value.split('\n').length;
+  lineCountEl.textContent = lines + ' lines';
+
+  // Preview
+  previewEl.textContent = '';
+  var rendered = renderDex(editor.value);
+  var previewDiv = document.createElement('div');
+  // renderDex produces HTML from the user's own local .dex content.
+  // This runs entirely client-side with no remote data.
+  previewDiv.innerHTML = rendered;
+  while (previewDiv.firstChild) {
+    previewEl.appendChild(previewDiv.firstChild);
+  }
+}
+
+// ---------- Copy ----------
+copyBtn.addEventListener('click', function() {
+  navigator.clipboard.writeText(editor.value).then(function() {
+    copyBtn.textContent = 'Copied!';
+    setTimeout(function() { copyBtn.textContent = 'Copy .dex'; }, 2000);
+  });
+});
+
+// ---------- File drop ----------
+dropZone.addEventListener('click', function() { fileInput.click(); });
+
+dropZone.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+
+dropZone.addEventListener('dragleave', function() {
+  dropZone.classList.remove('drag-over');
+});
+
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  var file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+
+fileInput.addEventListener('change', function(e) {
+  var file = e.target.files[0];
+  if (file) handleFile(file);
+});
+
+function handleFile(file) {
+  if (!file.name.endsWith('.docx')) {
+    statusEl.textContent = 'Please drop a .docx file.';
+    statusEl.style.color = 'var(--red)';
+    return;
+  }
+  statusEl.textContent = 'Decompiling ' + file.name + '...';
+  statusEl.style.color = 'var(--accent)';
+  DocxDecompiler.decompile(file).then(function(dex) {
+    editor.value = dex;
+    updateEditor();
+    statusEl.textContent = 'Decompiled ' + file.name + ' (' + dex.split('\n').length + ' lines)';
+    statusEl.style.color = 'var(--green)';
+  }).catch(function(err) {
+    statusEl.textContent = 'Error: ' + err.message;
+    statusEl.style.color = 'var(--red)';
+    console.error(err);
+  });
+}
+</script>
+</body>
+</html>

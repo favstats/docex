@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLI Reference - docex</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">doc<span>ex</span></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="playground.html">Playground</a>
+      <a href="examples.html">Examples</a>
+      <a href="api.html">API</a>
+      <a href="cli.html">CLI</a>
+      <a href="dex-format.html">.dex Format</a>
+      <a href="vision.html">Vision</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <section class="section" style="border-top:none">
+    <h1>CLI Reference</h1>
+    <p>Every command in the docex command-line tool. Install with <code>git clone https://github.com/favstats/docex.git</code> and run with <code>node cli/docex-cli.js</code> or create an alias.</p>
+    <pre><code># Create an alias (add to your shell profile)
+alias docex="node /path/to/docex/cli/docex-cli.js"
+
+# Verify it works
+docex --version
+# docex 0.4.0</code></pre>
+  </section>
+
+  <!-- replace -->
+  <section class="section">
+    <h2>replace</h2>
+    <p>Replace text with tracked changes. The old text appears as strikethrough and the new text as an insertion in Word's review pane.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex replace &lt;file&gt; &lt;old&gt; &lt;new&gt; [--author &lt;name&gt;]</div>
+      <div class="api-entry-body">
+        <pre><code>docex replace paper.docx "268,635" "300,000" --author "Fabio"</code></pre>
+        <p>Output:</p>
+        <pre><code>Replaced "268,635" with "300,000" (tracked change by Fabio)
+Saved paper.docx (verified: 212 paragraphs, 156.2 KB)</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- insert -->
+  <section class="section">
+    <h2>insert</h2>
+    <p>Insert a new paragraph at a position. The selector uses <code>after:</code> or <code>before:</code> prefix to target headings or text.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex insert &lt;file&gt; &lt;position&gt; &lt;text&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex insert paper.docx "after:Methods" "We used a mixed-methods approach."</code></pre>
+        <p>Output:</p>
+        <pre><code>Inserted paragraph after "Methods"
+Saved paper.docx (verified: 213 paragraphs, 156.8 KB)</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- delete -->
+  <section class="section">
+    <h2>delete</h2>
+    <p>Delete text (tracked). Shows as strikethrough in Word.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex delete &lt;file&gt; &lt;text&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex delete paper.docx "redundant sentence here"</code></pre>
+        <p>Output:</p>
+        <pre><code>Deleted "redundant sentence here" (tracked change)
+Saved paper.docx</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- comment -->
+  <section class="section">
+    <h2>comment</h2>
+    <p>Add a comment anchored to a text phrase.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex comment &lt;file&gt; &lt;anchor&gt; &lt;text&gt; --by &lt;name&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex comment paper.docx "platform governance" "Needs citation" --by "Reviewer 2"</code></pre>
+        <p>Output:</p>
+        <pre><code>Added comment by "Reviewer 2" on "platform governance": "Needs citation"
+Saved paper.docx</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- reply -->
+  <section class="section">
+    <h2>reply</h2>
+    <p>Reply to an existing comment. The reply shows as a threaded response in Word.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex reply &lt;file&gt; &lt;comment-id&gt; &lt;text&gt; --by &lt;name&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex reply paper.docx 1 "Added Suzor 2019 citation." --by "Fabio Votta"</code></pre>
+        <p>Output:</p>
+        <pre><code>Replied to comment #1 by "Fabio Votta": "Added Suzor 2019 citation."
+Saved paper.docx</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- list -->
+  <section class="section">
+    <h2>list</h2>
+    <p>List document contents by type.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex list &lt;file&gt; &lt;type&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex list paper.docx headings</code></pre>
+        <p>Output:</p>
+        <pre><code>Headings in paper.docx:
+  H1  The Ban That Wasn't
+  H2  Abstract
+  H2  Introduction
+  H2  Literature Review
+  H3  The EU Transparency Regulation
+  H2  Methods
+  H3  Data Collection
+  H3  Classification Pipeline
+  H2  Results
+  H3  Enforcement Analysis
+  H2  Discussion
+  H2  Conclusion
+  H2  References</code></pre>
+
+        <pre><code>docex list paper.docx comments</code></pre>
+        <p>Output:</p>
+        <pre><code>Comments in paper.docx:
+  #1  [Mira] Strong framing. Consider whether reviewers might...
+  #2  [Mira] Verify: is this the total from the Ad Library...
+  #31 [Editor Chen] TYPO: The abstract contains "scraped from..."</code></pre>
+
+        <pre><code>docex list paper.docx figures</code></pre>
+        <p>Output:</p>
+        <pre><code>Figures in paper.docx:
+  [1] word/media/image1.png  (5486400 x 3657600 emu)
+  [2] word/media/image2.png  (5486400 x 3657600 emu)
+  ...</code></pre>
+
+        <pre><code>docex list paper.docx revisions</code></pre>
+        <p>Output:</p>
+        <pre><code>Tracked changes in paper.docx:
+  #17 DEL by Mira: "268,635 ads"
+  #18 INS by Mira: "268,635 advertisements scraped from Meta's Ad Library"
+  #21 DEL by Mira: "10.4 days"
+  #22 INS by Mira: "10.4 calendar days"
+  ...</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- figure -->
+  <section class="section">
+    <h2>figure</h2>
+    <p>Insert a figure after a heading or paragraph.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex figure &lt;file&gt; &lt;position&gt; &lt;image&gt; [--caption &lt;text&gt;] [--width &lt;inches&gt;]</div>
+      <div class="api-entry-body">
+        <pre><code>docex figure paper.docx "after:Results" fig03.png --caption "Figure 3. Ad removal rates." --width 5</code></pre>
+        <p>Output:</p>
+        <pre><code>Inserted figure fig03.png after "Results" (5" wide)
+Caption: "Figure 3. Ad removal rates."
+Saved paper.docx</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- table -->
+  <section class="section">
+    <h2>table</h2>
+    <p>Insert a table from a JSON data file.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex table &lt;file&gt; &lt;position&gt; &lt;json-file&gt; [--style &lt;style&gt;] [--caption &lt;text&gt;]</div>
+      <div class="api-entry-body">
+        <pre><code>docex table paper.docx "after:Results" data.json --style booktabs --caption "Table 1."</code></pre>
+        <p>Where <code>data.json</code> contains:</p>
+        <pre><code>[["Party", "Ads", "Spend"],
+ ["VVD", "342", "EUR 12,450"],
+ ["D66", "289", "EUR 9,800"]]</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- count -->
+  <section class="section">
+    <h2>count</h2>
+    <p>Get word counts broken down by section.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex count &lt;file&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex count paper.docx</code></pre>
+        <p>Output:</p>
+        <pre><code>Word count for paper.docx:
+  Body text:    6,800
+  Headings:        45
+  Abstract:       250
+  Captions:       120
+  Footnotes:       85
+  ----------------------
+  Total:        7,300</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- doctor -->
+  <section class="section">
+    <h2>doctor</h2>
+    <p>Check document health. Detects corruption, orphaned images, broken relationships, and structural issues.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex doctor &lt;file&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex doctor absolute_chaos.docx</code></pre>
+        <p>Output:</p>
+        <pre><code>Document health check: absolute_chaos.docx
+  [PASS] Valid ZIP structure
+  [PASS] document.xml present
+  [PASS] All relationships valid
+  [PASS] No orphaned media files
+  [PASS] No duplicate paragraph IDs
+  [WARN] Heading hierarchy: H3 appears without H2 parent
+
+  Result: 5 passed, 1 warning, 0 errors</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- diff -->
+  <section class="section">
+    <h2>diff</h2>
+    <p>Compare two documents and produce a new .docx with tracked changes showing what changed.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex diff &lt;file-a&gt; &lt;file-b&gt; [--output &lt;path&gt;]</div>
+      <div class="api-entry-body">
+        <pre><code>docex diff paper.docx paper-v1.docx --output diff.docx</code></pre>
+        <p>Output:</p>
+        <pre><code>Comparing paper.docx vs paper-v1.docx
+  12 insertions, 8 deletions, 3 replacements
+Saved diff.docx</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- style -->
+  <section class="section">
+    <h2>style</h2>
+    <p>Apply a journal formatting preset.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex style &lt;file&gt; --preset &lt;name&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex style paper.docx --preset polcomm</code></pre>
+        <p>Available presets:</p>
+        <table>
+          <tr><th>Preset</th><th>Journal</th><th>Font</th><th>Margins</th></tr>
+          <tr><td><code>academic</code></td><td>Generic academic</td><td>Times New Roman 12pt</td><td>1" all</td></tr>
+          <tr><td><code>polcomm</code></td><td>Political Communication</td><td>Times New Roman 12pt</td><td>1" all</td></tr>
+          <tr><td><code>apa7</code></td><td>APA 7th Edition</td><td>Times New Roman 12pt</td><td>1" all</td></tr>
+          <tr><td><code>jcmc</code></td><td>Journal of Computer-Mediated Communication</td><td>Times New Roman 12pt</td><td>1" all</td></tr>
+          <tr><td><code>joc</code></td><td>Journal of Communication</td><td>Times New Roman 12pt</td><td>1" all</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- verify -->
+  <section class="section">
+    <h2>verify</h2>
+    <p>Validate a document against journal submission requirements.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex verify &lt;file&gt; --preset &lt;name&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex verify paper.docx --preset polcomm</code></pre>
+        <p>Output:</p>
+        <pre><code>Verification against polcomm preset:
+  [PASS] Word count: 7,300 (limit: 8,000)
+  [PASS] Abstract: 250 words (limit: 300)
+  [PASS] Font: Times New Roman
+  [WARN] Figure 3 resolution: 150 DPI (recommended: 300)
+  [FAIL] Margins: left=0.9" (required: 1.0")
+
+  Result: 3 passed, 1 warning, 1 failure</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- accept / reject -->
+  <section class="section">
+    <h2>accept / reject</h2>
+    <p>Accept or reject tracked changes.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex accept &lt;file&gt; [id]</div>
+      <div class="api-entry-body">
+        <pre><code># Accept all tracked changes
+docex accept paper.docx
+
+# Accept only change #5
+docex accept paper.docx 5
+
+# Reject all changes (revert to original text)
+docex reject paper.docx</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- clean -->
+  <section class="section">
+    <h2>clean</h2>
+    <p>Create a clean copy with all tracked changes accepted and markup removed.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex clean &lt;file&gt; [--output &lt;path&gt;]</div>
+      <div class="api-entry-body">
+        <pre><code>docex clean paper.docx -o clean.docx</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- decompile / compile -->
+  <section class="section">
+    <h2>decompile / compile</h2>
+    <p>Convert between .docx and .dex formats.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex decompile &lt;file&gt; [-o &lt;output&gt;]</div>
+      <div class="api-entry-body">
+        <pre><code># Decompile to stdout
+docex decompile paper.docx
+
+# Decompile to file
+docex decompile paper.docx -o paper.dex</code></pre>
+      </div>
+    </div>
+    <div class="api-entry">
+      <div class="api-entry-header">docex compile &lt;file.dex&gt; [-o &lt;output&gt;]</div>
+      <div class="api-entry-body">
+        <pre><code># Compile .dex back to .docx
+docex compile paper.dex -o paper-updated.docx</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- bold / italic / highlight -->
+  <section class="section">
+    <h2>bold / italic / highlight</h2>
+    <p>Apply formatting from the command line.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex bold &lt;file&gt; &lt;text&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex bold paper.docx "significant findings"
+docex italic paper.docx "p < 0.05"
+docex highlight paper.docx "needs review"</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- footnote -->
+  <section class="section">
+    <h2>footnote</h2>
+    <p>Add a footnote anchored to text.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex footnote &lt;file&gt; &lt;anchor&gt; &lt;text&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex footnote paper.docx "enforcement gap" "See appendix B for methodology."</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- meta -->
+  <section class="section">
+    <h2>meta</h2>
+    <p>Show document metadata.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex meta &lt;file&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex meta paper.docx</code></pre>
+        <p>Output:</p>
+        <pre><code>Metadata for paper.docx:
+  Title:    The Ban That Wasn't
+  Creator:  Fabio Votta
+  Created:  2026-02-15
+  Modified: 2026-03-18
+  Pages:    24
+  Words:    7,300</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- anonymize -->
+  <section class="section">
+    <h2>anonymize</h2>
+    <p>Anonymize a document for blind peer review.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex anonymize &lt;file&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex anonymize paper.docx</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- latex / html / markdown -->
+  <section class="section">
+    <h2>latex / html / markdown</h2>
+    <p>Export to other formats.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex latex &lt;file&gt; / docex html &lt;file&gt; / docex markdown &lt;file&gt;</div>
+      <div class="api-entry-body">
+        <pre><code>docex latex paper.docx > paper.tex
+docex html paper.docx > paper.html
+docex markdown paper.docx > paper.md</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- cite -->
+  <section class="section">
+    <h2>cite</h2>
+    <p>List citation patterns or inject Zotero citations.</p>
+    <div class="api-entry">
+      <div class="api-entry-header">docex cite &lt;file&gt; [--list] [--zotero-key &lt;key&gt;]</div>
+      <div class="api-entry-body">
+        <pre><code># List citation patterns
+docex cite paper.docx --list
+
+# Inject Zotero citations
+docex cite paper.docx --zotero-key API_KEY --zotero-user USER_ID</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Global options -->
+  <section class="section">
+    <h2>Global options</h2>
+    <table>
+      <tr><th>Option</th><th>Description</th></tr>
+      <tr><td><code>--author &lt;name&gt;</code></td><td>Author name for tracked changes (default: git user.name)</td></tr>
+      <tr><td><code>--by &lt;name&gt;</code></td><td>Alias for --author (used with comments)</td></tr>
+      <tr><td><code>--output &lt;path&gt;</code></td><td>Save to a different file (default: overwrite)</td></tr>
+      <tr><td><code>--untracked</code></td><td>Disable tracked changes</td></tr>
+      <tr><td><code>--safe &lt;path&gt;</code></td><td>Wrap save through safe-modify.sh for manuscript protection</td></tr>
+      <tr><td><code>--dry-run</code></td><td>Preview without saving</td></tr>
+      <tr><td><code>--help</code></td><td>Show help</td></tr>
+      <tr><td><code>--version</code></td><td>Show version</td></tr>
+    </table>
+  </section>
+
+</div>
+
+<footer class="footer">
+  <p>docex is MIT licensed. <a href="https://github.com/favstats/docex">View on GitHub</a></p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

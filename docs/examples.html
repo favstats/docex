@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examples - docex</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">doc<span>ex</span></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="playground.html">Playground</a>
+      <a href="examples.html">Examples</a>
+      <a href="api.html">API</a>
+      <a href="cli.html">CLI</a>
+      <a href="dex-format.html">.dex Format</a>
+      <a href="vision.html">Vision</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <section class="section" style="border-top:none">
+    <h1>Real Examples</h1>
+    <p>These are real .docx files converted to .dex. Every detail survives the round trip.</p>
+  </section>
+
+  <!-- Tabs -->
+  <div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="tab-chaos">Absolute Chaos</button>
+      <button class="tab-btn" data-tab="tab-manuscript">Academic Manuscript</button>
+      <button class="tab-btn" data-tab="tab-tracked">Tracked Changes</button>
+    </div>
+
+    <!-- Tab 1: Absolute Chaos -->
+    <div class="tab-content active" id="tab-chaos">
+      <h2>Absolute Chaos</h2>
+      <p>A deliberately terrible Word document with every formatting option, comments by "The Intern" and "someone's cat", footnotes, tables, and fonts like Jokerman and Wingdings.</p>
+
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <span class="tag tag-green">22 parts</span>
+        <span class="tag tag-green">0 differences</span>
+        <span class="tag tag-blue">104.2% size ratio</span>
+      </div>
+
+      <h3>First 50 lines of .dex output</h3>
+      <pre><code id="chaosCode"></code></pre>
+
+      <h3>What this document contains</h3>
+      <table>
+        <tr><th>Feature</th><th>Count</th><th>Details</th></tr>
+        <tr><td>Fonts</td><td>15+</td><td>Jokerman, Wingdings, Papyrus, Comic Sans MS, Curlz MT, Snap ITC, and more</td></tr>
+        <tr><td>Colors</td><td>20+</td><td>Every color of the rainbow, often multiple per paragraph</td></tr>
+        <tr><td>Comments</td><td>3</td><td>By "The Intern", "someone's cat", and "UNKNOWN"</td></tr>
+        <tr><td>Footnotes</td><td>5</td><td>Including "Citation needed. Actually, everything needs a citation."</td></tr>
+        <tr><td>Highlights</td><td>12+</td><td>cyan, magenta, red, yellow, green, darkYellow</td></tr>
+        <tr><td>Formatting</td><td>All</td><td>Bold, italic, underline, superscript, subscript, all combined</td></tr>
+      </table>
+
+      <h3>Round-trip verification</h3>
+      <pre><code>$ docex decompile absolute_chaos.docx -o chaos.dex
+$ docex compile chaos.dex -o roundtrip.docx
+$ docex diff absolute_chaos.docx roundtrip.docx
+
+Parts: 22
+Differences: 0
+Size ratio: 104.2%
+Result: PASS</code></pre>
+    </div>
+
+    <!-- Tab 2: Academic Manuscript -->
+    <div class="tab-content" id="tab-manuscript">
+      <h2>Academic Manuscript</h2>
+      <p>A real political science paper about Meta's advertising ban during the 2026 Dutch elections. Written in Word with tracked changes, reviewer comments, and inline figures.</p>
+
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <span class="tag tag-blue">212 paragraphs</span>
+        <span class="tag tag-yellow">38 comments</span>
+        <span class="tag tag-red">14 tracked changes</span>
+        <span class="tag tag-green">10 figures</span>
+      </div>
+
+      <h3>First 40 lines of .dex output</h3>
+      <pre><code id="manuscriptCode"></code></pre>
+
+      <h3>Headings extracted</h3>
+      <pre><code>1. The Ban That Wasn't: Meta's Failure to Enforce Its Political
+   Advertising Prohibition During the 2026 Dutch Municipal Elections
+2. Abstract
+3. Introduction
+4. Literature Review
+5. The EU Transparency Regulation
+6. Methods
+7. Data Collection
+8. Classification Pipeline
+9. Results
+10. Enforcement Analysis
+11. Discussion
+12. Conclusion
+13. References</code></pre>
+
+      <h3>Comment examples</h3>
+      <pre><code>{comment id:1 by:"Mira" date:"2026-03-18T11:15:00Z"}
+Strong framing. Consider whether reviewers might push back on
+characterizing Meta's decision as 'avoidance' vs legitimate
+business choice. Worth preempting this objection in the discussion.
+{/comment}
+
+{comment id:31 by:"Editor Chen" date:"2026-03-24T10:00:00Z"}
+TYPO: The abstract contains "scraped from Meta's Ad Library from
+Meta's Ad Library" -- duplicate phrase. Delete one instance.
+{/comment}</code></pre>
+
+      <h3>Tracked change examples</h3>
+      <pre><code># Deletion and insertion (replacement)
+{del id:25 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA{/del}
+{ins id:26 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA/PAR{/ins}
+
+# Numeric precision edit
+{del id:21 by:"Mira" date:"2026-03-18T14:41:12Z"}10.4 days{/del}
+{ins id:22 by:"Mira" date:"2026-03-18T14:41:12Z"}10.4 calendar days{/ins}
+
+# Format standardization
+{del id:23 by:"Mira" date:"2026-03-18T14:41:12Z"}14.2%{/del}
+{ins id:24 by:"Mira" date:"2026-03-18T14:41:12Z"}14.2 percent{/ins}</code></pre>
+    </div>
+
+    <!-- Tab 3: Tracked Changes -->
+    <div class="tab-content" id="tab-tracked">
+      <h2>Tracked Changes in .dex</h2>
+      <p>When you edit a .docx through docex, every change is tracked by default. Here is how tracked changes appear in the .dex format.</p>
+
+      <h3>How replacements work</h3>
+      <p>When you run <code>docex replace paper.docx "268,635 ads" "268,635 advertisements scraped from Meta's Ad Library"</code>, the .dex shows:</p>
+      <pre><code>{del id:17 by:"Mira" date:"2026-03-18T14:39:03Z"}268,635 ads{/del}
+{ins id:18 by:"Mira" date:"2026-03-18T14:39:03Z"}268,635 advertisements scraped from Meta's Ad Library{/ins}</code></pre>
+      <p>In Word, this appears as <span style="color:var(--red);text-decoration:line-through">268,635 ads</span> <span style="color:var(--green)">268,635 advertisements scraped from Meta's Ad Library</span> in the review pane.</p>
+
+      <h3>A complete before/after example</h3>
+      <p><strong>Before</strong> (original document):</p>
+      <pre><code>{p id:7AF60E6B}
+{font "Times New Roman"}{b}Purpose.{/b}{/font}{font "Times New Roman"} In October
+2025, Meta imposed a blanket ban on political advertising across the
+European Union, choosing prohibition over compliance with the
+Transparency and Accountability of Political Advertising Regulation
+(TTPA, Regulation EU 2024/900).{/font}
+{/p}</code></pre>
+
+      <p><strong>After</strong> (with tracked changes):</p>
+      <pre><code>{p id:7AF60E6B}
+{font "Times New Roman"}{b}Purpose.{/b}{/font}{font "Times New Roman"} In October
+2025, Meta imposed a blanket ban on political advertising across the
+European Union, choosing prohibition over compliance with the
+Transparency and Accountability of Political Advertising Regulation
+({/font}{del id:25 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA{/del}
+{ins id:26 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA/PAR{/ins}
+{font "Times New Roman"}, Regulation EU 2024/900).{/font}
+{/p}</code></pre>
+
+      <h3>Reading tracked changes</h3>
+      <table>
+        <tr><th>.dex syntax</th><th>What it means</th><th>How it looks in Word</th></tr>
+        <tr>
+          <td><code>{del id:N by:"Author" date:"..."}text{/del}</code></td>
+          <td>Deleted text (crossed out)</td>
+          <td><span style="color:var(--red);text-decoration:line-through">text</span></td>
+        </tr>
+        <tr>
+          <td><code>{ins id:N by:"Author" date:"..."}text{/ins}</code></td>
+          <td>Inserted text (added)</td>
+          <td><span style="color:var(--green)">text</span></td>
+        </tr>
+        <tr>
+          <td>del + ins together</td>
+          <td>Replacement (old text deleted, new text inserted)</td>
+          <td><span style="color:var(--red);text-decoration:line-through">old</span> <span style="color:var(--green)">new</span></td>
+        </tr>
+      </table>
+
+      <h3>Accepting and rejecting</h3>
+      <pre><code># Accept all tracked changes
+docex accept paper.docx
+
+# Accept only change #25
+docex accept paper.docx 25
+
+# Reject all changes (revert to original)
+docex reject paper.docx
+
+# Create a clean copy (no tracked changes markup)
+docex clean paper.docx -o clean.docx</code></pre>
+    </div>
+  </div>
+
+</div>
+
+<footer class="footer">
+  <p>docex is MIT licensed. <a href="https://github.com/favstats/docex">View on GitHub</a></p>
+</footer>
+
+<script src="script.js"></script>
+<script>
+// Embed the actual .dex content
+var chaosLines = [
+  '---',
+  'docex: "0.4.0"',
+  'authors:',
+  '  - name: "Un-named"',
+  '---',
+  '',
+  '# QUARTERLY Strategic SYNERGY Report {id:BABCF972}',
+  '',
+  '{p id:9E7DD00E}',
+  '{font "Lucida Handwriting"}{color 999999}Version 47.3b (DRAFT) (FINAL) (FINAL v2) (ACTUALLY FINAL) (USE THIS ONE){/color}{/font}',
+  '{/p}',
+  '',
+  '{p id:9861D842}',
+  '{font "Arial Black"}{color FF0000}{u}{b}CONFIDENTIAL{/b}{/u}{/color}{/font}',
+  '{/p}',
+  '',
+  '{pagebreak}',
+  '',
+  '### Executive Summary (please actually read this one) {id:043C8211}',
+  '',
+  '{comment id:0 by:"The Intern" date:"2024-05-13T22:00:00.000Z"}',
+  'WHO WROTE THIS???',
+  '{/comment}',
+  '',
+  '{p id:0F9C1FA0}',
+  '{font "Ravie"}{color 990000}{u}FYI {/u}{/color}{/font}{font "Algerian"}{color CC6600}',
+  '{highlight darkYellow}{b}the formatting in {/b}{/highlight}{/color}{/font}',
+  '{font "Showcard Gothic"}{color FF3399}this {/color}{/font}{font "Jokerman"}',
+  '{color 0000FF}{highlight darkYellow}{b}section was done by someone {/b}',
+  '{/highlight}{/color}{/font}{font "Snap ITC"}{color FF3399}who {/color}{/font}',
+  '{font "Castellar"}{color 990000}{sub}just discovered {/sub}{/color}{/font}',
+  '{font "Ravie"}{color 9900CC}Microsoft Word for the first {/color}{/font}',
+  '{footnote id:1}{/footnote}{font "Castellar"}{color 66CC00}',
+  '{highlight cyan}time. We apologize. {/highlight}{/color}{/font}',
+  '{/p}',
+  '',
+  '{comment id:1 by:"someone\'s cat" date:"2024-04-17T22:00:00.000Z"}',
+  'This makes no sense',
+  '{/comment}',
+  '',
+  '{p id:A83917BB}',
+  '{font "Lucida Handwriting"}{color FF6600}{highlight cyan}{b}The {/b}',
+  '{/highlight}{/color}{/font}{font "Wingdings"}{color 00FFFF}',
+  '{highlight darkYellow}{i}{b}numbers in this {/b}{/i}{/highlight}',
+  '{/color}{/font}{font "Chiller"}{color 3366FF}{highlight red}',
+  '{sub}{i}section are from 2019 and {/i}{/sub}{/highlight}{/color}{/font}',
+  '{font "Harlow Solid Italic"}{color 00FF00}nobody has updated them since.',
+  '{/color}{/font}{font "Showcard Gothic"}{color FFFF00}Please pretend',
+  "they're current. {/color}{/font}",
+  '{/p}',
+];
+
+var manuscriptLines = [
+  '---',
+  'docex: "0.4.0"',
+  '---',
+  '',
+  '{p id:49AEB692}',
+  '{font "Times New Roman"}{b}The Ban That Wasn\'t: Meta\'s Failure to Enforce',
+  'Its Political Advertising Prohibition During the 2026 Dutch Municipal',
+  'Elections{/b}{/font}',
+  '{/p}',
+  '',
+  '{p id:68DFBE6E}',
+  '{font "Times New Roman"}Fabio Votta{/font}',
+  '{/p}',
+  '',
+  '{p id:2294C7B8}',
+  '{font "Times New Roman"}Department of Communication Science, University',
+  'of Amsterdam, The Netherlands{/font}',
+  '{/p}',
+  '',
+  '{p id:66949762}',
+  '{font "Times New Roman"}Simon Kruschinski{/font}',
+  '{/p}',
+  '',
+  '{p id:0311C021}',
+  '{font "Times New Roman"}GESIS -- Leibniz Institute for the Social Sciences,',
+  'Mannheim, Germany{/font}',
+  '{/p}',
+  '',
+  '{pagebreak}',
+  '',
+  '{p id:52124736}',
+  '{font "Times New Roman"}{b}Abstract{/b}{/font}',
+  '{/p}',
+  '',
+  '{p id:7AF60E6B}',
+  '{font "Times New Roman"}{b}Purpose.{/b}{/font}{font "Times New Roman"} In October',
+  '2025, Meta imposed a blanket ban on political advertising across the',
+  'European Union, choosing prohibition over compliance with the Transparency',
+  'and Accountability of Political Advertising Regulation ({/font}',
+  '{del id:25 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA{/del}',
+  '{ins id:26 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA/PAR{/ins}',
+  '{font "Times New Roman"}, Regulation EU 2024/900).{/font}',
+  '{/p}',
+];
+
+// Render with syntax highlighting
+var chaosEl = document.getElementById('chaosCode');
+chaosEl.textContent = chaosLines.join('\n');
+
+var msEl = document.getElementById('manuscriptCode');
+msEl.textContent = manuscriptLines.join('\n');
+</script>
+</body>
+</html>

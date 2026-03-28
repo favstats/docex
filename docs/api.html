@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Reference - docex</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">doc<span>ex</span></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="playground.html">Playground</a>
+      <a href="examples.html">Examples</a>
+      <a href="api.html">API</a>
+      <a href="cli.html">CLI</a>
+      <a href="dex-format.html">.dex Format</a>
+      <a href="vision.html">Vision</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <section class="section" style="border-top:none">
+    <h1>JavaScript API</h1>
+    <p>A fluent API that reads like English. Every edit is tracked by default. Author is set once and applied to everything.</p>
+    <pre><code>const docex = require('./src/docex');
+const doc = docex("paper.docx");
+doc.author("Fabio Votta");</code></pre>
+  </section>
+
+  <!-- Opening and Saving -->
+  <section class="section api-group">
+    <h2>Opening and saving</h2>
+
+    <div class="api-entry">
+      <div class="api-entry-header">docex(path)</div>
+      <div class="api-entry-body">
+        <p>Open a .docx file. Returns a document object.</p>
+        <pre><code>const doc = docex("paper.docx");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.author(name)</div>
+      <div class="api-entry-body">
+        <p>Set the author name for all subsequent operations. Applied to tracked changes and comments.</p>
+        <pre><code>doc.author("Fabio Votta");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.save(path?)</div>
+      <div class="api-entry-body">
+        <p>Save the document. Overwrites the original by default. All queued operations are applied in a single zip cycle. Auto-verifies after save.</p>
+        <pre><code>await doc.save();                      // overwrite original
+await doc.save("revised.docx");        // save to new file
+await doc.save({ dryRun: true });      // preview without saving</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await docex.create(path)</div>
+      <div class="api-entry-body">
+        <p>Create an empty .docx file from scratch.</p>
+        <pre><code>await docex.create("new-paper.docx");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.untracked()</div>
+      <div class="api-entry-body">
+        <p>Disable tracked changes for subsequent operations. Edits will be applied directly.</p>
+        <pre><code>doc.untracked();
+doc.replace("old", "new");  // no tracked change record</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Position Selectors -->
+  <section class="section api-group">
+    <h2>Position selectors</h2>
+    <p>Target any location in the document. Like CSS selectors for documents.</p>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.at(text)</div>
+      <div class="api-entry-body">
+        <p>Select the position <strong>at</strong> a phrase. Used for comments, formatting, and inline operations.</p>
+        <pre><code>doc.at("platform governance").comment("Needs citation");
+doc.at("enforcement gap").bold();
+doc.at("268,635").highlight("yellow");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.after(text)</div>
+      <div class="api-entry-body">
+        <p>Select the position <strong>after</strong> a heading or text. Used for inserting new content.</p>
+        <pre><code>doc.after("Methods").insert("We used a mixed-methods approach.");
+doc.after("Results").figure("fig03.png", "Figure 3. Rates.");
+doc.after("Results").table([["A","B"],["1","2"]]);</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.before(text)</div>
+      <div class="api-entry-body">
+        <p>Select the position <strong>before</strong> a heading or text.</p>
+        <pre><code>doc.before("Conclusion").insert("Final remarks before conclusion.");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.id(paraId)</div>
+      <div class="api-entry-body">
+        <p>Select a paragraph by its stable ID. IDs survive other edits, making them reliable anchors.</p>
+        <pre><code>doc.id("3A7F2B1C").replace("old text", "new text");</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Text Operations -->
+  <section class="section api-group">
+    <h2>Text operations</h2>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.replace(old, new)</div>
+      <div class="api-entry-body">
+        <p>Replace text. Shows as a tracked change (strikethrough + insertion) in Word.</p>
+        <pre><code>doc.replace("enforcement gap", "regulatory gap");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.replaceAll(old, new)</div>
+      <div class="api-entry-body">
+        <p>Replace all occurrences of a string throughout the document.</p>
+        <pre><code>doc.replaceAll("TTPA", "TTPA/PAR");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.delete(text)</div>
+      <div class="api-entry-body">
+        <p>Delete text (tracked). Shows as strikethrough in Word.</p>
+        <pre><code>doc.delete("redundant sentence here");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.after(anchor).insert(text, opts?)</div>
+      <div class="api-entry-body">
+        <p>Insert a new paragraph after a heading or text.</p>
+        <pre><code>doc.after("Methods").insert("We used a mixed-methods approach.");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.find(text)</div>
+      <div class="api-entry-body">
+        <p>Find all occurrences of text in the document.</p>
+        <pre><code>const results = await doc.find("Meta");
+// [{paragraph: 3, text: "...Meta's Ad Library..."}]</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Formatting -->
+  <section class="section api-group">
+    <h2>Formatting</h2>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.at(text).bold() / .italic() / .underline()</div>
+      <div class="api-entry-body">
+        <p>Apply basic formatting to selected text.</p>
+        <pre><code>doc.at("significant findings").bold();
+doc.at("p < 0.05").italic();
+doc.at("critical note").underline();</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.at(text).highlight(color)</div>
+      <div class="api-entry-body">
+        <p>Highlight text with a Word highlight color.</p>
+        <pre><code>doc.at("needs review").highlight("yellow");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.at(text).color(color)</div>
+      <div class="api-entry-body">
+        <p>Set text color.</p>
+        <pre><code>doc.at("warning").color("red");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.at(text).strikethrough() / .superscript() / .subscript() / .smallCaps() / .code()</div>
+      <div class="api-entry-body">
+        <p>Additional formatting options.</p>
+        <pre><code>doc.at("removed text").strikethrough();
+doc.at("2").superscript();     // x2 becomes x^2
+doc.at("i").subscript();       // xi becomes x_i
+doc.at("Author Name").smallCaps();
+doc.at("var x = 1").code();</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.at(text).footnote(text)</div>
+      <div class="api-entry-body">
+        <p>Add a footnote anchored to text.</p>
+        <pre><code>doc.at("finding").footnote("See appendix B for full results.");</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comments -->
+  <section class="section api-group">
+    <h2>Comments</h2>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.at(anchor).comment(text, opts?)</div>
+      <div class="api-entry-body">
+        <p>Add a comment anchored to a phrase.</p>
+        <pre><code>doc.at("platform governance").comment("Needs citation", { by: "Reviewer 2" });</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.at(anchor).reply(text, opts?)</div>
+      <div class="api-entry-body">
+        <p>Reply to an existing comment (threaded reply in Word).</p>
+        <pre><code>doc.at("platform governance").reply("Added Suzor 2019", { by: "Fabio Votta" });</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.comments()</div>
+      <div class="api-entry-body">
+        <p>List all comments in the document.</p>
+        <pre><code>const comments = await doc.comments();
+// [{id: 1, author: "Reviewer 2", text: "Needs citation", anchor: "platform governance"}]</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.exportComments(format)</div>
+      <div class="api-entry-body">
+        <p>Export all comments to CSV or JSON.</p>
+        <pre><code>const csv = await doc.exportComments("csv");</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Figures and Tables -->
+  <section class="section api-group">
+    <h2>Figures and tables</h2>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.after(anchor).figure(imagePath, caption, opts?)</div>
+      <div class="api-entry-body">
+        <p>Insert a figure after a heading or paragraph. Auto-detects image dimensions.</p>
+        <pre><code>doc.after("Results").figure("fig03.png", "Figure 3. Ad removal rates by platform.");</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.after(anchor).table(data, opts?)</div>
+      <div class="api-entry-body">
+        <p>Insert a table. Supports booktabs styling and captions.</p>
+        <pre><code>doc.after("Results").table(
+  [["Party", "Ads", "Spend"],
+   ["VVD", "342", "EUR 12,450"],
+   ["D66", "289", "EUR 9,800"]],
+  { style: "booktabs", caption: "Table 1. Ad counts by party." }
+);</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.after(anchor).bulletList(items) / .numberedList(items)</div>
+      <div class="api-entry-body">
+        <p>Insert a bullet or numbered list.</p>
+        <pre><code>doc.after("Key findings").bulletList([
+  "192 political accounts ran ads despite the ban",
+  "Only 14.2% of violating ads were removed",
+  "Average time to removal: 10.4 days"
+]);</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.figures()</div>
+      <div class="api-entry-body">
+        <p>List all figures in the document.</p>
+        <pre><code>const figs = await doc.figures();
+// [{rId: "rId5", src: "word/media/image1.png", width: "5486400emu"}]</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tracked Changes -->
+  <section class="section api-group">
+    <h2>Tracked changes</h2>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.revisions()</div>
+      <div class="api-entry-body">
+        <p>List all tracked changes.</p>
+        <pre><code>const revs = await doc.revisions();
+// [{id: 17, type: "del", author: "Mira", text: "268,635 ads"}]</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.accept(id?) / await doc.reject(id?)</div>
+      <div class="api-entry-body">
+        <p>Accept or reject tracked changes. Pass an ID for a specific change, or omit to apply to all.</p>
+        <pre><code>await doc.accept();      // accept all
+await doc.accept(5);     // accept only change #5
+await doc.reject();      // reject all</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.cleanCopy()</div>
+      <div class="api-entry-body">
+        <p>Create a clean copy with all tracked changes accepted and markup removed.</p>
+        <pre><code>await doc.cleanCopy();</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.diff(otherPath)</div>
+      <div class="api-entry-body">
+        <p>Compare two documents and produce a .docx with tracked changes showing the differences.</p>
+        <pre><code>await doc.diff("paper-v1.docx");</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- .dex Format -->
+  <section class="section api-group">
+    <h2>.dex format</h2>
+
+    <div class="api-entry">
+      <div class="api-entry-header">DexDecompiler.decompile(workspace)</div>
+      <div class="api-entry-body">
+        <p>Convert a .docx workspace into .dex plain text format.</p>
+        <pre><code>const { DexDecompiler } = require('./src/dex-decompiler');
+const dex = DexDecompiler.decompile("paper.docx");
+// Returns the full .dex string</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">DexCompiler.compile(dexString)</div>
+      <div class="api-entry-body">
+        <p>Convert a .dex string back into a .docx file.</p>
+        <pre><code>const { DexCompiler } = require('./src/dex-compiler');
+await DexCompiler.compile(dexString, "output.docx");</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Journal Styles -->
+  <section class="section api-group">
+    <h2>Journal styles</h2>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.style(preset)</div>
+      <div class="api-entry-body">
+        <p>Apply a journal formatting preset. Sets fonts, margins, spacing, headers, and page layout.</p>
+        <pre><code>await doc.style("polcomm");   // Political Communication
+await doc.style("apa7");     // APA 7th Edition
+await doc.style("jcmc");     // Journal of Computer-Mediated Communication
+await doc.style("joc");      // Journal of Communication
+await doc.style("academic"); // Generic academic</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.verify(preset)</div>
+      <div class="api-entry-body">
+        <p>Validate the document against journal requirements.</p>
+        <pre><code>const result = await doc.verify("polcomm");
+// { pass: false, issues: ["Word count 8200 exceeds limit 8000"] }</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Document Health -->
+  <section class="section api-group">
+    <h2>Document health</h2>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.validate()</div>
+      <div class="api-entry-body">
+        <p>Run the document doctor. Checks for corrupt zip structure, orphaned images, broken relationships, duplicate paragraph IDs, and heading hierarchy problems.</p>
+        <pre><code>const health = await doc.validate();
+// { issues: [], healthy: true }</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.wordCount()</div>
+      <div class="api-entry-body">
+        <p>Get word counts broken down by section.</p>
+        <pre><code>const counts = await doc.wordCount();
+// { body: 6800, headings: 45, abstract: 250, captions: 120, footnotes: 85, total: 7300 }</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.metadata()</div>
+      <div class="api-entry-body">
+        <p>Get document metadata (title, author, creation date, etc.).</p>
+        <pre><code>const meta = await doc.metadata();
+// { title: "The Ban That Wasn't", creator: "Fabio Votta", created: "2026-02-15" }</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.headings() / await doc.paragraphs()</div>
+      <div class="api-entry-body">
+        <p>List all headings or paragraphs with their IDs.</p>
+        <pre><code>const headings = await doc.headings();
+// [{level: 1, text: "Introduction", index: 5}]
+
+const paras = await doc.paragraphs();
+// [{id: "3A7F2B1C", text: "We analyzed 268,635...", index: 12}]</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.anonymize()</div>
+      <div class="api-entry-body">
+        <p>Anonymize for blind peer review. Removes author names, affiliations, and identifying information.</p>
+        <pre><code>await doc.anonymize();</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">doc.preview()</div>
+      <div class="api-entry-body">
+        <p>Preview all pending operations without applying them.</p>
+        <pre><code>doc.replace("old", "new");
+doc.at("text").comment("note");
+const ops = doc.preview();
+// [{type: "replace", old: "old", new: "new"}, {type: "comment", anchor: "text"}]</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Batch and Advanced -->
+  <section class="section api-group">
+    <h2>Batch operations</h2>
+
+    <div class="api-entry">
+      <div class="api-entry-header">docex.batch(files)</div>
+      <div class="api-entry-body">
+        <p>Apply operations to multiple documents at once.</p>
+        <pre><code>docex.batch(["paper1.docx", "paper2.docx"]).forEach(doc => {
+  doc.style("apa7");
+  doc.save();
+});</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await docex.fromTemplate(opts)</div>
+      <div class="api-entry-body">
+        <p>Create a new document from a journal template.</p>
+        <pre><code>await docex.fromTemplate({
+  title: "My Paper",
+  journal: "polcomm",
+  sections: ["Introduction", "Methods", "Results", "Discussion"]
+});</code></pre>
+      </div>
+    </div>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await docex.responseLetter(opts)</div>
+      <div class="api-entry-body">
+        <p>Generate a response-to-reviewers letter from a JSON spec.</p>
+        <pre><code>await docex.responseLetter({
+  manuscript: "paper.docx",
+  responses: "responses.json",
+  output: "response-letter.docx"
+});</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Export -->
+  <section class="section api-group">
+    <h2>Export</h2>
+
+    <div class="api-entry">
+      <div class="api-entry-header">await doc.toLatex() / await doc.toHtml() / await doc.toMarkdown()</div>
+      <div class="api-entry-body">
+        <p>Export the document to other formats.</p>
+        <pre><code>const latex = await doc.toLatex();
+const html = await doc.toHtml();
+const md = await doc.toMarkdown();</code></pre>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer">
+  <p>docex is MIT licensed. <a href="https://github.com/favstats/docex">View on GitHub</a></p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>.dex Format Specification - docex</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">doc<span>ex</span></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="playground.html">Playground</a>
+      <a href="examples.html">Examples</a>
+      <a href="api.html">API</a>
+      <a href="cli.html">CLI</a>
+      <a href="dex-format.html">.dex Format</a>
+      <a href="vision.html">Vision</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <section class="section" style="border-top:none">
+    <h1>.dex Format Specification</h1>
+    <p>The .dex format is a human-readable plain text representation of .docx files. It preserves every formatting detail, comment, tracked change, and structural element. You can edit it in any text editor and compile it back to a valid .docx with zero data loss.</p>
+  </section>
+
+  <!-- Frontmatter -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Frontmatter</h2>
+      <p>Every .dex file starts with YAML frontmatter delimited by <code>---</code>. The frontmatter contains metadata about the document.</p>
+      <pre><code>---
+docex: "0.4.0"
+title: "The Ban That Wasn't"
+authors:
+  - name: "Fabio Votta"
+  - name: "Simon Kruschinski"
+keywords: "political advertising, Meta, enforcement"
+subject: "Political Communication"
+---</code></pre>
+      <table>
+        <tr><th>Field</th><th>Description</th></tr>
+        <tr><td><code>docex</code></td><td>Version of the .dex format (required)</td></tr>
+        <tr><td><code>title</code></td><td>Document title</td></tr>
+        <tr><td><code>authors</code></td><td>List of author names</td></tr>
+        <tr><td><code>keywords</code></td><td>Document keywords</td></tr>
+        <tr><td><code>subject</code></td><td>Document subject</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- Headings -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Headings</h2>
+      <p>Headings use Markdown-style <code>#</code> syntax. The number of <code>#</code> characters indicates the heading level. An optional paragraph ID can appear at the end in <code>{id:XXXX}</code> format.</p>
+      <pre><code># Title (Heading 1) {id:BABCF972}
+
+## Introduction {id:A1B2C3D4}
+
+### Data Collection {id:E5F6A7B8}
+
+#### Sub-subsection {id:C9D0E1F2}</code></pre>
+      <p>Heading levels 1 through 6 are supported, matching HTML <code>&lt;h1&gt;</code> through <code>&lt;h6&gt;</code> and Word's Heading 1 through Heading 6 styles.</p>
+    </div>
+  </section>
+
+  <!-- Paragraphs -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Paragraphs</h2>
+      <p>Paragraphs are wrapped in <code>{p}</code> / <code>{/p}</code> tags. The optional <code>id:</code> attribute is a stable paragraph identifier that survives other edits.</p>
+      <pre><code>{p id:7AF60E6B}
+This is a paragraph of text. It can contain inline formatting,
+tracked changes, and footnote references.
+{/p}</code></pre>
+      <p>The paragraph ID is a hex string assigned by Word (via the <code>w14:paraId</code> attribute). When you edit a .dex file, keep the IDs intact so that docex can match paragraphs back to the original .docx structure.</p>
+    </div>
+  </section>
+
+  <!-- Formatting -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Inline formatting</h2>
+      <p>Formatting uses curly-brace tags that wrap the formatted text.</p>
+      <table>
+        <tr><th>Syntax</th><th>Renders as</th><th>Word equivalent</th></tr>
+        <tr><td><code>{b}bold text{/b}</code></td><td><strong>bold text</strong></td><td>Bold</td></tr>
+        <tr><td><code>{i}italic text{/i}</code></td><td><em>italic text</em></td><td>Italic</td></tr>
+        <tr><td><code>{u}underlined{/u}</code></td><td><u>underlined</u></td><td>Underline</td></tr>
+        <tr><td><code>{sup}superscript{/sup}</code></td><td><sup>superscript</sup></td><td>Superscript</td></tr>
+        <tr><td><code>{sub}subscript{/sub}</code></td><td><sub>subscript</sub></td><td>Subscript</td></tr>
+      </table>
+      <p>Tags can be nested:</p>
+      <pre><code>{b}{i}bold and italic{/i}{/b}
+{u}{b}underlined bold{/b}{/u}</code></pre>
+    </div>
+  </section>
+
+  <!-- Font, Color, Highlight -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Font, color, and highlight</h2>
+      <p>These tags preserve the exact font face, text color, and highlight color from the original Word document.</p>
+      <pre><code>{font "Times New Roman"}text in Times{/font}
+{font "Arial"}{b}bold Arial text{/b}{/font}
+
+{color FF0000}red text{/color}
+{color 0000FF}blue text{/color}
+
+{highlight yellow}highlighted{/highlight}
+{highlight cyan}cyan highlight{/highlight}</code></pre>
+      <table>
+        <tr><th>Tag</th><th>Value format</th><th>Examples</th></tr>
+        <tr><td><code>{font "name"}</code></td><td>Font family name in quotes</td><td><code>"Times New Roman"</code>, <code>"Arial"</code>, <code>"Jokerman"</code></td></tr>
+        <tr><td><code>{color XXXXXX}</code></td><td>6-digit hex color (no #)</td><td><code>FF0000</code> (red), <code>0000FF</code> (blue)</td></tr>
+        <tr><td><code>{highlight name}</code></td><td>Word highlight color name</td><td><code>yellow</code>, <code>cyan</code>, <code>magenta</code>, <code>red</code>, <code>green</code>, <code>darkYellow</code></td></tr>
+      </table>
+      <p>All three can be combined and nested with other formatting:</p>
+      <pre><code>{font "Ravie"}{color 990000}{u}{b}Very fancy text{/b}{/u}{/color}{/font}</code></pre>
+    </div>
+  </section>
+
+  <!-- Comments -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Comments and replies</h2>
+      <p>Comments appear as block elements after the paragraph they are anchored to.</p>
+      <pre><code>{comment id:0 by:"The Intern" date:"2024-05-13T22:00:00.000Z"}
+WHO WROTE THIS???
+{/comment}</code></pre>
+      <p>Replies are threaded under their parent comment:</p>
+      <pre><code>{comment id:1 by:"Reviewer 2" date:"2026-03-15T10:00:00Z"}
+This section needs a citation for the claim about enforcement rates.
+{/comment}
+
+{reply id:2 parent:1 by:"Fabio Votta" date:"2026-03-16T14:00:00Z"}
+Added Suzor 2019 and Gillespie 2018.
+{/reply}</code></pre>
+      <table>
+        <tr><th>Attribute</th><th>Description</th></tr>
+        <tr><td><code>id:N</code></td><td>Unique comment identifier (integer)</td></tr>
+        <tr><td><code>by:"Name"</code></td><td>Author of the comment</td></tr>
+        <tr><td><code>date:"ISO8601"</code></td><td>Timestamp of the comment</td></tr>
+        <tr><td><code>parent:N</code></td><td>(Replies only) ID of the parent comment</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- Tracked Changes -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Tracked changes (del/ins)</h2>
+      <p>Tracked changes appear inline within paragraphs. Deletions use <code>{del}</code> and insertions use <code>{ins}</code>.</p>
+      <pre><code>{p id:7AF60E6B}
+We analyzed {del id:17 by:"Mira" date:"2026-03-18T14:39:03Z"}268,635 ads{/del}{ins id:18 by:"Mira" date:"2026-03-18T14:39:03Z"}268,635 advertisements scraped from Meta's Ad Library{/ins} during the campaign period.
+{/p}</code></pre>
+      <p>A <strong>replacement</strong> is a <code>{del}</code> immediately followed by an <code>{ins}</code> with the same author and date.</p>
+      <table>
+        <tr><th>Tag</th><th>Word display</th><th>Meaning</th></tr>
+        <tr><td><code>{del ...}text{/del}</code></td><td><span style="color:var(--red);text-decoration:line-through">text</span></td><td>Deleted text (strikethrough)</td></tr>
+        <tr><td><code>{ins ...}text{/ins}</code></td><td><span style="color:var(--green)">text</span></td><td>Inserted text (added)</td></tr>
+      </table>
+      <p>Attributes are the same as comments: <code>id:N</code>, <code>by:"Name"</code>, <code>date:"ISO8601"</code>.</p>
+    </div>
+  </section>
+
+  <!-- Tables -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Tables</h2>
+      <p>Tables use a combination of a header tag and pipe-delimited rows (similar to Markdown tables).</p>
+      <pre><code>{table style:TableGrid cols:3}
+| Party | Ads | Spend |
+|---|---|---|
+| VVD | 342 | EUR 12,450 |
+| D66 | 289 | EUR 9,800 |
+| PVV | 156 | EUR 4,200 |
+{/table}</code></pre>
+      <table>
+        <tr><th>Attribute</th><th>Description</th></tr>
+        <tr><td><code>style:name</code></td><td>Word table style (e.g., <code>TableGrid</code>, <code>plain</code>)</td></tr>
+        <tr><td><code>cols:N</code></td><td>Number of columns</td></tr>
+      </table>
+      <p>The first row is treated as the header. The separator row (<code>|---|---|---|</code>) is required.</p>
+    </div>
+  </section>
+
+  <!-- Figures -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Figures</h2>
+      <p>Figures preserve the image reference, dimensions, and alt text from the original .docx.</p>
+      <pre><code>{figure id:3A7F2B1C rId:rId5 src:"word/media/image1.png" width:5486400emu height:3657600emu alt:"Enforcement funnel"}
+Figure 1. Ad enforcement funnel showing removal rates.
+{/figure}</code></pre>
+      <table>
+        <tr><th>Attribute</th><th>Description</th></tr>
+        <tr><td><code>id:XXXX</code></td><td>Paragraph ID</td></tr>
+        <tr><td><code>rId:rIdN</code></td><td>Relationship ID linking to the image file</td></tr>
+        <tr><td><code>src:"path"</code></td><td>Path to the image within the .docx zip</td></tr>
+        <tr><td><code>width:Nemu</code></td><td>Width in English Metric Units</td></tr>
+        <tr><td><code>height:Nemu</code></td><td>Height in English Metric Units</td></tr>
+        <tr><td><code>alt:"text"</code></td><td>Alt text for the image</td></tr>
+      </table>
+      <p>The text between the tags is the figure caption.</p>
+    </div>
+  </section>
+
+  <!-- Footnotes -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Footnotes</h2>
+      <p>Footnotes appear inline at the point of reference. The footnote text is included between the tags.</p>
+      <pre><code>{p id:7E011118}
+The strategic alignment of our core competencies{footnote id:2}Citation needed. Actually, everything needs a citation.{/footnote} has resulted in a net-positive disruption.
+{/p}</code></pre>
+      <p>The <code>id:N</code> attribute is the footnote number. When compiled back to .docx, the footnote is placed in the footnotes.xml part and a reference is inserted at the correct position.</p>
+    </div>
+  </section>
+
+  <!-- Page Breaks -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Page breaks</h2>
+      <p>Page breaks are standalone tags on their own line.</p>
+      <pre><code>{pagebreak}</code></pre>
+      <p>This maps to <code>&lt;w:br w:type="page"/&gt;</code> in the Word XML.</p>
+    </div>
+  </section>
+
+  <!-- Section Properties -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Section properties</h2>
+      <p>Section-level formatting (margins, page size) appears at the end of the document.</p>
+      <pre><code>{section margins:"1440 1440 1440 1440"}</code></pre>
+      <p>Margins are specified in twips (1/1440 of an inch) in the order: top right bottom left. The value <code>1440</code> equals 1 inch.</p>
+    </div>
+  </section>
+
+  <!-- Escaping -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Escaping</h2>
+      <p>Since curly braces <code>{</code> and <code>}</code> are used for tags, literal braces in document text must be escaped with a backslash.</p>
+      <pre><code>{p id:ABC123}
+The function signature is f\{x\} = x + 1.
+{/p}</code></pre>
+      <table>
+        <tr><th>Escape</th><th>Produces</th></tr>
+        <tr><td><code>\{</code></td><td><code>{</code></td></tr>
+        <tr><td><code>\}</code></td><td><code>}</code></td></tr>
+        <tr><td><code>\\</code></td><td><code>\</code></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- Complete Example -->
+  <section class="section">
+    <h2>Complete example</h2>
+    <p>Here is a minimal .dex file demonstrating the main features:</p>
+    <pre><code>---
+docex: "0.4.0"
+title: "Example Paper"
+authors:
+  - name: "Jane Doe"
+---
+
+# Example Paper {id:00000001}
+
+## Abstract {id:00000002}
+
+{p id:00000003}
+{font "Times New Roman"}{b}Purpose.{/b}{/font}{font "Times New Roman"} This paper
+demonstrates the .dex format.{/font}
+{/p}
+
+{pagebreak}
+
+## Introduction {id:00000004}
+
+{p id:00000005}
+{font "Times New Roman"}The .dex format preserves {b}every{/b} detail
+of a Word document, including {i}italic text{/i}, {u}underlines{/u},
+and {color FF0000}colored text{/color}.{/font}
+{/p}
+
+{comment id:0 by:"Reviewer 1" date:"2026-01-15T10:00:00Z"}
+Good introduction. Consider adding more context.
+{/comment}
+
+{reply id:1 parent:0 by:"Jane Doe" date:"2026-01-16T09:00:00Z"}
+Added additional context in the next paragraph.
+{/reply}
+
+{p id:00000006}
+{font "Times New Roman"}We analyzed {del id:1 by:"Jane Doe" date:"2026-01-16T09:00:00Z"}100{/del}{ins id:2 by:"Jane Doe" date:"2026-01-16T09:00:00Z"}150{/ins} documents.{/font}
+{/p}
+
+{p id:00000007}
+{font "Times New Roman"}Key findings{footnote id:2}See appendix for details.{/footnote} are presented below.{/font}
+{/p}
+
+{table style:TableGrid cols:2}
+| Metric | Value |
+|---|---|
+| Documents | 150 |
+| Accuracy | 94.2% |
+{/table}
+
+{figure id:00000008 rId:rId5 src:"word/media/image1.png" width:5486400emu height:3657600emu}
+Figure 1. Results overview.
+{/figure}
+
+{section margins:"1440 1440 1440 1440"}</code></pre>
+  </section>
+
+</div>
+
+<footer class="footer">
+  <p>docex is MIT licensed. <a href="https://github.com/favstats/docex">View on GitHub</a></p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

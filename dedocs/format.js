@@ -4,8 +4,12 @@ const crypto = require('crypto');
 
 const DEDOCS_VERSION = '1';
 const TOP_LEVEL_COMMAND = '\\dedocs';
+const GUIDE_COMMAND = '\\guide';
+const END_GUIDE_COMMAND = '\\end{guide}';
 const PART_COMMAND = '\\part';
 const END_PART_COMMAND = '\\end{part}';
+const REPLACE_TEXT_COMMAND = '\\replace-text';
+const END_REPLACE_TEXT_COMMAND = '\\end{replace-text}';
 const END_DOC_COMMAND = '\\end{dedocs}';
 
 function sha256(buffer) {
@@ -133,16 +137,14 @@ function splitLinesWithOffsets(text) {
   return lines;
 }
 
-function makeBoundary(payload, partIndex) {
-  const prefix = `:::DEDOCS_PART_${partIndex}_${sha256(Buffer.from(payload, 'utf8')).slice(0, 12)}`;
+function makeBoundary(payload, label) {
+  const prefix = `:::DEDOCS_${label}_${sha256(Buffer.from(payload, 'utf8')).slice(0, 12)}`;
   let attempt = 0;
 
   while (true) {
     const candidate = attempt === 0 ? `${prefix}:::` : `${prefix}_${attempt}:::`;
     const fullLine = new RegExp(`(^|\\n)${candidate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\n|$)`);
-    if (!fullLine.test(payload)) {
-      return candidate;
-    }
+    if (!fullLine.test(payload)) return candidate;
     attempt += 1;
   }
 }
@@ -179,6 +181,71 @@ function normalizePart(part) {
   };
 }
 
+function wrapBase64(base64) {
+  if (base64.length === 0) return '';
+  return base64.match(/.{1,76}/g).join('\n');
+}
+
+function splitPayload(raw) {
+  return raw.endsWith('\n') ? raw.slice(0, -1) : raw;
+}
+
+function readBoundaryBlock(lines, text, lineIndex, boundary, label) {
+  if (lineIndex >= lines.length || lines[lineIndex].line !== boundary) {
+    throw new Error(`${label} expected boundary line ${boundary}`);
+  }
+
+  const payloadStart = lines[lineIndex].end;
+  lineIndex += 1;
+
+  let closingBoundaryLine = -1;
+  while (lineIndex < lines.length) {
+    if (lines[lineIndex].line === boundary) {
+      closingBoundaryLine = lineIndex;
+      break;
+    }
+    lineIndex += 1;
+  }
+
+  if (closingBoundaryLine === -1) {
+    throw new Error(`${label} is missing closing boundary ${boundary}`);
+  }
+
+  const payloadEnd = lines[closingBoundaryLine].start;
+  return {
+    payload: splitPayload(text.slice(payloadStart, payloadEnd)),
+    nextLineIndex: closingBoundaryLine + 1,
+  };
+}
+
+function readLabelBlock(lines, text, lineIndex, openLabel, closeLabel, label) {
+  if (lineIndex >= lines.length || lines[lineIndex].line.trim() !== openLabel) {
+    throw new Error(`${label} expected ${openLabel}`);
+  }
+
+  const payloadStart = lines[lineIndex].end;
+  lineIndex += 1;
+
+  let closingLine = -1;
+  while (lineIndex < lines.length) {
+    if (lines[lineIndex].line.trim() === closeLabel) {
+      closingLine = lineIndex;
+      break;
+    }
+    lineIndex += 1;
+  }
+
+  if (closingLine === -1) {
+    throw new Error(`${label} is missing ${closeLabel}`);
+  }
+
+  const payloadEnd = lines[closingLine].start;
+  return {
+    payload: splitPayload(text.slice(payloadStart, payloadEnd)),
+    nextLineIndex: closingLine + 1,
+  };
+}
+
 function serializePackage(pkg) {
   if (!pkg || typeof pkg !== 'object') {
     throw new Error('Package must be an object');
@@ -195,11 +262,55 @@ function serializePackage(pkg) {
   };
 
   const chunks = [`${TOP_LEVEL_COMMAND}[${formatAttrs(header)}]\n`];
+  const guides = Array.isArray(pkg.guides) ? pkg.guides : [];
+  const transforms = Array.isArray(pkg.transforms) ? pkg.transforms : [];
+
+  guides.forEach((guide, index) => {
+    const payload = typeof guide.text === 'string' ? guide.text : '';
+    const boundary = makeBoundary(payload, `GUIDE_${index + 1}`);
+    const attrs = {
+      name: guide.name || `guide-${index + 1}`,
+      part: guide.part || '',
+      format: guide.format || 'text',
+      boundary,
+    };
+
+    chunks.push('\n');
+    chunks.push(`${GUIDE_COMMAND}[${formatAttrs(attrs)}]\n`);
+    chunks.push(`${boundary}\n`);
+    chunks.push(payload);
+    if (!payload.endsWith('\n')) chunks.push('\n');
+    chunks.push(`${boundary}\n`);
+    chunks.push(`${END_GUIDE_COMMAND}\n`);
+  });
+
+  transforms.forEach(transform => {
+    if (!transform || transform.type !== 'replace-text') {
+      throw new Error(`Unsupported transform type: ${transform && transform.type}`);
+    }
+
+    const attrs = {
+      part: transform.part,
+      count: transform.count == null ? '' : String(transform.count),
+    };
+
+    chunks.push('\n');
+    chunks.push(`${REPLACE_TEXT_COMMAND}[${formatAttrs(attrs)}]\n`);
+    chunks.push('<<<FIND\n');
+    chunks.push(transform.find || '');
+    if (!(transform.find || '').endsWith('\n')) chunks.push('\n');
+    chunks.push('FIND\n');
+    chunks.push('<<<WITH\n');
+    chunks.push(transform.replace || '');
+    if (!(transform.replace || '').endsWith('\n')) chunks.push('\n');
+    chunks.push('WITH\n');
+    chunks.push(`${END_REPLACE_TEXT_COMMAND}\n`);
+  });
 
   pkg.parts.forEach((rawPart, index) => {
     const part = normalizePart(rawPart);
     const payload = part.encoding === 'base64' ? wrapBase64(part.text) : part.text;
-    const boundary = makeBoundary(payload, index + 1);
+    const boundary = makeBoundary(payload, `PART_${index + 1}`);
     const attrs = {
       path: part.path,
       mediaType: part.mediaType,
@@ -220,11 +331,6 @@ function serializePackage(pkg) {
 
   chunks.push(`\n${END_DOC_COMMAND}\n`);
   return chunks.join('');
-}
-
-function wrapBase64(base64) {
-  if (base64.length === 0) return '';
-  return base64.match(/.{1,76}/g).join('\n');
 }
 
 function parsePackage(text, opts = {}) {
@@ -254,6 +360,8 @@ function parsePackage(text, opts = {}) {
   const headerAttrs = parseCommandLine(lines[lineIndex].line, TOP_LEVEL_COMMAND);
   lineIndex += 1;
 
+  const guides = [];
+  const transforms = [];
   const parts = [];
 
   while (lineIndex < lines.length) {
@@ -267,44 +375,73 @@ function parsePackage(text, opts = {}) {
         package: headerAttrs.package || 'docx',
         fidelity: headerAttrs.fidelity || 'package-exact',
         source: headerAttrs.source || '',
+        guides,
+        transforms,
         parts,
       };
     }
 
+    if (line.startsWith(GUIDE_COMMAND)) {
+      const guideAttrs = parseCommandLine(lines[lineIndex].line, GUIDE_COMMAND);
+      lineIndex += 1;
+
+      if (!guideAttrs.boundary) {
+        throw new Error(`Guide ${guideAttrs.name || ''} is missing boundary`);
+      }
+
+      const block = readBoundaryBlock(lines, text, lineIndex, guideAttrs.boundary, `Guide ${guideAttrs.name || ''}`);
+      lineIndex = block.nextLineIndex;
+
+      if (lineIndex >= lines.length || lines[lineIndex].line.trim() !== END_GUIDE_COMMAND) {
+        throw new Error(`Guide ${guideAttrs.name || ''} is missing ${END_GUIDE_COMMAND}`);
+      }
+      lineIndex += 1;
+
+      guides.push({
+        name: guideAttrs.name || `guide-${guides.length + 1}`,
+        part: guideAttrs.part || '',
+        format: guideAttrs.format || 'text',
+        text: block.payload,
+      });
+      continue;
+    }
+
+    if (line.startsWith(REPLACE_TEXT_COMMAND)) {
+      const transformAttrs = parseCommandLine(lines[lineIndex].line, REPLACE_TEXT_COMMAND);
+      lineIndex += 1;
+
+      const findBlock = readLabelBlock(lines, text, lineIndex, '<<<FIND', 'FIND', 'replace-text');
+      lineIndex = findBlock.nextLineIndex;
+      const replaceBlock = readLabelBlock(lines, text, lineIndex, '<<<WITH', 'WITH', 'replace-text');
+      lineIndex = replaceBlock.nextLineIndex;
+
+      if (lineIndex >= lines.length || lines[lineIndex].line.trim() !== END_REPLACE_TEXT_COMMAND) {
+        throw new Error(`replace-text is missing ${END_REPLACE_TEXT_COMMAND}`);
+      }
+      lineIndex += 1;
+
+      transforms.push({
+        type: 'replace-text',
+        part: transformAttrs.part || '',
+        count: transformAttrs.count === '' ? '' : transformAttrs.count,
+        find: findBlock.payload,
+        replace: replaceBlock.payload,
+      });
+      continue;
+    }
+
     const partAttrs = parseCommandLine(lines[lineIndex].line, PART_COMMAND);
     lineIndex += 1;
-    if (lineIndex >= lines.length) {
-      throw new Error(`Unexpected end of file after part header for ${partAttrs.path}`);
-    }
 
     const boundary = partAttrs.boundary;
     if (!boundary) {
       throw new Error(`Part ${partAttrs.path} is missing boundary attribute`);
     }
-    if (lines[lineIndex].line !== boundary) {
-      throw new Error(`Part ${partAttrs.path} expected boundary line ${boundary}`);
-    }
 
-    const payloadStart = lines[lineIndex].end;
-    lineIndex += 1;
+    const block = readBoundaryBlock(lines, text, lineIndex, boundary, `Part ${partAttrs.path}`);
+    const payloadRaw = block.payload;
+    lineIndex = block.nextLineIndex;
 
-    let closingBoundaryLine = -1;
-    while (lineIndex < lines.length) {
-      if (lines[lineIndex].line === boundary) {
-        closingBoundaryLine = lineIndex;
-        break;
-      }
-      lineIndex += 1;
-    }
-
-    if (closingBoundaryLine === -1) {
-      throw new Error(`Part ${partAttrs.path} is missing closing boundary ${boundary}`);
-    }
-
-    const payloadEnd = lines[closingBoundaryLine].start;
-    const payloadRaw = text.slice(payloadStart, payloadEnd);
-
-    lineIndex += 1;
     if (lineIndex >= lines.length || lines[lineIndex].line.trim() !== END_PART_COMMAND) {
       throw new Error(`Part ${partAttrs.path} is missing ${END_PART_COMMAND}`);
     }
@@ -314,8 +451,7 @@ function parsePackage(text, opts = {}) {
     const declaredSha256 = partAttrs.sha256 || '';
     const encoding = partAttrs.encoding || 'utf8';
 
-    const candidates = [];
-    candidates.push(payloadRaw);
+    const candidates = [payloadRaw];
     if (payloadRaw.endsWith('\n')) {
       candidates.push(payloadRaw.slice(0, -1));
     }
@@ -376,8 +512,12 @@ function parsePackage(text, opts = {}) {
 module.exports = {
   DEDOCS_VERSION,
   END_DOC_COMMAND,
+  END_GUIDE_COMMAND,
   END_PART_COMMAND,
+  END_REPLACE_TEXT_COMMAND,
+  GUIDE_COMMAND,
   PART_COMMAND,
+  REPLACE_TEXT_COMMAND,
   TOP_LEVEL_COMMAND,
   formatAttrs,
   makeBoundary,

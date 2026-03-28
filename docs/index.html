@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>docex - LaTeX for .docx</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">doc<span>ex</span></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="playground.html">Playground</a>
+      <a href="examples.html">Examples</a>
+      <a href="api.html">API</a>
+      <a href="cli.html">CLI</a>
+      <a href="dex-format.html">.dex Format</a>
+      <a href="vision.html">Vision</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-title">doc<span>ex</span></div>
+    <div class="hero-tagline">LaTeX for .docx</div>
+    <p class="hero-desc">
+      Edit Word documents with code. Convert .docx to plain text and back with zero data loss.
+    </p>
+    <div class="hero-buttons">
+      <a href="playground.html" class="btn btn-primary">Try it now</a>
+      <a href="https://github.com/favstats/docex" class="btn btn-secondary">GitHub</a>
+    </div>
+    <div class="hero-install">
+      <code>git clone https://github.com/favstats/docex.git</code>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-number">648</span>
+        <span class="stat-label">Tests</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number">47</span>
+        <span class="stat-label">Modules</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number">21K</span>
+        <span class="stat-label">Lines</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number">0</span>
+        <span class="stat-label">Dependencies</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Cards -->
+  <section class="section">
+    <div class="card-grid">
+      <div class="card">
+        <span class="card-icon">&#9998;</span>
+        <h3>Edit</h3>
+        <p>Replace text, add comments, format paragraphs, insert figures and tables. Every edit shows as a tracked change in Word, attributed to whoever you want.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">&#8644;</span>
+        <h3>Convert</h3>
+        <p>Decompile any .docx to the <code>.dex</code> plain text format. Edit it in vim, VS Code, or any text editor. Compile back to .docx with zero data loss.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">&#10003;</span>
+        <h3>Verify</h3>
+        <p>Round-trip fidelity guaranteed. Every font, color, comment, tracked change, footnote, and formatting detail survives the .docx to .dex to .docx cycle.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workflow Diagram -->
+  <section class="section">
+    <h2>How it works</h2>
+    <div class="workflow-diagram">
+      <div class="workflow-row">
+        <div class="workflow-node">
+          <span class="workflow-node-title">.docx</span>
+          <span class="workflow-node-sub">Word document</span>
+        </div>
+        <span class="workflow-arrow">&harr;</span>
+        <div class="workflow-node">
+          <span class="workflow-node-title">.dex</span>
+          <span class="workflow-node-sub">plain text</span>
+        </div>
+        <span class="workflow-arrow">&harr;</span>
+        <div class="workflow-node">
+          <span class="workflow-node-title">git</span>
+          <span class="workflow-node-sub">version control</span>
+        </div>
+      </div>
+      <div class="workflow-labels">
+        <div class="workflow-label">collaborators</div>
+        <div class="workflow-label">you / AI agent</div>
+        <div class="workflow-label">track changes</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick example -->
+  <section class="section">
+    <h2>One-minute demo</h2>
+    <p>Respond to peer review in 3 commands:</p>
+    <pre><code># Replace a number (shows as tracked change in Word)
+docex replace paper.docx "268,635" "300,000" --author "Fabio"
+
+# Add a comment to a phrase
+docex comment paper.docx "platform governance" "Added Suzor 2019" --by "Fabio"
+
+# Format for Political Communication journal
+docex style paper.docx --preset polcomm</code></pre>
+
+    <p>Or use the JavaScript API:</p>
+    <pre><code>const docex = require('./src/docex');
+const doc = docex("paper.docx");
+doc.author("Fabio Votta");
+
+doc.replace("enforcement gap", "regulatory gap");
+doc.at("platform governance").comment("Added Suzor 2019 citation");
+doc.after("Methods").insert("We used a mixed-methods approach.");
+
+await doc.save();</code></pre>
+  </section>
+
+  <!-- The .dex format teaser -->
+  <section class="section">
+    <h2>The .dex format</h2>
+    <p>Every .docx becomes readable plain text. Every detail is preserved.</p>
+    <pre><code>---
+docex: "0.4.0"
+authors:
+  - name: "Un-named"
+---
+
+# QUARTERLY Strategic SYNERGY Report {id:BABCF972}
+
+{p id:9E7DD00E}
+{font "Lucida Handwriting"}{color 999999}Version 47.3b (DRAFT){/color}{/font}
+{/p}
+
+{comment id:0 by:"The Intern" date:"2024-05-13T22:00:00.000Z"}
+WHO WROTE THIS???
+{/comment}</code></pre>
+    <p><a href="dex-format.html">Read the full .dex specification &rarr;</a></p>
+  </section>
+
+  <!-- What you can do -->
+  <section class="section">
+    <h2>Everything you need</h2>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Text editing</h3>
+        <p>Replace, insert, delete, bold, italic, underline, highlight, color, strikethrough, superscript, subscript, small caps.</p>
+      </div>
+      <div class="card">
+        <h3>Comments</h3>
+        <p>Add comments anchored to text, reply to existing comments, list and export all comments. Manages all 5 OOXML comment files.</p>
+      </div>
+      <div class="card">
+        <h3>Tracked changes</h3>
+        <p>Every edit is tracked by default. Accept or reject changes individually or in bulk. Compare two document versions.</p>
+      </div>
+      <div class="card">
+        <h3>Figures and tables</h3>
+        <p>Insert images with auto-dimensions. Create tables with booktabs styling. Bullet and numbered lists.</p>
+      </div>
+      <div class="card">
+        <h3>Journal styles</h3>
+        <p>Built-in presets for Political Communication, APA 7, JCMC, JoC. Sets fonts, margins, spacing, and headers.</p>
+      </div>
+      <div class="card">
+        <h3>Academic tools</h3>
+        <p>Word count, anonymize for blind review, Zotero citation injection, response letter generation, submission validation.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MCP -->
+  <section class="section">
+    <h2>AI agent ready</h2>
+    <p>docex includes an MCP server so Claude, GPT, or any MCP-compatible AI agent can edit Word documents directly.</p>
+    <pre><code>{
+  "mcpServers": {
+    "docex": {
+      "command": "node",
+      "args": ["src/mcp-server.js"]
+    }
+  }
+}</code></pre>
+    <p>The agent calls replace, comment, insert, figure, style, verify, decompile, compile, and more. The result is a properly formatted .docx with tracked changes.</p>
+  </section>
+
+</div>
+
+<footer class="footer">
+  <p>docex is MIT licensed. <a href="https://github.com/favstats/docex">View on GitHub</a></p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

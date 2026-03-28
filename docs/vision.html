@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vision - docex</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">doc<span>ex</span></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="playground.html">Playground</a>
+      <a href="examples.html">Examples</a>
+      <a href="api.html">API</a>
+      <a href="cli.html">CLI</a>
+      <a href="dex-format.html">.dex Format</a>
+      <a href="vision.html">Vision</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <section class="section" style="border-top:none">
+    <h1>Vision</h1>
+    <p>docex exists because editing Word documents should not require Word. Academics, researchers, and developers who live in the terminal should be able to produce the same .docx files that journals, publishers, and collaborators expect, without ever opening a GUI.</p>
+  </section>
+
+  <!-- Workflow 1: Solo -->
+  <section class="section">
+    <h2>Workflow 1: Solo editing</h2>
+    <p>You write a paper. You get peer review feedback. You need to make tracked changes and respond to each comment. Instead of clicking through Word menus, you work in the terminal.</p>
+
+    <div class="card" style="margin:24px 0">
+      <div class="vision-step">
+        <div class="vision-step-num">1</div>
+        <div class="vision-step-content">
+          <h4>Decompile the manuscript</h4>
+          <pre><code>docex decompile paper.docx -o paper.dex</code></pre>
+          <p>Your .docx becomes a plain text file you can read and edit in any editor.</p>
+        </div>
+      </div>
+
+      <div class="vision-step">
+        <div class="vision-step-num">2</div>
+        <div class="vision-step-content">
+          <h4>Make your edits</h4>
+          <pre><code># Fix the number reviewers flagged
+docex replace paper.docx "268,635" "300,000" --author "Fabio"
+
+# Reply to Reviewer 2's comment
+docex reply paper.docx 5 "Added citation." --by "Fabio Votta"
+
+# Insert a new paragraph after Methods
+docex insert paper.docx "after:Methods" "We used a mixed-methods approach."</code></pre>
+          <p>Every edit is tracked. The reviewer will see strikethrough and insertions in Word.</p>
+        </div>
+      </div>
+
+      <div class="vision-step">
+        <div class="vision-step-num">3</div>
+        <div class="vision-step-content">
+          <h4>Format for the journal</h4>
+          <pre><code># Apply Political Communication formatting
+docex style paper.docx --preset polcomm
+
+# Verify it meets submission requirements
+docex verify paper.docx --preset polcomm</code></pre>
+        </div>
+      </div>
+
+      <div class="vision-step">
+        <div class="vision-step-num">4</div>
+        <div class="vision-step-content">
+          <h4>Submit</h4>
+          <p>Upload the .docx. The editor sees a professionally formatted manuscript with tracked changes and comment replies. They never need to know you used the terminal.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="workflow-diagram">
+      <div class="workflow-row">
+        <div class="workflow-node">
+          <span class="workflow-node-title">paper.docx</span>
+          <span class="workflow-node-sub">from journal</span>
+        </div>
+        <span class="workflow-arrow">&rarr;</span>
+        <div class="workflow-node">
+          <span class="workflow-node-title">docex CLI</span>
+          <span class="workflow-node-sub">replace, comment, style</span>
+        </div>
+        <span class="workflow-arrow">&rarr;</span>
+        <div class="workflow-node">
+          <span class="workflow-node-title">revised.docx</span>
+          <span class="workflow-node-sub">tracked changes</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workflow 2: Collaborators -->
+  <section class="section">
+    <h2>Workflow 2: With collaborators</h2>
+    <p>Your co-author uses Word. You use vim. Neither of you needs to change. The .dex format is the bridge.</p>
+
+    <div class="card" style="margin:24px 0">
+      <div class="vision-step">
+        <div class="vision-step-num">1</div>
+        <div class="vision-step-content">
+          <h4>Co-author sends you a .docx</h4>
+          <p>They made edits in Word. The document has tracked changes and comments.</p>
+        </div>
+      </div>
+
+      <div class="vision-step">
+        <div class="vision-step-num">2</div>
+        <div class="vision-step-content">
+          <h4>You decompile and work in plain text</h4>
+          <pre><code># See what they changed
+docex list paper.docx revisions
+docex list paper.docx comments
+
+# Decompile to .dex for a full view
+docex decompile paper.docx -o paper.dex
+
+# Edit the .dex in your editor, then compile back
+docex compile paper.dex -o paper-updated.docx</code></pre>
+        </div>
+      </div>
+
+      <div class="vision-step">
+        <div class="vision-step-num">3</div>
+        <div class="vision-step-content">
+          <h4>Version control with git</h4>
+          <pre><code># The .dex file is plain text, so git diffs are meaningful
+git diff paper.dex
+
+# Commit your changes
+git add paper.dex
+git commit -m "respond to reviewer 2 comments"</code></pre>
+          <p>Unlike binary .docx files, .dex diffs show exactly what changed. Line-by-line.</p>
+        </div>
+      </div>
+
+      <div class="vision-step">
+        <div class="vision-step-num">4</div>
+        <div class="vision-step-content">
+          <h4>Send back the .docx</h4>
+          <p>Your co-author opens it in Word and sees clean tracked changes. They accept or reject as usual.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="workflow-diagram">
+      <div class="workflow-row">
+        <div class="workflow-node">
+          <span class="workflow-node-title">Co-author</span>
+          <span class="workflow-node-sub">edits in Word</span>
+        </div>
+        <span class="workflow-arrow">&rarr;</span>
+        <div class="workflow-node">
+          <span class="workflow-node-title">.docx</span>
+          <span class="workflow-node-sub">email / cloud</span>
+        </div>
+        <span class="workflow-arrow">&rarr;</span>
+        <div class="workflow-node">
+          <span class="workflow-node-title">You</span>
+          <span class="workflow-node-sub">.dex + git</span>
+        </div>
+        <span class="workflow-arrow">&rarr;</span>
+        <div class="workflow-node">
+          <span class="workflow-node-title">.docx</span>
+          <span class="workflow-node-sub">back to co-author</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workflow 3: AI -->
+  <section class="section">
+    <h2>Workflow 3: With AI agents</h2>
+    <p>An AI agent reads your manuscript, understands the reviewer comments, and drafts a response. It makes tracked changes attributed to you, adds reply comments, and saves. You review the result in Word.</p>
+
+    <div class="card" style="margin:24px 0">
+      <div class="vision-step">
+        <div class="vision-step-num">1</div>
+        <div class="vision-step-content">
+          <h4>Connect the AI agent via MCP</h4>
+          <pre><code>{
+  "mcpServers": {
+    "docex": {
+      "command": "node",
+      "args": ["src/mcp-server.js"]
+    }
+  }
+}</code></pre>
+          <p>The MCP server exposes docex operations as tools. The AI agent can open, edit, and save .docx files.</p>
+        </div>
+      </div>
+
+      <div class="vision-step">
+        <div class="vision-step-num">2</div>
+        <div class="vision-step-content">
+          <h4>AI reads the document</h4>
+          <p>The agent decompiles the manuscript to .dex, reads the reviewer comments, and understands the full context. It sees:</p>
+          <pre><code>{comment id:5 by:"Reviewer 2" date:"2026-03-15T10:00:00Z"}
+The authors need to justify their classification methodology.
+How was inter-coder reliability measured?
+{/comment}</code></pre>
+        </div>
+      </div>
+
+      <div class="vision-step">
+        <div class="vision-step-num">3</div>
+        <div class="vision-step-content">
+          <h4>AI makes edits</h4>
+          <p>The agent calls docex tools to make tracked changes and reply to comments, all attributed to you:</p>
+          <pre><code># AI calls these operations via MCP:
+doc.author("Fabio Votta");
+doc.after("Classification Pipeline").insert(
+  "Inter-coder reliability was measured using Krippendorff's alpha..."
+);
+doc.at("classification methodology").reply(
+  "Added inter-coder reliability section. Alpha = 0.87.",
+  { by: "Fabio Votta" }
+);</code></pre>
+        </div>
+      </div>
+
+      <div class="vision-step">
+        <div class="vision-step-num">4</div>
+        <div class="vision-step-content">
+          <h4>You review in Word</h4>
+          <p>Open the .docx in Word. Every change shows as a tracked change attributed to you. Accept what you like, reject what you do not. The editor sees your name, not an AI's.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="workflow-diagram">
+      <div class="workflow-row">
+        <div class="workflow-node">
+          <span class="workflow-node-title">Reviewer</span>
+          <span class="workflow-node-sub">comments in .docx</span>
+        </div>
+        <span class="workflow-arrow">&rarr;</span>
+        <div class="workflow-node">
+          <span class="workflow-node-title">AI Agent</span>
+          <span class="workflow-node-sub">reads .dex, calls docex</span>
+        </div>
+        <span class="workflow-arrow">&rarr;</span>
+        <div class="workflow-node">
+          <span class="workflow-node-title">revised.docx</span>
+          <span class="workflow-node-sub">tracked changes by you</span>
+        </div>
+        <span class="workflow-arrow">&rarr;</span>
+        <div class="workflow-node">
+          <span class="workflow-node-title">You</span>
+          <span class="workflow-node-sub">review in Word</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- The bigger picture -->
+  <section class="section">
+    <h2>The bigger picture</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>Plain text is a superpower</h3>
+        <p>When your document is plain text, you can use every tool that works on text: grep, sed, diff, git, scripts, AI. Binary .docx files lock you out of this ecosystem. The .dex format unlocks it.</p>
+      </div>
+      <div class="card">
+        <h3>Zero data loss is non-negotiable</h3>
+        <p>Other converters lose formatting, comments, tracked changes, or metadata. docex preserves everything. The round trip from .docx to .dex and back produces a byte-level equivalent document.</p>
+      </div>
+      <div class="card">
+        <h3>No dependencies, no lock-in</h3>
+        <p>docex is zero-dependency Node.js. No npm install. No Python. No Java. No LibreOffice. No cloud API. Just clone the repo and run. It will work in 10 years.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Who is this for -->
+  <section class="section">
+    <h2>Who is this for</h2>
+    <table>
+      <tr><th>You are...</th><th>docex lets you...</th></tr>
+      <tr>
+        <td>An academic who hates Word</td>
+        <td>Respond to peer review from the terminal. Format for any journal with one command.</td>
+      </tr>
+      <tr>
+        <td>A developer building document tools</td>
+        <td>Edit .docx files with a clean API. No XML. No OLE. No COM objects.</td>
+      </tr>
+      <tr>
+        <td>An AI agent operator</td>
+        <td>Give your agent the ability to read and edit Word documents. Full tracked changes, comments, and formatting.</td>
+      </tr>
+      <tr>
+        <td>A researcher managing many documents</td>
+        <td>Batch-process hundreds of .docx files. Apply formatting, extract data, validate against journal specs.</td>
+      </tr>
+      <tr>
+        <td>Someone who wants git for documents</td>
+        <td>Convert to .dex, commit to git, see meaningful diffs, collaborate without merge conflicts.</td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- Get started -->
+  <section class="section" style="text-align:center;padding:60px 0">
+    <h2>Get started</h2>
+    <pre style="display:inline-block;text-align:left"><code>git clone https://github.com/favstats/docex.git
+cd docex
+docex decompile your-document.docx</code></pre>
+    <div style="margin-top:24px">
+      <a href="playground.html" class="btn btn-primary">Try the playground</a>
+      <a href="https://github.com/favstats/docex" class="btn btn-secondary" style="margin-left:12px">View on GitHub</a>
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer">
+  <p>docex is MIT licensed. <a href="https://github.com/favstats/docex">View on GitHub</a></p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

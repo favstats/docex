@@ -9,7 +9,7 @@ A zero-dependency Node.js library (>=18) for programmatic .docx editing. Tracked
 ## Commands
 
 ```bash
-# Run all tests (648 tests, ~11s, uses node:test + node:assert)
+# Run all tests (642 tests, ~14s, uses node:test + node:assert)
 node --test test/*.test.js
 
 # Run a single test file
@@ -54,7 +54,11 @@ No `npm install` needed for the library itself. The only dependency is the syste
 | Export | `latex.js`, `compile.js`, `metadata.js`, `layout.js` | LaTeX/HTML/Markdown export |
 | Workflow | `batch.js`, `macros.js`, `production.js`, `workflow.js`, `transaction.js`, `provenance.js`, `quality.js`, `redact.js` | Batch ops, variables, production pipelines |
 
-**The .dex format** is a YAML-frontmatter + markdown-like plain text representation of .docx content. The compilation path is: `DexDecompiler._decompileWorkspace()` / `DexParser.parse()` + `DexCompiler._compileHumanReadable()`
+**The .dex format** is a YAML-frontmatter + markdown-like plain text representation of .docx content. Two formats exist:
+- **Human-readable** (`DexDecompiler._decompileWorkspace()` → `DexParser.parse()` + `DexCompiler._compileHumanReadable()`): preserves 40+ OOXML features including comment anchors, bookmarks, tabs, hyperlinks, field codes, math (base64), text boxes, ruby text, paragraph properties, tracked change formatting, headers/footers, endnotes, table cell formatting, multiple sections, and figure compilation.
+- **Lossless package** (`DexDecompiler.toAst()` via `dex-lossless.js`): preserves raw XML nodes for perfect fidelity. Used when calling `DexDecompiler.decompile(filePath)`.
+
+**Browser versions** of the decompiler and compiler live in `docs/decompiler.js` and `docs/compiler.js` — these mirror the Node.js versions but run client-side using JSZip.
 
 **Plugin system:** `.claude-plugin/` contains `plugin.json` (skill + MCP server definition) and `marketplace.json` for the Claude Code plugin marketplace.
 

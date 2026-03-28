@@ -100,10 +100,15 @@
         <div class="code-output-label">Command</div>
         <pre><code>docex replace paper.docx "268,635" "300,000" --author "Fabio"</code></pre>
       </div>
-      <div class="code-output-result">
+      <div class="code-output-result word-page">
         <div class="result-label">What it looks like in Word</div>
-        <div class="result-body">
-          <p>We analyzed <span class="output-tracked-del">268,635</span><span class="output-tracked-ins">300,000</span> political ads from the Meta Ad Library covering the 2024 election cycle.</p>
+        <div class="word-body">
+          <div class="word-revision-bar"></div>
+          <p>We analyzed <span class="word-del">268,635</span><span class="word-ins">300,000</span> political ads from the Meta Ad Library covering the 2024 election cycle.</p>
+        </div>
+        <div class="word-status-bar">
+          <span>Page 1 of 12</span>
+          <span>4,823 words</span>
         </div>
       </div>
     </div>
@@ -115,11 +120,25 @@
         <pre><code>docex comment paper.docx "platform governance" \
   "Added Suzor 2019 citation" --by "Fabio"</code></pre>
       </div>
-      <div class="code-output-result">
+      <div class="code-output-result word-page">
         <div class="result-label">What it looks like in Word</div>
-        <div class="result-body">
-          <p>...challenges to <span class="output-highlight">platform governance</span> in the European context.</p>
-          <span class="output-comment"><strong>Fabio:</strong> Added Suzor 2019 citation</span>
+        <div class="word-body word-body-with-margin">
+          <div class="word-text-col">
+            <p>...challenges to <span class="word-comment-anchor">platform governance</span> in the European context.</p>
+          </div>
+          <div class="word-margin-col">
+            <div class="word-comment-balloon">
+              <div class="word-comment-connector"></div>
+              <div class="word-comment-header">
+                <span class="word-comment-avatar">FV</span>
+                <div>
+                  <strong class="word-comment-author">Fabio Votta</strong>
+                  <span class="word-comment-time">Just now</span>
+                </div>
+              </div>
+              <div class="word-comment-text">Added Suzor 2019 citation</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -130,9 +149,9 @@
         <div class="code-output-label">Command</div>
         <pre><code>docex style paper.docx --preset polcomm</code></pre>
       </div>
-      <div class="code-output-result">
+      <div class="code-output-result word-page">
         <div class="result-label">What it looks like in Word</div>
-        <div class="result-body-sm">
+        <div class="word-body word-body-centered">
           <div class="output-journal-header">
             <div class="output-journal-name">Political Communication</div>
             <div class="output-journal-title">Platform Governance and Ad Transparency</div>
@@ -159,13 +178,27 @@ doc.after("Methods")
 
 await doc.save();</code></pre>
       </div>
-      <div class="code-output-result">
+      <div class="code-output-result word-page">
         <div class="result-label">Result in Word</div>
-        <div class="result-body-sm">
-          <p>...the <span class="output-tracked-del">enforcement gap</span><span class="output-tracked-ins">regulatory gap</span> remains a key challenge in <span class="output-highlight">platform governance</span>.</p>
-          <span class="output-comment"><strong>Fabio Votta:</strong> Added Suzor 2019 citation</span>
-          <p class="output-inserted"><em>Inserted after Methods:</em></p>
-          <p>We used a mixed-methods approach.</p>
+        <div class="word-body word-body-with-margin">
+          <div class="word-text-col">
+            <div class="word-revision-bar"></div>
+            <p>...the <span class="word-del">enforcement gap</span><span class="word-ins">regulatory gap</span> remains a key challenge in <span class="word-comment-anchor">platform governance</span>.</p>
+            <p class="word-inserted-para">We used a mixed-methods approach.</p>
+          </div>
+          <div class="word-margin-col">
+            <div class="word-comment-balloon">
+              <div class="word-comment-connector"></div>
+              <div class="word-comment-header">
+                <span class="word-comment-avatar">FV</span>
+                <div>
+                  <strong class="word-comment-author">Fabio Votta</strong>
+                  <span class="word-comment-time">Just now</span>
+                </div>
+              </div>
+              <div class="word-comment-text">Added Suzor 2019 citation</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -379,29 +412,24 @@ WHO WROTE THIS???
   var heroDex = [
     '---',
     'docex: "0.4.0"',
-    'authors:',
-    '  - name: "Fabio Votta"',
     '---',
     '',
     '# Platform Governance and Ad Transparency',
     '',
-    '{p id:3A7F2B1C}',
-    'We analyzed {b}300,000{/b} political ads from the',
-    'Meta Ad Library covering the 2024 election cycle.',
-    '{/p}',
+    'We analyzed {b}300,000{/b} political ads from',
+    'the Meta Ad Library covering 2024.',
     '',
-    '### Methods',
+    '## Methods',
     '',
-    '{p id:7E011118}',
-    '{del by:"Fabio"}enforcement gap{/del}',
-    '{ins by:"Fabio"}regulatory gap{/ins}',
-    '{/p}',
+    'We address the {del by:"Fabio"}enforcement',
+    'gap{/del}{ins by:"Fabio"}regulatory gap{/ins}',
+    'in platform governance.',
     '',
-    '{comment id:0 by:"Reviewer 2"}',
-    'Needs more recent citation here.',
+    '{comment by:"Reviewer 2"}',
+    'Cite something more recent here.',
     '{/comment}',
     '',
-    '{reply id:0 by:"Fabio Votta"}',
+    '{reply by:"Fabio Votta"}',
     'Added Suzor 2019.',
     '{/reply}',
   ];
@@ -423,56 +451,88 @@ WHO WROTE THIS???
   }
 
   function buildPreview() {
-    // Static hardcoded preview HTML (no user input)
+    // Word-like document preview (all static content)
     var container = document.createElement('div');
+    container.style.cssText = 'font-family:Calibri,Carlito,Segoe UI,sans-serif;font-size:13px;line-height:1.5;color:#1a1a1a';
+
     var h1 = document.createElement('h1');
-    h1.style.cssText = 'font-size:1.1rem;margin-bottom:10px;border-bottom:none;padding:0;color:#0c0a09;line-height:1.3';
+    h1.style.cssText = 'font-family:Calibri,Carlito,sans-serif;font-size:1.05rem;font-weight:700;margin:0 0 8px;color:#1a1a1a;line-height:1.3;border:none;padding:0';
     h1.textContent = 'Platform Governance and Ad Transparency';
     container.appendChild(h1);
 
     var p1 = document.createElement('p');
-    p1.style.cssText = 'margin:0 0 10px;text-indent:0;font-size:13px;line-height:1.75;text-align:justify';
+    p1.style.cssText = 'margin:0 0 10px;text-indent:0;font-size:13px';
     p1.textContent = 'We analyzed ';
     var bold = document.createElement('strong');
     bold.textContent = '300,000';
     p1.appendChild(bold);
-    p1.appendChild(document.createTextNode(' political ads from the Meta Ad Library covering the 2024 election cycle.'));
+    p1.appendChild(document.createTextNode(' political ads from the Meta Ad Library covering 2024.'));
     container.appendChild(p1);
 
-    var h3 = document.createElement('h3');
-    h3.style.cssText = 'font-size:0.95rem;margin:16px 0 8px;color:#292524';
-    h3.textContent = 'Methods';
-    container.appendChild(h3);
+    var h2 = document.createElement('h2');
+    h2.style.cssText = 'font-family:Calibri,Carlito,sans-serif;font-size:0.9rem;font-weight:700;margin:14px 0 6px;color:#1a1a1a;line-height:1.3';
+    h2.textContent = 'Methods';
+    container.appendChild(h2);
 
+    // Revision bar
+    var revWrap = document.createElement('div');
+    revWrap.style.cssText = 'position:relative;padding-left:10px;border-left:3px solid #c0392b;margin-bottom:10px';
     var p2 = document.createElement('p');
-    p2.style.cssText = 'margin:0 0 10px;text-indent:0;font-size:13px;line-height:1.75;text-align:justify';
+    p2.style.cssText = 'margin:0;font-size:13px';
+    p2.appendChild(document.createTextNode('We address the '));
     var del = document.createElement('span');
-    del.className = 'output-tracked-del';
+    del.style.cssText = 'color:#c0392b;text-decoration:line-through';
     del.textContent = 'enforcement gap';
     var ins = document.createElement('span');
-    ins.className = 'output-tracked-ins';
+    ins.style.cssText = 'color:#c0392b;text-decoration:underline';
     ins.textContent = 'regulatory gap';
     p2.appendChild(del);
     p2.appendChild(ins);
-    container.appendChild(p2);
+    p2.appendChild(document.createTextNode(' in platform governance.'));
+    revWrap.appendChild(p2);
+    container.appendChild(revWrap);
 
-    var c1 = document.createElement('div');
-    c1.style.cssText = 'background:#fef3c7;border-left:3px solid #d97706;padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;color:#92400e;font-style:italic;margin:8px 0';
-    var c1a = document.createElement('strong');
-    c1a.style.cssText = 'font-style:normal;color:#78350f;font-size:10px;text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:2px';
-    c1a.textContent = 'Reviewer 2';
-    c1.appendChild(c1a);
-    c1.appendChild(document.createTextNode('Needs more recent citation here.'));
-    container.appendChild(c1);
+    // Comment balloon (Word-style)
+    var cBalloon = document.createElement('div');
+    cBalloon.style.cssText = 'background:#fff;border:1px solid #d4d4d4;border-radius:4px;padding:8px 10px;margin:8px 0;box-shadow:0 1px 2px rgba(0,0,0,0.05);font-size:11px';
 
-    var c2 = document.createElement('div');
-    c2.style.cssText = 'background:#fef3c7;border-left:3px solid #d97706;padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;color:#92400e;font-style:italic;margin:8px 0 8px 20px';
-    var c2a = document.createElement('strong');
-    c2a.style.cssText = 'font-style:normal;color:#78350f;font-size:10px;text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:2px';
-    c2a.textContent = 'Fabio Votta (reply)';
-    c2.appendChild(c2a);
-    c2.appendChild(document.createTextNode('Added Suzor 2019.'));
-    container.appendChild(c2);
+    var cHead = document.createElement('div');
+    cHead.style.cssText = 'display:flex;align-items:center;gap:5px;margin-bottom:4px';
+    var cAvatar = document.createElement('span');
+    cAvatar.style.cssText = 'width:18px;height:18px;border-radius:50%;background:#4472c4;color:#fff;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+    cAvatar.textContent = 'R2';
+    var cName = document.createElement('strong');
+    cName.style.cssText = 'font-size:11px;color:#4472c4';
+    cName.textContent = 'Reviewer 2';
+    cHead.appendChild(cAvatar);
+    cHead.appendChild(cName);
+    cBalloon.appendChild(cHead);
+
+    var cText = document.createElement('div');
+    cText.style.cssText = 'color:#333;font-size:11px;line-height:1.4';
+    cText.textContent = 'Cite something more recent here.';
+    cBalloon.appendChild(cText);
+    container.appendChild(cBalloon);
+
+    // Reply
+    var rBalloon = document.createElement('div');
+    rBalloon.style.cssText = 'background:#fff;border:1px solid #d4d4d4;border-radius:4px;padding:8px 10px;margin:4px 0 0 16px;box-shadow:0 1px 2px rgba(0,0,0,0.05);font-size:11px';
+    var rHead = document.createElement('div');
+    rHead.style.cssText = 'display:flex;align-items:center;gap:5px;margin-bottom:4px';
+    var rAvatar = document.createElement('span');
+    rAvatar.style.cssText = 'width:18px;height:18px;border-radius:50%;background:#ed7d31;color:#fff;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+    rAvatar.textContent = 'FV';
+    var rName = document.createElement('strong');
+    rName.style.cssText = 'font-size:11px;color:#ed7d31';
+    rName.textContent = 'Fabio Votta';
+    rHead.appendChild(rAvatar);
+    rHead.appendChild(rName);
+    rBalloon.appendChild(rHead);
+    var rText = document.createElement('div');
+    rText.style.cssText = 'color:#333;font-size:11px;line-height:1.4';
+    rText.textContent = 'Added Suzor 2019.';
+    rBalloon.appendChild(rText);
+    container.appendChild(rBalloon);
 
     return container;
   }

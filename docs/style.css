@@ -441,20 +441,172 @@ p { margin-bottom: 1rem; font-size: var(--text-base); }
   display: inline-block;
 }
 
-/* Output rendered styles */
-.output-tracked-del {
-  color: #b91c1c;
+/* ============================================================================
+   WORD-LIKE DOCUMENT PREVIEW
+   ============================================================================ */
+
+/* Page container — looks like a Word document page */
+.word-page {
+  background: #f0f0f0;
+  padding: 16px;
+}
+.word-page .result-label {
+  margin-bottom: 8px;
+}
+
+/* The document body — white page with shadow */
+.word-body {
+  background: #fff;
+  border: 1px solid #d4d4d4;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  padding: 28px 32px;
+  font-family: 'Calibri', 'Carlito', 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1a1a1a;
+  position: relative;
+  min-height: 80px;
+}
+.word-body p {
+  margin: 0 0 8px;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  text-indent: 0;
+}
+.word-body-centered {
+  text-align: left;
+}
+
+/* Layout with comment margin */
+.word-body-with-margin {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 0;
+  padding: 0;
+}
+@media (max-width: 600px) {
+  .word-body-with-margin { grid-template-columns: 1fr; }
+}
+.word-text-col {
+  padding: 28px 24px;
+  position: relative;
+}
+.word-margin-col {
+  border-left: 1px solid #e5e5e5;
+  padding: 20px 12px;
+  background: #fafafa;
+  font-size: 12px;
+}
+
+/* Revision bar — the red line in the left margin */
+.word-revision-bar {
+  position: absolute;
+  left: 4px;
+  top: 24px;
+  bottom: 24px;
+  width: 3px;
+  background: #c0392b;
+  border-radius: 2px;
+}
+
+/* Tracked changes — Word style */
+.word-del {
+  color: #c0392b;
   text-decoration: line-through;
-  background: rgba(185, 28, 28, 0.08);
-  padding: 1px 3px;
-  border-radius: 2px;
 }
-.output-tracked-ins {
-  color: #15803d;
-  background: rgba(21, 128, 61, 0.08);
-  padding: 1px 3px;
-  border-radius: 2px;
+.word-ins {
+  color: #c0392b;
+  text-decoration: underline;
 }
+
+/* Inserted paragraph — green left bar like Word */
+.word-inserted-para {
+  border-left: 3px solid #27ae60;
+  padding-left: 12px;
+  color: #27ae60;
+}
+
+/* Comment anchor highlight */
+.word-comment-anchor {
+  background: #fff2cc;
+  border-bottom: 1px solid #e6c200;
+  padding: 0 1px;
+}
+
+/* Comment balloon — Word-style margin comment */
+.word-comment-balloon {
+  background: #fff;
+  border: 1px solid #d4d4d4;
+  border-radius: 4px;
+  padding: 10px;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.word-comment-connector {
+  position: absolute;
+  left: -13px;
+  top: 14px;
+  width: 12px;
+  height: 1px;
+  background: #d4d4d4;
+}
+.word-comment-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.word-comment-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #4472c4;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: 'Calibri', 'Segoe UI', sans-serif;
+}
+.word-comment-author {
+  font-size: 11px;
+  font-weight: 600;
+  color: #4472c4;
+  display: block;
+  font-family: 'Calibri', 'Segoe UI', sans-serif;
+}
+.word-comment-time {
+  font-size: 10px;
+  color: #999;
+  display: block;
+  font-family: 'Calibri', 'Segoe UI', sans-serif;
+}
+.word-comment-text {
+  font-size: 12px;
+  color: #333;
+  line-height: 1.5;
+  font-family: 'Calibri', 'Segoe UI', sans-serif;
+}
+
+/* Word status bar */
+.word-status-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background: #f0f0f0;
+  font-size: 10px;
+  color: #888;
+  font-family: 'Segoe UI', 'Calibri', sans-serif;
+  margin-top: 4px;
+}
+
+/* Legacy aliases (keep for dex-showcase and other contexts) */
+.output-tracked-del { color: #c0392b; text-decoration: line-through; }
+.output-tracked-ins { color: #c0392b; text-decoration: underline; }
 .output-comment {
   display: block;
   margin: 8px 0;
@@ -556,27 +708,39 @@ code {
   .hero-demo-editor { border-right: none; border-bottom: 1px solid var(--border); min-height: 200px; }
 }
 .hero-demo-preview {
-  background: var(--paper);
-  padding: 28px 32px;
-  font-family: 'Fraunces', 'Georgia', serif;
-  font-size: 14px;
-  line-height: 1.75;
-  color: var(--paper-text);
+  background: #fff;
+  padding: 24px 28px;
+  font-family: 'Calibri', 'Carlito', 'Segoe UI', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1a1a1a;
   overflow: hidden;
+  border-left: 1px solid #e5e5e5;
+}
+@media (max-width: 768px) {
+  .hero-demo-preview { border-left: none; border-top: 1px solid #e5e5e5; }
 }
 .hero-demo-preview h1 {
-  font-size: 1.25rem;
-  color: var(--paper-heading);
+  font-family: 'Calibri', 'Carlito', sans-serif;
+  font-size: 1.05rem;
+  color: #1a1a1a;
   margin-bottom: 0.5rem;
   line-height: 1.3;
 }
+.hero-demo-preview h2 {
+  font-family: 'Calibri', 'Carlito', sans-serif;
+  font-size: 0.9rem;
+  color: #1a1a1a;
+  margin: 12px 0 6px;
+  line-height: 1.3;
+}
 .hero-demo-preview p {
-  font-family: 'Fraunces', 'Georgia', serif;
-  color: var(--paper-text);
+  font-family: 'Calibri', 'Carlito', 'Segoe UI', sans-serif;
+  color: #1a1a1a;
   font-size: 13px;
-  line-height: 1.75;
-  margin-bottom: 0.75rem;
-  text-align: justify;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+  text-align: left;
 }
 
 /* Syntax highlighting (editor side) */

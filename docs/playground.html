@@ -132,6 +132,29 @@
 
 </div>
 
+<!-- Upload confirmation modal -->
+<div class="modal-overlay" id="uploadModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Open in <span id="modalViewerName">Word Online</span></h3>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-icon" id="modalIcon"></div>
+      <p>Your document will be temporarily uploaded to <strong>tmpfiles.org</strong> so the online viewer can access it.</p>
+      <ul class="modal-details">
+        <li>File auto-deletes after <strong>60 minutes</strong></li>
+        <li>The file is briefly publicly accessible via a random URL</li>
+        <li>Do not use for confidential or unpublished manuscripts</li>
+      </ul>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modalCancel">Cancel</button>
+      <button class="btn btn-accent" id="modalConfirm">Upload & Open</button>
+    </div>
+  </div>
+</div>
+
 <footer class="footer" role="contentinfo">
   <div class="footer-inner">
     <div class="footer-brand">
@@ -512,29 +535,57 @@ downloadBtn.addEventListener('click', function() {
 });
 
 // ---------- Upload & View helper ----------
+var uploadModal = document.getElementById('uploadModal');
+var modalViewerName = document.getElementById('modalViewerName');
+var modalIcon = document.getElementById('modalIcon');
+var modalClose = document.getElementById('modalClose');
+var modalCancel = document.getElementById('modalCancel');
+var modalConfirm = document.getElementById('modalConfirm');
+var _pendingViewerType = null;
+
+var wordLogoSvg = '<svg viewBox="0 0 16 16" width="48" height="48"><rect width="16" height="16" rx="2" fill="#2B579A"/><text x="8" y="12" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="Arial">W</text></svg>';
+var gdocsLogoSvg = '<svg viewBox="0 0 16 16" width="48" height="48"><path d="M10 0H3a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V5l-5-5z" fill="#4285F4"/><path d="M10 0v5h5" fill="#A1C2FA"/><path d="M5 8h6M5 10h6M5 12h4" stroke="white" stroke-width=".8" fill="none"/></svg>';
+
+function showUploadModal(viewerType) {
+  _pendingViewerType = viewerType;
+  var isWord = viewerType === 'word';
+  modalViewerName.textContent = isWord ? 'Word Online' : 'Google Docs';
+  modalIcon.innerHTML = isWord ? wordLogoSvg : gdocsLogoSvg;
+  uploadModal.style.display = '';
+}
+
+function hideUploadModal() {
+  uploadModal.style.display = 'none';
+  _pendingViewerType = null;
+}
+
+modalClose.addEventListener('click', hideUploadModal);
+modalCancel.addEventListener('click', hideUploadModal);
+uploadModal.addEventListener('click', function(e) {
+  if (e.target === uploadModal) hideUploadModal();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && uploadModal.style.display !== 'none') hideUploadModal();
+});
+
+modalConfirm.addEventListener('click', function() {
+  var viewerType = _pendingViewerType;
+  hideUploadModal();
+  if (!viewerType) return;
+  performUploadAndView(viewerType);
+});
+
 function uploadAndView(viewerType) {
   if (!window._lastCompiledDocx) {
     statusEl.textContent = 'No compiled .docx yet. Edit the .dex source or drop a file first.';
     statusEl.style.color = 'var(--red)';
     return;
   }
+  showUploadModal(viewerType);
+}
 
+function performUploadAndView(viewerType) {
   var viewerLabel = viewerType === 'word' ? 'Word Online' : 'Google Docs';
-
-  // Privacy warning before upload
-  var proceed = confirm(
-    'Open in ' + viewerLabel + '\n\n' +
-    'This will temporarily upload your document to tmpfiles.org so that ' +
-    'the external viewer can access it.\n\n' +
-    'Details:\n' +
-    '- The file will be auto-deleted after 60 minutes\n' +
-    '- tmpfiles.org is a free, no-account temporary file host\n' +
-    '- The document will be publicly accessible via a random URL during that time\n' +
-    '- Do NOT use this with sensitive or confidential documents\n\n' +
-    'Continue?'
-  );
-
-  if (!proceed) return;
 
   var btn = viewerType === 'word' ? viewWordBtn : viewGDocsBtn;
   var origHtml = btn.innerHTML;

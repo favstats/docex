@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-648%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-641%20passing-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/dependencies-0-blue" alt="Dependencies">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/node-%3E%3D18-blue" alt="Node">
@@ -97,7 +97,7 @@ You need Node.js version 18 or newer. Check with `node --version`.
 Verify everything works:
 
 ```bash
-node --test test/*.test.js   # 648 tests should pass
+node --test test/*.test.js   # 641 tests should pass
 ```
 
 ---
@@ -432,7 +432,7 @@ The result is a valid Word document with all original formatting, images, commen
 ```
 docex/
   src/           48 modules, ~22,000 lines of code
-  test/          32 test files, 648 passing tests
+  test/          32 test files, 641 passing tests
   cli/           Command-line interface
   presets/       Journal formatting presets
   examples/      Sample .dex files
@@ -458,17 +458,17 @@ The source modules, grouped by purpose:
 
 ## Testing
 
-All 648 tests use Node.js built-in `node:test` and `node:assert`. No test framework needed.
+All 641 tests use Node.js built-in `node:test` and `node:assert`. No test framework needed.
 
 ```bash
 node --test test/*.test.js
 ```
 
 ```
-# tests 649
-# pass 648
+# tests 642
+# pass 641
 # fail 0
-# duration_ms ~11000
+# duration_ms ~14000
 ```
 
 ---

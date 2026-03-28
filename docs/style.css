@@ -13,7 +13,7 @@
   --bg:              #faf8f5;
   --bg-warm:         #f5f0ea;
   --bg-card:         #ffffff;
-  --bg-code:         #44403c;
+  --bg-code:         #f0ece6;
   --bg-surface:      #ede8e1;
   --border:          #d6cfc5;
   --border-subtle:   #e8e2da;
@@ -961,7 +961,7 @@ code {
 
 /* Syntax highlighting (editor side) */
 .sh-heading   { color: var(--accent); font-weight: 700; }
-.sh-comment   { background: rgba(250, 204, 21, 0.1); color: #facc15; border-radius: 2px; padding: 0 2px; }
+.sh-comment   { background: rgba(180, 83, 9, 0.08); color: #92400e; border-radius: 2px; padding: 0 2px; }
 .sh-del       { color: var(--red); }
 .sh-ins       { color: var(--green); }
 .sh-tag       { color: var(--purple); }
@@ -1525,7 +1525,7 @@ tr:hover td { background: rgba(180, 83, 9, 0.04); }
 }
 /* Warm inner glow when editor is focused */
 .dex-editor:focus {
-  box-shadow: inset 0 0 60px rgba(245, 158, 11, 0.04);
+  box-shadow: inset 0 0 60px rgba(180, 83, 9, 0.03);
 }
 
 .editor-container {
@@ -1640,9 +1640,9 @@ tr:hover td { background: rgba(180, 83, 9, 0.04); }
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(255,255,255,0.9);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: #999;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 11px;
@@ -1877,11 +1877,11 @@ tr:hover td { background: rgba(180, 83, 9, 0.04); }
 }
 .install-block .install-cmd:hover { border-color: var(--accent); }
 .install-block .install-cmd.copied { border-color: var(--green); }
-.install-block .install-cmd.copied code { color: #4ade80; }
+.install-block .install-cmd.copied code { color: var(--green); }
 .install-block .install-cmd code {
   background: none;
   padding: 0;
-  color: #d6d3d1;
+  color: var(--text);
   font-size: inherit;
 }
 .install-detail {

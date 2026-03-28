@@ -56,7 +56,7 @@ var DexCompiler = (function() {
     var runs = [];
     var pos = 0;
     var len = text.length;
-    var fmtStack = state || { bold: false, italic: false, underline: false, sup: false, sub: false, font: null, color: null, highlight: null };
+    var fmtStack = state || { bold: false, italic: false, underline: false, sup: false, sub: false, strike: false, dstrike: false, smallcaps: false, caps: false, hidden: false, size: null, font: null, color: null, highlight: null };
 
     while (pos < len) {
       // Check for escaped braces
@@ -82,6 +82,12 @@ var DexCompiler = (function() {
         if (tag === '/u') { fmtStack.underline = false; pos = tagEnd + 1; continue; }
         if (tag === '/sup') { fmtStack.sup = false; pos = tagEnd + 1; continue; }
         if (tag === '/sub') { fmtStack.sub = false; pos = tagEnd + 1; continue; }
+        if (tag === '/strike') { fmtStack.strike = false; pos = tagEnd + 1; continue; }
+        if (tag === '/dstrike') { fmtStack.dstrike = false; pos = tagEnd + 1; continue; }
+        if (tag === '/smallcaps') { fmtStack.smallcaps = false; pos = tagEnd + 1; continue; }
+        if (tag === '/caps') { fmtStack.caps = false; pos = tagEnd + 1; continue; }
+        if (tag === '/hidden') { fmtStack.hidden = false; pos = tagEnd + 1; continue; }
+        if (tag === '/size') { fmtStack.size = null; pos = tagEnd + 1; continue; }
         if (tag === '/font') { fmtStack.font = null; pos = tagEnd + 1; continue; }
         if (tag === '/color') { fmtStack.color = null; pos = tagEnd + 1; continue; }
         if (tag === '/highlight') { fmtStack.highlight = null; pos = tagEnd + 1; continue; }
@@ -92,6 +98,15 @@ var DexCompiler = (function() {
         if (tag === 'u') { fmtStack.underline = true; pos = tagEnd + 1; continue; }
         if (tag === 'sup') { fmtStack.sup = true; pos = tagEnd + 1; continue; }
         if (tag === 'sub') { fmtStack.sub = true; pos = tagEnd + 1; continue; }
+        if (tag === 'strike') { fmtStack.strike = true; pos = tagEnd + 1; continue; }
+        if (tag === 'dstrike') { fmtStack.dstrike = true; pos = tagEnd + 1; continue; }
+        if (tag === 'smallcaps') { fmtStack.smallcaps = true; pos = tagEnd + 1; continue; }
+        if (tag === 'caps') { fmtStack.caps = true; pos = tagEnd + 1; continue; }
+        if (tag === 'hidden') { fmtStack.hidden = true; pos = tagEnd + 1; continue; }
+
+        // Size tag: {size 28}
+        var sizeMatch = tag.match(/^size\s+(\d+)$/);
+        if (sizeMatch) { fmtStack.size = sizeMatch[1]; pos = tagEnd + 1; continue; }
 
         // Font tag: {font "Name"}
         var fontMatch = tag.match(/^font\s+"([^"]+)"$/);
@@ -182,6 +197,12 @@ var DexCompiler = (function() {
       underline: fmt.underline,
       sup: fmt.sup,
       sub: fmt.sub,
+      strike: fmt.strike,
+      dstrike: fmt.dstrike,
+      smallcaps: fmt.smallcaps,
+      caps: fmt.caps,
+      hidden: fmt.hidden,
+      size: fmt.size,
       font: fmt.font,
       color: fmt.color,
       highlight: fmt.highlight
@@ -246,7 +267,13 @@ var DexCompiler = (function() {
     }
     if (fmt.bold) parts.push('<w:b/>');
     if (fmt.italic) parts.push('<w:i/>');
+    if (fmt.strike) parts.push('<w:strike/>');
+    if (fmt.dstrike) parts.push('<w:dstrike/>');
+    if (fmt.smallcaps) parts.push('<w:smallCaps/>');
+    if (fmt.caps) parts.push('<w:caps/>');
+    if (fmt.hidden) parts.push('<w:vanish/>');
     if (fmt.underline) parts.push('<w:u w:val="single"/>');
+    if (fmt.size) parts.push('<w:sz w:val="' + escXml(fmt.size) + '"/>');
     if (fmt.color) parts.push('<w:color w:val="' + escXml(fmt.color) + '"/>');
     if (fmt.highlight) parts.push('<w:highlight w:val="' + escXml(fmt.highlight) + '"/>');
     if (fmt.sup) parts.push('<w:vertAlign w:val="superscript"/>');

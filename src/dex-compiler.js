@@ -149,6 +149,14 @@ class DexCompiler {
       if (run.type === 'colbreak') return '<w:r><w:br w:type="column"/></w:r>';
       if (run.type === 'endnote') return '<w:r><w:endnoteReference w:id="' + (run.id || 0) + '"/></w:r>';
       if (run.type === 'sym') return '<w:r><w:sym w:font="Symbol" w:char="' + esc(run.char || '') + '"/></w:r>';
+      if (run.type === 'field') {
+        return '<w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+          + '<w:r><w:instrText xml:space="preserve"> ' + esc(run.instr || '') + ' </w:instrText></w:r>'
+          + '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'
+          + '<w:r><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r>'
+          + '<w:r><w:fldChar w:fldCharType="end"/></w:r>';
+      }
+      if (run.type === 'sdt') return '<w:sdt><w:sdtPr><w:tag w:val="' + esc(run.name || '') + '"/></w:sdtPr><w:sdtContent><w:r><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r></w:sdtContent></w:sdt>';
       return '<w:r><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r>';
     }
 

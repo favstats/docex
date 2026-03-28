@@ -90,7 +90,10 @@ class DexParser {
       if (sectionMatch) { const attrs = DexParser._parseBlockAttrs(sectionMatch[1]); nodes.push({ type: 'section', margins: attrs.margins || '', header: attrs.header || '', footer: attrs.footer || '' }); i++; continue; }
       if (trimmed.startsWith('{figure')) { const r = DexParser._parseFigureBlock(lines, i); nodes.push(r.node); i = r.endLine + 1; continue; }
       if (trimmed.startsWith('{table')) { const r = DexParser._parseTableBlock(lines, i); nodes.push(r.node); i = r.endLine + 1; continue; }
-      if (trimmed.startsWith('{comment')) { const r = DexParser._parseCommentBlock(lines, i); nodes.push(r.node); i = r.endLine + 1; continue; }
+      if (trimmed.startsWith('{comment') && !trimmed.startsWith('{comment-')) { const r = DexParser._parseCommentBlock(lines, i); nodes.push(r.node); i = r.endLine + 1; continue; }
+      if (trimmed.startsWith('{header ')) { const r = DexParser._parseGenericBlock(lines, i, 'header', '{/header}'); nodes.push(r); i++; while (i < lines.length && lines[i].trim() !== '{/header}') i++; i++; continue; }
+      if (trimmed.startsWith('{footer ')) { const r = DexParser._parseGenericBlock(lines, i, 'footer', '{/footer}'); nodes.push(r); i++; while (i < lines.length && lines[i].trim() !== '{/footer}') i++; i++; continue; }
+      if (trimmed === '{endnotes}') { i++; while (i < lines.length && lines[i].trim() !== '{/endnotes}') i++; if (i < lines.length) i++; continue; }
       if (trimmed.startsWith('{reply')) { const r = DexParser._parseReplyBlock(lines, i); nodes.push(r.node); i = r.endLine + 1; continue; }
       if (trimmed.startsWith('{p')) {
         const pMatch = trimmed.match(/^\{p(\s[^}]*)?\}$/);
@@ -295,6 +298,10 @@ class DexParser {
     }
     // Hyperlinks
     if (content.startsWith('{link ', pos)) return DexParser._parseAttributedTag(content, pos, 'link', '{/link}', (attrs, inner) => ({ type: 'link', rId: attrs.rId || '', anchor: attrs.anchor || '', text: inner }));
+    // Field codes
+    if (content.startsWith('{field ', pos)) return DexParser._parseAttributedTag(content, pos, 'field', '{/field}', (attrs, inner) => ({ type: 'field', instr: Object.values(attrs).join(' ') || '', text: inner }));
+    // Content controls
+    if (content.startsWith('{sdt ', pos)) return DexParser._parseAttributedTag(content, pos, 'sdt', '{/sdt}', (attrs, inner) => ({ type: 'sdt', name: Object.values(attrs).join(' ') || '', text: inner }));
     // Line break
     if (content.startsWith('{br}', pos)) return { node: { type: 'linebreak' }, endPos: pos + 4 };
     // Column break
@@ -321,6 +328,15 @@ class DexParser {
     const attrs = DexParser._parseBlockAttrs(attrStr);
     const closeIdx = content.indexOf(closeTag, openEnd + 1); if (closeIdx === -1) return null;
     return { node: nodeBuilder(attrs, content.slice(openEnd + 1, closeIdx)), endPos: closeIdx + closeTag.length };
+  }
+
+  static _parseGenericBlock(lines, startLine, type, closeTag) {
+    const firstLine = lines[startLine].trim();
+    const attrsStr = firstLine.slice(type.length + 2, firstLine.length - 1).trim();
+    const attrs = DexParser._parseBlockAttrs(attrsStr);
+    const contentLines = []; let i = startLine + 1;
+    while (i < lines.length && lines[i].trim() !== closeTag) { contentLines.push(lines[i]); i++; }
+    return { type, file: attrs.file || '', text: contentLines.join('\n').trim() };
   }
 
   static _parseBlockAttrs(attrStr) {

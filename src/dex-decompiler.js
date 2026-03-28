@@ -105,7 +105,60 @@ class DexDecompiler {
     const sectPr = DexDecompiler._extractSectionProperties(docXml);
     if (sectPr) parts.push(sectPr);
 
+    // Endnotes
+    const endnotesXml = ws.endnotesXml;
+    if (endnotesXml) {
+      const endnoteMap = DexDecompiler._buildEndnoteMap(endnotesXml);
+      if (endnoteMap.size > 0) {
+        parts.push('');
+        parts.push('{endnotes}');
+        for (const [id, text] of endnoteMap) {
+          parts.push('{endnote-def id:' + id + '}');
+          parts.push(text);
+          parts.push('{/endnote-def}');
+        }
+        parts.push('{/endnotes}');
+      }
+    }
+
+    // Headers and footers
+    const hdrFtrs = ws.listHeaderFooters();
+    if (hdrFtrs.length > 0) {
+      parts.push('');
+      for (const hf of hdrFtrs) {
+        const tag = hf.type; // 'header' or 'footer'
+        const text = xml.extractTextDecoded(hf.xml);
+        if (text.trim()) {
+          parts.push('{' + tag + ' file:' + DexDecompiler._dexStr(hf.path) + '}');
+          parts.push(text.trim());
+          parts.push('{/' + tag + '}');
+          parts.push('');
+        }
+      }
+    }
+
     return parts.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+  }
+
+  /**
+   * Build endnote map from endnotes.xml (similar to footnotes).
+   */
+  static _buildEndnoteMap(endnotesXml) {
+    const map = new Map();
+    if (!endnotesXml) return map;
+    const re = /<w:endnote\b([^>]*)>([\s\S]*?)<\/w:endnote>/g;
+    let m;
+    while ((m = re.exec(endnotesXml)) !== null) {
+      const attrs = m[1];
+      const typeMatch = attrs.match(/w:type="([^"]*)"/);
+      if (typeMatch && (typeMatch[1] === 'separator' || typeMatch[1] === 'continuationSeparator')) continue;
+      const idMatch = attrs.match(/w:id="(\d+)"/);
+      if (!idMatch) continue;
+      const id = parseInt(idMatch[1], 10);
+      const text = xml.extractTextDecoded(m[2]);
+      if (text.trim()) map.set(id, text.trim());
+    }
+    return map;
   }
 
   /**
@@ -197,6 +250,9 @@ class DexDecompiler {
       pProps = DexDecompiler._extractParagraphProperties(pPrMatch[1]);
       bodyXml = bodyXml.slice(pPrMatch[0].length);
     }
+    // Pre-process field codes: replace fldChar begin..separate..end sequences
+    // with {field "INSTRUCTION"}display{/field} markers
+    bodyXml = DexDecompiler._preprocessFieldCodes(bodyXml);
     DexDecompiler._walkElements(bodyXml, parts, footnoteMap);
     return { text: parts.join(''), props: pProps };
   }
@@ -426,6 +482,37 @@ class DexDecompiler {
           parts.push(linkText); // fallback: just the text
         }
         pos = endIdx + endTag.length;
+      } else if (xmlStr.startsWith('<w:fldSimple', pos)) {
+        // Simple field code: <w:fldSimple w:instr="PAGE">display</w:fldSimple>
+        const endTag = '</w:fldSimple>';
+        const endIdx = xmlStr.indexOf(endTag, pos);
+        if (endIdx === -1) { pos++; continue; }
+        const fldXml = xmlStr.slice(pos, endIdx + endTag.length);
+        const instrMatch = fldXml.match(/w:instr="([^"]*)"/);
+        const fldParts = [];
+        DexDecompiler._walkElements(fldXml.slice(fldXml.indexOf('>') + 1, fldXml.lastIndexOf('<')), fldParts, footnoteMap);
+        const displayText = fldParts.join('');
+        const instrText = instrMatch ? instrMatch[1].trim() : '';
+        parts.push('{field ' + DexDecompiler._dexStr(instrText) + '}' + displayText + '{/field}');
+        pos = endIdx + endTag.length;
+      } else if (xmlStr.startsWith('<w:sdt>', pos) || xmlStr.startsWith('<w:sdt ', pos)) {
+        // Content control: extract inner content
+        const endTag = '</w:sdt>';
+        const endIdx = xmlStr.indexOf(endTag, pos);
+        if (endIdx === -1) { pos++; continue; }
+        const sdtXml = xmlStr.slice(pos, endIdx + endTag.length);
+        // Extract tag name if present
+        const tagMatch = sdtXml.match(/<w:tag\s+w:val="([^"]*)"/);
+        const aliasMatch = sdtXml.match(/<w:alias\s+w:val="([^"]*)"/);
+        const sdtName = aliasMatch ? aliasMatch[1] : (tagMatch ? tagMatch[1] : '');
+        // Extract content from sdtContent
+        const contentMatch = sdtXml.match(/<w:sdtContent>([\s\S]*)<\/w:sdtContent>/);
+        if (contentMatch) {
+          if (sdtName) parts.push('{sdt ' + DexDecompiler._dexStr(sdtName) + '}');
+          DexDecompiler._walkElements(contentMatch[1], parts, footnoteMap);
+          if (sdtName) parts.push('{/sdt}');
+        }
+        pos = endIdx + endTag.length;
       } else if (xmlStr.startsWith('<w:commentRangeStart', pos)) {
         const closeAngle = xmlStr.indexOf('>', pos);
         const tag = xmlStr.slice(pos, closeAngle + 1);
@@ -596,6 +683,87 @@ class DexDecompiler {
       if (fmt.fmtchange.date) fmtAttrs += ' date:' + DexDecompiler._dexStr(fmt.fmtchange.date);
       result = '{fmtchange' + fmtAttrs + '}' + result + '{/fmtchange}';
     }
+    return result;
+  }
+
+  /**
+   * Pre-process field codes in paragraph XML.
+   * Replaces fldChar begin..separate..end sequences with inline {field} markers.
+   * Field codes span multiple <w:r> elements:
+   *   <w:r><w:fldChar w:fldCharType="begin"/></w:r>
+   *   <w:r><w:instrText> HYPERLINK "url" </w:instrText></w:r>
+   *   <w:r><w:fldChar w:fldCharType="separate"/></w:r>
+   *   <w:r><w:t>display text</w:t></w:r>
+   *   <w:r><w:fldChar w:fldCharType="end"/></w:r>
+   */
+  static _preprocessFieldCodes(xmlStr) {
+    // Quick check: if no fldChar, return unchanged
+    if (!xmlStr.includes('w:fldChar')) return xmlStr;
+
+    let result = '';
+    let pos = 0;
+    let inField = false;
+    let fieldInstr = '';
+    let fieldDepth = 0;
+    const len = xmlStr.length;
+
+    while (pos < len) {
+      const fldIdx = xmlStr.indexOf('w:fldChar', pos);
+      if (fldIdx === -1) {
+        result += xmlStr.slice(pos);
+        break;
+      }
+      // Find the containing run
+      const runStartBefore = xmlStr.lastIndexOf('<w:r', fldIdx);
+      // Copy everything up to this run
+      if (runStartBefore > pos) {
+        const chunk = xmlStr.slice(pos, runStartBefore);
+        if (inField && fieldDepth === 1) {
+          // Inside a field — extract instrText from this chunk
+          const instrRe = /<w:instrText[^>]*>([^<]*)<\/w:instrText>/g;
+          let im;
+          while ((im = instrRe.exec(chunk)) !== null) fieldInstr += im[1];
+        }
+        if (!inField || fieldDepth > 1) result += chunk;
+      }
+      // Find the type
+      const typeMatch = xmlStr.slice(fldIdx, fldIdx + 60).match(/w:fldCharType="([^"]*)"/);
+      if (!typeMatch) {
+        result += xmlStr.slice(pos, fldIdx + 20);
+        pos = fldIdx + 20;
+        continue;
+      }
+      // Find end of this run
+      const runEnd = xmlStr.indexOf('</w:r>', fldIdx);
+      if (runEnd === -1) { result += xmlStr.slice(pos); break; }
+      const afterRun = runEnd + 6;
+
+      if (typeMatch[1] === 'begin') {
+        fieldDepth++;
+        if (fieldDepth === 1) {
+          inField = true;
+          fieldInstr = '';
+        }
+        pos = afterRun;
+      } else if (typeMatch[1] === 'separate') {
+        if (fieldDepth === 1) {
+          // Emit field-start marker with instruction
+          const instrTrimmed = fieldInstr.trim().replace(/\s+/g, ' ');
+          result += '<w:r><w:t xml:space="preserve">{field ' + DexDecompiler._dexStr(instrTrimmed) + '}</w:t></w:r>';
+        }
+        pos = afterRun;
+      } else if (typeMatch[1] === 'end') {
+        if (fieldDepth === 1) {
+          result += '<w:r><w:t xml:space="preserve">{/field}</w:t></w:r>';
+          inField = false;
+        }
+        fieldDepth = Math.max(0, fieldDepth - 1);
+        pos = afterRun;
+      } else {
+        pos = afterRun;
+      }
+    }
+
     return result;
   }
 

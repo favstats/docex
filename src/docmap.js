@@ -212,18 +212,29 @@ class DocMap {
       const tagContent = docXml.slice(m.index, closeAngle + 1);
       if (tagContent.includes('w14:paraId=')) continue;
 
-      // Generate unique ID
-      let newId;
-      do {
-        newId = xml.randomHexId();
-      } while (existingIds.has(newId));
+      // Generate deterministic ID from paragraph content + position index.
+      // This ensures the same paragraph always gets the same ID across
+      // multiple opens (stable for .dex diffing), while the position index
+      // prevents collisions between paragraphs with identical text.
+      const crypto = require('crypto');
+      const paraEnd = docXml.indexOf('</w:p>', m.index);
+      const paraText = paraEnd !== -1 ? xml.extractText(docXml.slice(m.index, paraEnd + 6)) : String(i);
+      const hashInput = i + ':' + paraText;
+      let newId = crypto.createHash('md5').update(hashInput).digest('hex').slice(0, 8).toUpperCase();
+      // Handle collisions (unlikely but possible)
+      let collisionCounter = 0;
+      while (existingIds.has(newId)) {
+        collisionCounter++;
+        newId = crypto.createHash('md5').update(hashInput + ':' + collisionCounter).digest('hex').slice(0, 8).toUpperCase();
+      }
       existingIds.add(newId);
 
-      // Also generate textId
-      let textId;
-      do {
-        textId = xml.randomHexId();
-      } while (existingIds.has(textId));
+      // textId also deterministic
+      const textHashInput = i + ':text:' + paraText;
+      let textId = crypto.createHash('md5').update(textHashInput).digest('hex').slice(0, 8).toUpperCase();
+      while (existingIds.has(textId)) {
+        textId = crypto.createHash('md5').update(textHashInput + ':' + (++collisionCounter)).digest('hex').slice(0, 8).toUpperCase();
+      }
       existingIds.add(textId);
 
       // Inject attributes after "<w:p"

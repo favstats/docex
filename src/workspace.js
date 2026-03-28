@@ -235,6 +235,7 @@ class Workspace {
     /** @type {string|null} */ this._corePropsXml = null;
     /** @type {string|null} */ this._rootRelsXml = null;
     /** @type {string|null} */ this._footnotesXml = null;
+    /** @type {string|null} */ this._endnotesXml = null;
 
     // Track which XML files have been modified
     /** @type {Set<string>} */ this._dirty = new Set();
@@ -425,6 +426,43 @@ class Workspace {
   set footnotesXml(val) {
     this._footnotesXml = val;
     this._dirty.add('footnotesXml');
+  }
+
+  get endnotesXml() {
+    if (this._endnotesXml === null) {
+      const filePath = path.join(this._tmpDir, 'word', 'endnotes.xml');
+      if (fs.existsSync(filePath)) {
+        this._endnotesXml = fs.readFileSync(filePath, 'utf-8');
+      } else {
+        this._endnotesXml = '';
+      }
+    }
+    return this._endnotesXml;
+  }
+
+  /** @param {string} val */
+  set endnotesXml(val) {
+    this._endnotesXml = val;
+    this._dirty.add('endnotesXml');
+  }
+
+  /**
+   * List header/footer XML file paths that exist in the .docx.
+   * @returns {Array<{type: string, path: string, xml: string}>}
+   */
+  listHeaderFooters() {
+    const wordDir = path.join(this._tmpDir, 'word');
+    const results = [];
+    if (!fs.existsSync(wordDir)) return results;
+    const files = fs.readdirSync(wordDir);
+    for (const f of files) {
+      if (/^(header|footer)\d+\.xml$/.test(f)) {
+        const filePath = path.join(wordDir, f);
+        const type = f.startsWith('header') ? 'header' : 'footer';
+        results.push({ type, path: f, xml: fs.readFileSync(filePath, 'utf-8') });
+      }
+    }
+    return results;
   }
 
   /** @returns {string} Absolute path to word/media/ directory */
@@ -744,6 +782,7 @@ class Workspace {
       contentTypesXml: '[Content_Types].xml',
       stylesXml:       'word/styles.xml',
       footnotesXml:    'word/footnotes.xml',
+      endnotesXml:     'word/endnotes.xml',
       corePropsXml:    'docProps/core.xml',
       rootRelsXml:     '_rels/.rels',
     };

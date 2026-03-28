@@ -102,12 +102,32 @@ class DexCompiler {
       }
       if (run.type === 'bold') return '<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
       if (run.type === 'italic') return '<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
-      if (run.type === 'underline') return '<w:r><w:rPr><w:u w:val="single"/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
+      if (run.type === 'underline') {
+        const uVal = run.underlineType || 'single';
+        return '<w:r><w:rPr><w:u w:val="' + esc(uVal) + '"/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
+      }
+      if (run.type === 'superscript') return '<w:r><w:rPr><w:vertAlign w:val="superscript"/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
+      if (run.type === 'subscript') return '<w:r><w:rPr><w:vertAlign w:val="subscript"/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
       if (run.type === 'strike') return '<w:r><w:rPr><w:strike/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
+      if (run.type === 'dstrike') return '<w:r><w:rPr><w:dstrike/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
+      if (run.type === 'size') return '<w:r><w:rPr><w:sz w:val="' + esc(run.size || '24') + '"/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
+      if (run.type === 'smallcaps') return '<w:r><w:rPr><w:smallCaps/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
+      if (run.type === 'caps') return '<w:r><w:rPr><w:caps/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
+      if (run.type === 'hidden') return '<w:r><w:rPr><w:vanish/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
       if (run.type === 'highlight') return '<w:r><w:rPr><w:highlight w:val="' + esc(run.color || 'yellow') + '"/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
       if (run.type === 'color') return '<w:r><w:rPr><w:color w:val="' + esc(run.color || '000000') + '"/></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
+      if (run.type === 'font') {
+        let rFonts = '<w:rFonts w:ascii="' + esc(run.font || '') + '" w:hAnsi="' + esc(run.fontHAnsi || run.font || '') + '"';
+        if (run.fontCs) rFonts += ' w:cs="' + esc(run.fontCs) + '"';
+        if (run.fontEastAsia) rFonts += ' w:eastAsia="' + esc(run.fontEastAsia) + '"';
+        rFonts += '/>';
+        return '<w:r><w:rPr>' + rFonts + '</w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
+      }
       if (run.type === 'del') return '<w:del w:id="' + (run.id || 1) + '" w:author="' + esc(run.author || '') + '" w:date="' + esc(run.date || '') + '"><w:r><w:delText xml:space="preserve">' + esc(run.text) + '</w:delText></w:r></w:del>';
       if (run.type === 'ins') return '<w:ins w:id="' + (run.id || 2) + '" w:author="' + esc(run.author || '') + '" w:date="' + esc(run.date || '') + '"><w:r><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r></w:ins>';
+      if (run.type === 'movefrom') return '<w:moveFrom w:id="' + (run.id || 1) + '" w:author="' + esc(run.author || '') + '" w:date="' + esc(run.date || '') + '"><w:r><w:delText xml:space="preserve">' + esc(run.text) + '</w:delText></w:r></w:moveFrom>';
+      if (run.type === 'moveto') return '<w:moveTo w:id="' + (run.id || 2) + '" w:author="' + esc(run.author || '') + '" w:date="' + esc(run.date || '') + '"><w:r><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r></w:moveTo>';
+      if (run.type === 'fmtchange') return '<w:r><w:rPr><w:rPrChange w:author="' + esc(run.author || '') + '" w:date="' + esc(run.date || '') + '"><w:rPr/></w:rPrChange></w:rPr><w:t xml:space="preserve">' + esc(run.text) + '</w:t></w:r>';
       if (run.type === 'footnote') {
         footnotes.push(run);
         return '<w:r><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:r>'
@@ -132,6 +152,51 @@ class DexCompiler {
       return '<w:r><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r>';
     }
 
+    function buildParagraphProperties(node) {
+      const parts = [];
+      // Paragraph style
+      if (node.style) parts.push('<w:pStyle w:val="' + esc(node.style) + '"/>');
+      // Keep with next
+      if (node.keepnext) parts.push('<w:keepNext/>');
+      // List numbering
+      if (node.listId) {
+        let numPr = '<w:numPr>';
+        if (node.listLevel !== undefined && node.listLevel !== null) numPr += '<w:ilvl w:val="' + esc(node.listLevel) + '"/>';
+        numPr += '<w:numId w:val="' + esc(node.listId) + '"/>';
+        numPr += '</w:numPr>';
+        parts.push(numPr);
+      }
+      // Right-to-left
+      if (node.bidi) parts.push('<w:bidi/>');
+      // Indentation
+      if (node.indentLeft || node.indentRight || node.indentFirst || node.indentHanging) {
+        let ind = '<w:ind';
+        if (node.indentLeft) ind += ' w:left="' + esc(node.indentLeft) + '"';
+        if (node.indentRight) ind += ' w:right="' + esc(node.indentRight) + '"';
+        if (node.indentFirst) ind += ' w:firstLine="' + esc(node.indentFirst) + '"';
+        if (node.indentHanging) ind += ' w:hanging="' + esc(node.indentHanging) + '"';
+        ind += '/>';
+        parts.push(ind);
+      }
+      // Spacing
+      if (node.spacingLine || node.spacingBefore || node.spacingAfter || node.spacingRule) {
+        let sp = '<w:spacing';
+        if (node.spacingBefore) sp += ' w:before="' + esc(node.spacingBefore) + '"';
+        if (node.spacingAfter) sp += ' w:after="' + esc(node.spacingAfter) + '"';
+        if (node.spacingLine) sp += ' w:line="' + esc(node.spacingLine) + '"';
+        if (node.spacingRule) sp += ' w:lineRule="' + esc(node.spacingRule) + '"';
+        sp += '/>';
+        parts.push(sp);
+      }
+      // Alignment (map 'justify' back to 'both')
+      if (node.align) {
+        const val = node.align === 'justify' ? 'both' : node.align;
+        parts.push('<w:jc w:val="' + esc(val) + '"/>');
+      }
+      if (parts.length === 0) return '';
+      return '<w:pPr>' + parts.join('') + '</w:pPr>';
+    }
+
     const footnotes = [];
     const comments = [];
     let bodyXml = '';
@@ -152,7 +217,9 @@ class DexCompiler {
       } else if (node.type === 'paragraph') {
         const pid = node.id || genId();
         const runs = node.runs || [{ type: 'text', text: node.text || '' }];
+        const pPr = buildParagraphProperties(node);
         bodyXml += '<w:p w14:paraId="' + pid + '" w14:textId="' + genId() + '">'
+          + pPr
           + runs.map(buildRunXml).join('')
           + '</w:p>';
       } else if (node.type === 'pagebreak') {

@@ -81,7 +81,7 @@ class DexParser {
       const headingMatch = trimmed.match(/^(#{1,6})\s+(.*?)(?:\s+\{id:([A-Fa-f0-9]+)\})?$/);
       if (headingMatch) {
         const headingText = headingMatch[2].trim();
-        const hasInlineTags = /\{(comment-start|comment-end|del|ins|b|i|u|footnote)\b/.test(headingText);
+        const hasInlineTags = /\{(comment-start|comment-end|del|ins|b|i|u|footnote|sup|sub|strike|dstrike|smallcaps|caps|hidden|size|highlight|color|font|movefrom|moveto|fmtchange)\b/.test(headingText);
         nodes.push({ type: 'heading', level: headingMatch[1].length, text: headingText, id: headingMatch[3] || null, runs: hasInlineTags ? DexParser._parseInlineContent(headingText) : null });
         i++; continue;
       }
@@ -93,11 +93,29 @@ class DexParser {
       if (trimmed.startsWith('{comment')) { const r = DexParser._parseCommentBlock(lines, i); nodes.push(r.node); i = r.endLine + 1; continue; }
       if (trimmed.startsWith('{reply')) { const r = DexParser._parseReplyBlock(lines, i); nodes.push(r.node); i = r.endLine + 1; continue; }
       if (trimmed.startsWith('{p')) {
-        const pMatch = trimmed.match(/^\{p(?:\s+id:([A-Fa-f0-9]+))?\}$/);
+        const pMatch = trimmed.match(/^\{p(\s[^}]*)?\}$/);
         if (pMatch) {
-          const paraLines = []; const paraId = pMatch[1] || null; i++;
+          const attrStr = pMatch[1] ? pMatch[1].trim() : '';
+          const attrs = DexParser._parseParagraphAttrs(attrStr);
+          const paraLines = []; i++;
           while (i < lines.length && lines[i].trim() !== '{/p}') { paraLines.push(lines[i]); i++; }
-          nodes.push({ type: 'paragraph', id: paraId, runs: DexParser._parseInlineContent(paraLines.join('\n')) });
+          const node = { type: 'paragraph', id: attrs.id || null, runs: DexParser._parseInlineContent(paraLines.join('\n')) };
+          // Attach paragraph properties if any
+          if (attrs.align) node.align = attrs.align;
+          if (attrs.style) node.style = attrs.style;
+          if (attrs['indent-left']) node.indentLeft = attrs['indent-left'];
+          if (attrs['indent-right']) node.indentRight = attrs['indent-right'];
+          if (attrs['indent-first']) node.indentFirst = attrs['indent-first'];
+          if (attrs['indent-hanging']) node.indentHanging = attrs['indent-hanging'];
+          if (attrs['spacing-line']) node.spacingLine = attrs['spacing-line'];
+          if (attrs['spacing-before']) node.spacingBefore = attrs['spacing-before'];
+          if (attrs['spacing-after']) node.spacingAfter = attrs['spacing-after'];
+          if (attrs['spacing-rule']) node.spacingRule = attrs['spacing-rule'];
+          if (attrs['list-id']) node.listId = attrs['list-id'];
+          if (attrs['list-level'] !== undefined && attrs['list-level'] !== null) node.listLevel = attrs['list-level'];
+          if (attrs.bidi) node.bidi = true;
+          if (attrs.keepnext) node.keepnext = true;
+          nodes.push(node);
           if (i < lines.length) i++; continue;
         }
       }
@@ -176,9 +194,13 @@ class DexParser {
     const tagMap = [
       { prefix: '{b}', closeTag: '{/b}', type: 'bold' },
       { prefix: '{i}', closeTag: '{/i}', type: 'italic' },
-      { prefix: '{u}', closeTag: '{/u}', type: 'underline' },
       { prefix: '{sup}', closeTag: '{/sup}', type: 'superscript' },
       { prefix: '{sub}', closeTag: '{/sub}', type: 'subscript' },
+      { prefix: '{strike}', closeTag: '{/strike}', type: 'strike' },
+      { prefix: '{dstrike}', closeTag: '{/dstrike}', type: 'dstrike' },
+      { prefix: '{smallcaps}', closeTag: '{/smallcaps}', type: 'smallcaps' },
+      { prefix: '{caps}', closeTag: '{/caps}', type: 'caps' },
+      { prefix: '{hidden}', closeTag: '{/hidden}', type: 'hidden' },
     ];
     for (const tag of tagMap) {
       if (content.startsWith(tag.prefix, pos)) {
@@ -187,8 +209,30 @@ class DexParser {
         return { node: { type: tag.type, text: content.slice(pos + tag.prefix.length, closeIdx) }, endPos: closeIdx + tag.closeTag.length };
       }
     }
+    // Underline: {u}text{/u} (simple) or {u double}text{/u} (typed)
+    if (content.startsWith('{u}', pos)) {
+      const closeIdx = content.indexOf('{/u}', pos + 3);
+      if (closeIdx === -1) return null;
+      return { node: { type: 'underline', text: content.slice(pos + 3, closeIdx) }, endPos: closeIdx + 4 };
+    }
+    if (content.startsWith('{u ', pos)) {
+      const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
+      const uType = content.slice(pos + '{u '.length, closeAngle).trim();
+      const closeIdx = content.indexOf('{/u}', closeAngle + 1); if (closeIdx === -1) return null;
+      return { node: { type: 'underline', underlineType: uType, text: content.slice(closeAngle + 1, closeIdx) }, endPos: closeIdx + 4 };
+    }
+    // Font size: {size 24}text{/size}
+    if (content.startsWith('{size ', pos)) {
+      const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
+      const sizeVal = content.slice(pos + '{size '.length, closeAngle).trim();
+      const closeIdx = content.indexOf('{/size}', closeAngle + 1); if (closeIdx === -1) return null;
+      return { node: { type: 'size', size: sizeVal, text: content.slice(closeAngle + 1, closeIdx) }, endPos: closeIdx + '{/size}'.length };
+    }
     if (content.startsWith('{del ', pos)) return DexParser._parseAttributedTag(content, pos, 'del', '{/del}', (attrs, inner) => ({ type: 'del', id: parseInt(attrs.id, 10) || 0, author: attrs.by || '', date: attrs.date || '', text: inner }));
     if (content.startsWith('{ins ', pos)) return DexParser._parseAttributedTag(content, pos, 'ins', '{/ins}', (attrs, inner) => ({ type: 'ins', id: parseInt(attrs.id, 10) || 0, author: attrs.by || '', date: attrs.date || '', text: inner }));
+    if (content.startsWith('{movefrom ', pos)) return DexParser._parseAttributedTag(content, pos, 'movefrom', '{/movefrom}', (attrs, inner) => ({ type: 'movefrom', id: parseInt(attrs.id, 10) || 0, author: attrs.by || '', date: attrs.date || '', text: inner }));
+    if (content.startsWith('{moveto ', pos)) return DexParser._parseAttributedTag(content, pos, 'moveto', '{/moveto}', (attrs, inner) => ({ type: 'moveto', id: parseInt(attrs.id, 10) || 0, author: attrs.by || '', date: attrs.date || '', text: inner }));
+    if (content.startsWith('{fmtchange ', pos)) return DexParser._parseAttributedTag(content, pos, 'fmtchange', '{/fmtchange}', (attrs, inner) => ({ type: 'fmtchange', author: attrs.by || '', date: attrs.date || '', text: inner }));
     if (content.startsWith('{cite ', pos)) return DexParser._parseAttributedTag(content, pos, 'cite', '{/cite}', (attrs, inner) => ({ type: 'cite', key: attrs.key || '', citeType: attrs.type || 'parenthetical', text: inner }));
     if (content.startsWith('{footnote ', pos)) return DexParser._parseAttributedTag(content, pos, 'footnote', '{/footnote}', (attrs, inner) => ({ type: 'footnote', id: parseInt(attrs.id, 10) || 0, text: inner }));
     if (content.startsWith('{highlight ', pos)) {
@@ -205,10 +249,23 @@ class DexParser {
     }
     if (content.startsWith('{font ', pos)) {
       const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
-      let fontName = content.slice(pos + '{font '.length, closeAngle).trim();
-      fontName = DexParser._unquote(fontName);
+      const fontAttrStr = content.slice(pos + '{font '.length, closeAngle).trim();
+      // Parse font name and optional variant attributes: {font "Name" hAnsi:"Other" cs:"Other2" eastAsia:"Other3"}
+      const fontAttrs = DexParser._parseBlockAttrs('font:' + fontAttrStr);
+      let fontName;
+      // If the attr string starts with a quoted string, extract it directly
+      const quotedMatch = fontAttrStr.match(/^"((?:[^"\\]|\\.)*)"/);
+      if (quotedMatch) {
+        fontName = quotedMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      } else {
+        fontName = fontAttrStr.split(/\s/)[0];
+      }
       const closeIdx = content.indexOf('{/font}', closeAngle + 1); if (closeIdx === -1) return null;
-      return { node: { type: 'font', font: fontName, text: content.slice(closeAngle + 1, closeIdx) }, endPos: closeIdx + '{/font}'.length };
+      const node = { type: 'font', font: fontName, text: content.slice(closeAngle + 1, closeIdx) };
+      if (fontAttrs.hAnsi) node.fontHAnsi = fontAttrs.hAnsi;
+      if (fontAttrs.cs) node.fontCs = fontAttrs.cs;
+      if (fontAttrs.eastAsia) node.fontEastAsia = fontAttrs.eastAsia;
+      return { node, endPos: closeIdx + '{/font}'.length };
     }
     // Comment range markers (inline anchors for comments)
     if (content.startsWith('{comment-start ', pos)) {
@@ -274,6 +331,36 @@ class DexParser {
       const key = m[1];
       const value = m[2] !== undefined ? m[2].replace(/\\"/g, '"').replace(/\\\\/g, '\\') : m[3];
       attrs[key] = value;
+    }
+    return attrs;
+  }
+
+  /**
+   * Parse paragraph attributes from a {p ...} tag.
+   * Handles both key:value pairs and bare boolean flags (bidi, keepnext).
+   */
+  static _parseParagraphAttrs(attrStr) {
+    const attrs = {}; if (!attrStr) return attrs;
+    // First extract key:value pairs
+    const kvRe = /(\w[\w-]*):(?:"((?:[^"\\]|\\.)*)"|(\S+))/g;
+    const consumed = new Set();
+    let m;
+    while ((m = kvRe.exec(attrStr)) !== null) {
+      const key = m[1];
+      const value = m[2] !== undefined ? m[2].replace(/\\"/g, '"').replace(/\\\\/g, '\\') : m[3];
+      attrs[key] = value;
+      consumed.add(m.index);
+    }
+    // Then find bare boolean flags (words not followed by :)
+    const boolFlags = ['bidi', 'keepnext'];
+    const wordRe = /\b(\w[\w-]*)\b/g;
+    while ((m = wordRe.exec(attrStr)) !== null) {
+      if (boolFlags.includes(m[1]) && !consumed.has(m.index)) {
+        const afterPos = m.index + m[1].length;
+        if (afterPos >= attrStr.length || attrStr[afterPos] !== ':') {
+          attrs[m[1]] = true;
+        }
+      }
     }
     return attrs;
   }

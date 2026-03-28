@@ -14,10 +14,18 @@
   "keywords": ["docx", "ooxml", "tracked-changes", "academic", "manuscript", "document-editing", "comments", "figures", "tables"],
   "author": "Fabio Votta <fabio.votta@gmail.com>",
   "license": "MIT",
+  "homepage": "https://favstats.github.io/docex/",
   "repository": {
     "type": "git",
     "url": "https://github.com/favstats/docex.git"
   },
+  "files": [
+    "src/",
+    "cli/",
+    "presets/",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=18.0.0"
   }

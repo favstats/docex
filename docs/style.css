@@ -1484,20 +1484,8 @@ tr:hover td { background: var(--accent-glow); }
   height: 100%;
 }
 .editor-highlight {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  padding: 16px 20px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--text-xs);
-  line-height: 1.65;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  pointer-events: none;
-  overflow: hidden;
-  color: transparent;
-  /* Prevent subpixel rendering differences that cause blurriness */
-  -webkit-text-size-adjust: none;
-  text-rendering: geometricPrecision;
+  /* Overlay disabled — was causing ghost text / blurry rendering */
+  display: none;
 }
 
 /* Preview pane */

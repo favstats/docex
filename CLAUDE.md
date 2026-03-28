@@ -9,7 +9,7 @@ A zero-dependency Node.js library (>=18) for programmatic .docx editing. Tracked
 ## Commands
 
 ```bash
-# Run all tests (642 tests, ~14s, uses node:test + node:assert)
+# Run all tests (667 tests, ~14s, uses node:test + node:assert)
 node --test test/*.test.js
 
 # Run a single test file

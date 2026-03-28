@@ -113,6 +113,12 @@ class DexCompiler {
         return '<w:r><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:r>'
           + '<w:r><w:footnoteReference w:id="' + (run.id || footnotes.length) + '"/></w:r>';
       }
+      if (run.type === 'comment-start') return '<w:commentRangeStart w:id="' + (run.id || 0) + '"/>';
+      if (run.type === 'comment-end') {
+        return '<w:commentRangeEnd w:id="' + (run.id || 0) + '"/>'
+          + '<w:r><w:rPr><w:rStyle w:val="CommentReference"/></w:rPr>'
+          + '<w:commentReference w:id="' + (run.id || 0) + '"/></w:r>';
+      }
       return '<w:r><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r>';
     }
 
@@ -126,9 +132,12 @@ class DexCompiler {
         const lvl = node.level || 1;
         const styleId = 'Heading' + lvl;
         const pid = node.id || genId();
+        const runsXml = node.runs
+          ? node.runs.map(buildRunXml).join('')
+          : '<w:r><w:t xml:space="preserve">' + esc(node.text) + '</w:t></w:r>';
         bodyXml += '<w:p w14:paraId="' + pid + '" w14:textId="' + genId() + '">'
           + '<w:pPr><w:pStyle w:val="' + styleId + '"/></w:pPr>'
-          + '<w:r><w:t xml:space="preserve">' + esc(node.text) + '</w:t></w:r>'
+          + runsXml
           + '</w:p>';
       } else if (node.type === 'paragraph') {
         const pid = node.id || genId();

@@ -51,11 +51,11 @@ class DexDecompiler {
       }
 
       if (level > 0) {
-        const rawText = xml.extractTextDecoded(pXml);
-        const text = rawText.replace(/\\/g, '\\\\').replace(/\{/g, '\\{').replace(/\}/g, '\\}');
+        // Use _decompileRuns for headings too, so comment anchors are preserved
+        const content = DexDecompiler._decompileRuns(pXml, footnoteMap);
         const hashes = '#'.repeat(level);
         const idAttr = paraId ? ' {id:' + paraId + '}' : '';
-        parts.push(hashes + ' ' + text + idAttr);
+        parts.push(hashes + ' ' + content + idAttr);
         parts.push('');
       } else if (hasFigure) {
         parts.push(DexDecompiler._decompileFigure(pXml, paraId, ws));
@@ -257,8 +257,19 @@ class DexDecompiler {
         const hlXml = xmlStr.slice(pos, endIdx + endTag.length);
         DexDecompiler._walkElements(hlXml.slice(hlXml.indexOf('>') + 1, hlXml.lastIndexOf('<')), parts, footnoteMap);
         pos = endIdx + endTag.length;
-      } else if (xmlStr.startsWith('<w:commentRangeStart', pos) || xmlStr.startsWith('<w:commentRangeEnd', pos) ||
-                 xmlStr.startsWith('<w:bookmarkStart', pos) || xmlStr.startsWith('<w:bookmarkEnd', pos)) {
+      } else if (xmlStr.startsWith('<w:commentRangeStart', pos)) {
+        const closeAngle = xmlStr.indexOf('>', pos);
+        const tag = xmlStr.slice(pos, closeAngle + 1);
+        const idMatch = tag.match(/w:id="(\d+)"/);
+        if (idMatch) parts.push('{comment-start id:' + idMatch[1] + '}');
+        pos = closeAngle + 1;
+      } else if (xmlStr.startsWith('<w:commentRangeEnd', pos)) {
+        const closeAngle = xmlStr.indexOf('>', pos);
+        const tag = xmlStr.slice(pos, closeAngle + 1);
+        const idMatch = tag.match(/w:id="(\d+)"/);
+        if (idMatch) parts.push('{comment-end id:' + idMatch[1] + '}');
+        pos = closeAngle + 1;
+      } else if (xmlStr.startsWith('<w:bookmarkStart', pos) || xmlStr.startsWith('<w:bookmarkEnd', pos)) {
         const closeAngle = xmlStr.indexOf('>', pos);
         pos = closeAngle + 1;
       } else {

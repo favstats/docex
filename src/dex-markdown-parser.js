@@ -79,7 +79,12 @@ class DexParser {
       const trimmed = lines[i].trim();
       if (trimmed === '') { i++; continue; }
       const headingMatch = trimmed.match(/^(#{1,6})\s+(.*?)(?:\s+\{id:([A-Fa-f0-9]+)\})?$/);
-      if (headingMatch) { nodes.push({ type: 'heading', level: headingMatch[1].length, text: headingMatch[2].trim(), id: headingMatch[3] || null }); i++; continue; }
+      if (headingMatch) {
+        const headingText = headingMatch[2].trim();
+        const hasInlineTags = /\{(comment-start|comment-end|del|ins|b|i|u|footnote)\b/.test(headingText);
+        nodes.push({ type: 'heading', level: headingMatch[1].length, text: headingText, id: headingMatch[3] || null, runs: hasInlineTags ? DexParser._parseInlineContent(headingText) : null });
+        i++; continue;
+      }
       if (trimmed === '{pagebreak}') { nodes.push({ type: 'pagebreak' }); i++; continue; }
       const sectionMatch = trimmed.match(/^\{section\s+(.*)\}$/);
       if (sectionMatch) { const attrs = DexParser._parseBlockAttrs(sectionMatch[1]); nodes.push({ type: 'section', margins: attrs.margins || '', header: attrs.header || '', footer: attrs.footer || '' }); i++; continue; }
@@ -204,6 +209,19 @@ class DexParser {
       fontName = DexParser._unquote(fontName);
       const closeIdx = content.indexOf('{/font}', closeAngle + 1); if (closeIdx === -1) return null;
       return { node: { type: 'font', font: fontName, text: content.slice(closeAngle + 1, closeIdx) }, endPos: closeIdx + '{/font}'.length };
+    }
+    // Comment range markers (inline anchors for comments)
+    if (content.startsWith('{comment-start ', pos)) {
+      const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
+      const attrStr = content.slice(pos + '{comment-start '.length, closeAngle).trim();
+      const attrs = DexParser._parseBlockAttrs(attrStr);
+      return { node: { type: 'comment-start', id: parseInt(attrs.id, 10) || 0 }, endPos: closeAngle + 1 };
+    }
+    if (content.startsWith('{comment-end ', pos)) {
+      const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
+      const attrStr = content.slice(pos + '{comment-end '.length, closeAngle).trim();
+      const attrs = DexParser._parseBlockAttrs(attrStr);
+      return { node: { type: 'comment-end', id: parseInt(attrs.id, 10) || 0 }, endPos: closeAngle + 1 };
     }
     return null;
   }

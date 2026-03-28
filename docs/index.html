@@ -3,195 +3,278 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>docex - LaTeX for .docx</title>
+  <title>docex — LaTeX for .docx</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;0,9..144,900;1,9..144,400&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<nav class="nav">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" role="navigation" aria-label="Main navigation">
   <div class="nav-inner">
-    <a href="index.html" class="nav-logo">doc<span>ex</span></a>
-    <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="playground.html">Playground</a>
-      <a href="examples.html">Examples</a>
-      <a href="api.html">API</a>
-      <a href="cli.html">CLI</a>
-      <a href="dex-format.html">.dex Format</a>
-      <a href="vision.html">Vision</a>
+    <a href="index.html" class="nav-logo" aria-label="docex home">doc<span>ex</span></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+    <div class="nav-links" role="menubar">
+      <a href="index.html" role="menuitem">Home</a>
+      <a href="playground.html" role="menuitem">Playground</a>
+      <a href="examples.html" role="menuitem">Examples</a>
+      <a href="api.html" role="menuitem">API</a>
+      <a href="cli.html" role="menuitem">CLI</a>
+      <a href="dex-format.html" role="menuitem">.dex Format</a>
+      <a href="vision.html" role="menuitem">Vision</a>
     </div>
   </div>
 </nav>
 
+<main id="main">
 <div class="container">
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="hero-title">doc<span>ex</span></div>
-    <div class="hero-tagline">LaTeX for .docx</div>
-    <p class="hero-desc">
-      Edit Word documents with code. Convert .docx to plain text and back with zero data loss.
+  <!-- ================================================================
+       HERO
+       ================================================================ -->
+  <section class="hero" aria-label="Introduction">
+    <div class="hero-eyebrow reveal">zero dependencies &middot; 648 tests &middot; MIT license</div>
+    <h1 class="hero-title reveal reveal-delay-1">doc<span>ex</span></h1>
+    <p class="hero-desc reveal reveal-delay-2">
+      Edit Word documents with code. Convert .docx to plain text and back with zero data loss. Built for academic manuscripts, works on any .docx.
     </p>
-    <div class="hero-buttons">
-      <a href="playground.html" class="btn btn-primary">Try it now</a>
-      <a href="https://github.com/favstats/docex" class="btn btn-secondary">GitHub</a>
-    </div>
-    <div class="hero-install">
-      <code>git clone https://github.com/favstats/docex.git</code>
+    <div class="hero-actions reveal reveal-delay-3">
+      <a href="playground.html" class="btn btn-primary">Try the playground</a>
+      <a href="https://github.com/favstats/docex" class="btn btn-secondary">View on GitHub</a>
     </div>
 
-    <div class="stats">
-      <div class="stat">
-        <span class="stat-number">648</span>
-        <span class="stat-label">Tests</span>
+    <!-- Hero demo: live .dex editor to rendered preview -->
+    <div class="hero-demo reveal reveal-delay-4" role="img" aria-label="Live demonstration of .dex format showing code on the left and rendered document on the right">
+      <div class="hero-demo-bar">
+        <span class="hero-demo-dot"></span>
+        <span class="hero-demo-dot"></span>
+        <span class="hero-demo-dot"></span>
+        <span class="hero-demo-title">manuscript.dex &rarr; document preview</span>
       </div>
-      <div class="stat">
-        <span class="stat-number">47</span>
-        <span class="stat-label">Modules</span>
-      </div>
-      <div class="stat">
-        <span class="stat-number">21K</span>
-        <span class="stat-label">Lines</span>
-      </div>
-      <div class="stat">
-        <span class="stat-number">0</span>
-        <span class="stat-label">Dependencies</span>
+      <div class="hero-demo-panes">
+        <div class="hero-demo-editor" id="heroDexCode" aria-label=".dex source code"></div>
+        <div class="hero-demo-preview" id="heroDexPreview" aria-label="Rendered document preview"></div>
       </div>
     </div>
   </section>
 
-  <!-- Feature Cards -->
-  <section class="section">
-    <div class="card-grid">
-      <div class="card">
-        <span class="card-icon">&#9998;</span>
-        <h3>Edit</h3>
-        <p>Replace text, add comments, format paragraphs, insert figures and tables. Every edit shows as a tracked change in Word, attributed to whoever you want.</p>
+  <!-- ================================================================
+       HOW IT WORKS
+       ================================================================ -->
+  <section class="section reveal" aria-label="How it works">
+    <div class="section-label">How it works</div>
+    <h2>Your document, three ways</h2>
+    <p>Collaborators use Word. You use a text editor. Git tracks every change. docex bridges all three.</p>
+    <div class="workflow-diagram" role="img" aria-label="Workflow: .docx converts to .dex plain text, which can be version-controlled with git">
+      <div class="workflow-node reveal reveal-delay-1">
+        <span class="workflow-node-ext">.docx</span>
+        <span class="workflow-node-label">Word document</span>
       </div>
-      <div class="card">
-        <span class="card-icon">&#8644;</span>
-        <h3>Convert</h3>
-        <p>Decompile any .docx to the <code>.dex</code> plain text format. Edit it in vim, VS Code, or any text editor. Compile back to .docx with zero data loss.</p>
+      <span class="workflow-arrow" aria-hidden="true">&harr;</span>
+      <div class="workflow-node reveal reveal-delay-2">
+        <span class="workflow-node-ext">.dex</span>
+        <span class="workflow-node-label">plain text</span>
       </div>
-      <div class="card">
-        <span class="card-icon">&#10003;</span>
-        <h3>Verify</h3>
-        <p>Round-trip fidelity guaranteed. Every font, color, comment, tracked change, footnote, and formatting detail survives the .docx to .dex to .docx cycle.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Workflow Diagram -->
-  <section class="section">
-    <h2>How it works</h2>
-    <div class="workflow-diagram">
-      <div class="workflow-row">
-        <div class="workflow-node">
-          <span class="workflow-node-title">.docx</span>
-          <span class="workflow-node-sub">Word document</span>
-        </div>
-        <span class="workflow-arrow">&harr;</span>
-        <div class="workflow-node">
-          <span class="workflow-node-title">.dex</span>
-          <span class="workflow-node-sub">plain text</span>
-        </div>
-        <span class="workflow-arrow">&harr;</span>
-        <div class="workflow-node">
-          <span class="workflow-node-title">git</span>
-          <span class="workflow-node-sub">version control</span>
-        </div>
-      </div>
-      <div class="workflow-labels">
-        <div class="workflow-label">collaborators</div>
-        <div class="workflow-label">you / AI agent</div>
-        <div class="workflow-label">track changes</div>
+      <span class="workflow-arrow" aria-hidden="true">&harr;</span>
+      <div class="workflow-node reveal reveal-delay-3">
+        <span class="workflow-node-ext">git</span>
+        <span class="workflow-node-label">version control</span>
       </div>
     </div>
   </section>
 
-  <!-- Quick example -->
-  <section class="section">
-    <h2>One-minute demo</h2>
-    <p>Respond to peer review in 3 commands:</p>
-    <pre><code># Replace a number (shows as tracked change in Word)
-docex replace paper.docx "12,847" "300,000" --author "Alex"
+  <!-- ================================================================
+       ONE-MINUTE DEMO — code + rendered output
+       ================================================================ -->
+  <section class="section" aria-label="Quick demo">
+    <div class="section-label reveal">One-minute demo</div>
+    <h2 class="reveal">Respond to peer review in 3 commands</h2>
 
-# Add a comment to a phrase
-docex comment paper.docx "digital wellbeing" "Added Johnson 2022" --by "Alex"
+    <!-- Example 1: Replace text with tracked change -->
+    <div class="code-output reveal">
+      <div class="code-output-code">
+        <div class="code-output-label">Command</div>
+        <pre><code>docex replace paper.docx "268,635" "300,000" --author "Fabio"</code></pre>
+      </div>
+      <div class="code-output-result">
+        <div class="result-label">What it looks like in Word</div>
+        <p style="font-family:'Fraunces','Georgia',serif; margin:0; font-size:14px; line-height:1.8; text-indent:0">
+          We analyzed <span class="output-tracked-del">268,635</span><span class="output-tracked-ins">300,000</span> political ads from the Meta Ad Library covering the 2024 election cycle.
+        </p>
+      </div>
+    </div>
 
-# Format for Political Communication journal
-docex style paper.docx --preset polcomm</code></pre>
+    <!-- Example 2: Add a comment -->
+    <div class="code-output reveal">
+      <div class="code-output-code">
+        <div class="code-output-label">Command</div>
+        <pre><code>docex comment paper.docx "platform governance" \
+  "Added Suzor 2019 citation" --by "Fabio"</code></pre>
+      </div>
+      <div class="code-output-result">
+        <div class="result-label">What it looks like in Word</div>
+        <p style="font-family:'Fraunces','Georgia',serif; margin:0 0 8px; font-size:14px; line-height:1.8; text-indent:0">
+          ...challenges to <span style="background:#fef3c7;border-bottom:2px solid #d97706;padding:1px 2px">platform governance</span> in the European context.
+        </p>
+        <span class="output-comment"><strong>Fabio:</strong> Added Suzor 2019 citation</span>
+      </div>
+    </div>
 
-    <p>Or use the JavaScript API:</p>
-    <pre><code>const docex = require('./src/docex');
-const doc = docex("paper.docx");
-doc.author("Alex Chen");
+    <!-- Example 3: Apply journal style -->
+    <div class="code-output reveal">
+      <div class="code-output-code">
+        <div class="code-output-label">Command</div>
+        <pre><code>docex style paper.docx --preset polcomm</code></pre>
+      </div>
+      <div class="code-output-result">
+        <div class="result-label">What it looks like in Word</div>
+        <div style="font-family:'Fraunces','Georgia',serif; font-size:13px; line-height:1.6">
+          <div style="text-align:center; margin-bottom:16px">
+            <div style="font-size:11px; color:#78716c; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px">Political Communication</div>
+            <div style="font-size:16px; font-weight:700; color:#0c0a09">Platform Governance and Ad Transparency</div>
+            <div style="font-size:12px; color:#78716c; margin-top:4px">Fabio Votta</div>
+          </div>
+          <div style="border-top:1px solid #d6d3d1; padding-top:12px; text-align:justify; text-indent:1.5em">
+            This study examines the regulatory challenges facing political advertising on social media platforms...
+          </div>
+        </div>
+      </div>
+    </div>
 
-doc.replace("measurement validity", "regulatory gap");
-doc.at("digital wellbeing").comment("Added Johnson 2022 citation");
-doc.after("Methods").insert("We used a mixed-methods approach.");
+    <!-- JS API version -->
+    <h3 class="reveal" style="margin-top:2rem">Or use the JavaScript API:</h3>
+    <div class="code-output reveal">
+      <div class="code-output-code">
+        <div class="code-output-label">Code</div>
+        <pre><code>const doc = docex("paper.docx");
+doc.author("Fabio Votta");
+
+doc.replace("enforcement gap", "regulatory gap");
+doc.at("platform governance")
+   .comment("Added Suzor 2019 citation");
+doc.after("Methods")
+   .insert("We used a mixed-methods approach.");
 
 await doc.save();</code></pre>
+      </div>
+      <div class="code-output-result">
+        <div class="result-label">Result in Word</div>
+        <div style="font-family:'Fraunces','Georgia',serif; font-size:13px; line-height:1.75">
+          <p style="margin:0 0 8px; text-indent:0">...the <span class="output-tracked-del">enforcement gap</span><span class="output-tracked-ins">regulatory gap</span> remains a key challenge in <span style="background:#fef3c7;border-bottom:2px solid #d97706;padding:1px 2px">platform governance</span>.</p>
+          <span class="output-comment"><strong>Fabio Votta:</strong> Added Suzor 2019 citation</span>
+          <p style="margin:12px 0 0; border-left:3px solid #4ade80; padding-left:12px; color:#15803d; font-size:12px; text-indent:0"><em>Inserted after Methods:</em></p>
+          <p style="margin:4px 0 0; text-indent:0">We used a mixed-methods approach.</p>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <!-- The .dex format teaser -->
-  <section class="section">
-    <h2>The .dex format</h2>
-    <p>Every .docx becomes readable plain text. Every detail is preserved.</p>
-    <pre><code>---
-docex: "0.4.0"
-authors:
-  - name: "Un-named"
----
+  <!-- ================================================================
+       THE .DEX FORMAT — side-by-side showcase
+       ================================================================ -->
+  <section class="section" aria-label="The .dex format">
+    <div class="section-label reveal">The .dex format</div>
+    <h2 class="reveal">Every .docx becomes readable plain text</h2>
+    <p class="reveal">Every font, color, comment, tracked change, footnote, and formatting detail survives the round trip. Nothing is lost.</p>
 
-# QUARTERLY Strategic SYNERGY Report {id:BABCF972}
+    <div class="dex-showcase reveal">
+      <div class="dex-showcase-code">
+        <div class="code-output-label" style="margin-bottom:16px">.dex source</div>
+<pre style="border:none;margin:0;padding:0;background:none"><code><span class="sh-front">---</span>
+<span class="sh-front">docex: "0.4.0"</span>
+<span class="sh-front">authors:</span>
+<span class="sh-front">  - name: "The Intern"</span>
+<span class="sh-front">---</span>
 
-{p id:9E7DD00E}
-{font "Lucida Handwriting"}{color 999999}Version 47.3b (DRAFT){/color}{/font}
-{/p}
+<span class="sh-heading"># QUARTERLY Strategic SYNERGY Report</span> <span class="sh-id">{id:BABCF972}</span>
 
-{comment id:0 by:"The Intern" date:"2024-05-13T22:00:00.000Z"}
+<span class="sh-id">{p id:9E7DD00E}</span>
+<span class="sh-font">{font "Lucida Handwriting"}{color 999999}</span>Version 47.3b (DRAFT)<span class="sh-font">{/color}{/font}</span>
+<span class="sh-id">{/p}</span>
+
+<span class="sh-pagebreak">{pagebreak}</span>
+
+<span class="sh-heading">### Executive Summary</span> <span class="sh-id">{id:043C8211}</span>
+
+<span class="sh-comment">{comment id:0 by:"The Intern"}</span>
 WHO WROTE THIS???
-{/comment}</code></pre>
-    <p><a href="dex-format.html">Read the full .dex specification &rarr;</a></p>
+<span class="sh-comment">{/comment}</span></code></pre>
+      </div>
+      <div class="dex-showcase-render">
+        <div class="result-label" style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#78716c;margin-bottom:16px;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:#4ade80;display:inline-block"></span> Rendered document</div>
+        <h1 style="font-size:1.2rem;margin-bottom:12px;border-bottom:none;padding-bottom:0">QUARTERLY Strategic SYNERGY Report</h1>
+        <p style="font-family:'Fraunces',serif;font-style:italic;color:#78716c;font-size:13px;margin-bottom:16px;text-indent:0">Version 47.3b (DRAFT)</p>
+        <hr style="border:none;border-top:2px dashed #d6d3d1;margin:16px 0">
+        <h3 style="font-size:1rem;margin-bottom:8px">Executive Summary</h3>
+        <div style="background:#fef3c7;border-left:3px solid #d97706;padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;color:#92400e;font-style:italic;margin-top:8px">
+          <strong style="font-style:normal;color:#78350f;font-size:10px;text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:2px">The Intern</strong>
+          WHO WROTE THIS???
+        </div>
+      </div>
+    </div>
+
+    <p class="reveal" style="margin-top:1rem">
+      <a href="dex-format.html">Read the full .dex specification &rarr;</a>
+    </p>
   </section>
 
-  <!-- What you can do -->
-  <section class="section">
-    <h2>Everything you need</h2>
-    <div class="card-grid">
-      <div class="card">
-        <h3>Text editing</h3>
-        <p>Replace, insert, delete, bold, italic, underline, highlight, color, strikethrough, superscript, subscript, small caps.</p>
+  <!-- ================================================================
+       FEATURES — cell grid (not identical cards)
+       ================================================================ -->
+  <section class="section" aria-label="Features">
+    <div class="section-label reveal">Everything you need</div>
+    <h2 class="reveal">48 modules. Zero dependencies.</h2>
+
+    <div class="features-grid reveal">
+      <div class="feature-cell">
+        <span class="feature-tag">Editing</span>
+        <h3>Text &amp; formatting</h3>
+        <p>Replace, insert, delete, bold, italic, underline, highlight, color, strikethrough, superscript, subscript, small caps, code formatting.</p>
       </div>
-      <div class="card">
+      <div class="feature-cell">
+        <span class="feature-tag">Review</span>
         <h3>Comments</h3>
-        <p>Add comments anchored to text, reply to existing comments, list and export all comments. Manages all 5 OOXML comment files.</p>
+        <p>Add comments anchored to text, reply to existing comments, resolve, export. Manages all 5 OOXML comment files automatically.</p>
       </div>
-      <div class="card">
+      <div class="feature-cell">
+        <span class="feature-tag">Review</span>
         <h3>Tracked changes</h3>
-        <p>Every edit is tracked by default. Accept or reject changes individually or in bulk. Compare two document versions.</p>
+        <p>Every edit is tracked by default. Accept or reject changes individually or in bulk. Compare two document versions with diff.</p>
       </div>
-      <div class="card">
-        <h3>Figures and tables</h3>
-        <p>Insert images with auto-dimensions. Create tables with booktabs styling. Bullet and numbered lists.</p>
+      <div class="feature-cell">
+        <span class="feature-tag">Media</span>
+        <h3>Figures &amp; tables</h3>
+        <p>Insert images with auto-dimensions and relationship management. Create tables with booktabs styling. Bullet and numbered lists.</p>
       </div>
-      <div class="card">
+      <div class="feature-cell">
+        <span class="feature-tag">Academic</span>
         <h3>Journal styles</h3>
-        <p>Built-in presets for Political Communication, APA 7, JCMC, JoC. Sets fonts, margins, spacing, and headers.</p>
+        <p>Built-in presets for Political Communication, APA 7, JCMC, JoC. Sets fonts, margins, spacing, and headers automatically.</p>
       </div>
-      <div class="card">
-        <h3>Academic tools</h3>
+      <div class="feature-cell">
+        <span class="feature-tag">Academic</span>
+        <h3>Submission tools</h3>
         <p>Word count, anonymize for blind review, Zotero citation injection, response letter generation, submission validation.</p>
       </div>
     </div>
   </section>
 
-  <!-- MCP -->
-  <section class="section">
-    <h2>AI agent ready</h2>
-    <p>docex includes an MCP server so Claude, GPT, or any MCP-compatible AI agent can edit Word documents directly.</p>
-    <pre><code>{
+  <!-- ================================================================
+       MCP / AI AGENT
+       ================================================================ -->
+  <section class="section" aria-label="AI agent integration">
+    <div class="section-label reveal">AI-ready</div>
+    <h2 class="reveal">Let Claude edit your manuscript</h2>
+    <p class="reveal">docex includes an MCP server. Any MCP-compatible AI agent can open a .docx, make tracked changes, add comments, and save.</p>
+
+    <div class="code-output reveal">
+      <div class="code-output-code">
+        <div class="code-output-label">MCP config</div>
+        <pre><code>{
   "mcpServers": {
     "docex": {
       "command": "node",
@@ -199,15 +282,215 @@ WHO WROTE THIS???
     }
   }
 }</code></pre>
-    <p>The agent calls replace, comment, insert, figure, style, verify, decompile, compile, and more. The result is a properly formatted .docx with tracked changes.</p>
+      </div>
+      <div class="code-output-result">
+        <div class="result-label">What the agent can do</div>
+        <div style="font-family:'Inter',sans-serif; font-size:13px; line-height:1.8">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:#4ade80">&#10003;</span> Replace text with tracked changes</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:#4ade80">&#10003;</span> Add reviewer comments and replies</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:#4ade80">&#10003;</span> Insert figures, tables, footnotes</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:#4ade80">&#10003;</span> Apply journal formatting presets</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:#4ade80">&#10003;</span> Decompile/compile .dex round-trips</div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="color:#4ade80">&#10003;</span> Validate for submission</div>
+        </div>
+      </div>
+    </div>
   </section>
 
 </div>
+</main>
 
-<footer class="footer">
-  <p>docex is MIT licensed. <a href="https://github.com/favstats/docex">View on GitHub</a></p>
+<footer class="footer" role="contentinfo">
+  <div class="footer-inner">
+    <div class="footer-brand">doc<span>ex</span></div>
+    <div class="footer-links">
+      <a href="https://github.com/favstats/docex">GitHub</a>
+      <a href="api.html">API Docs</a>
+      <a href="cli.html">CLI Reference</a>
+      <a href="playground.html">Playground</a>
+      <a href="dex-format.html">.dex Spec</a>
+    </div>
+  </div>
+  <div class="footer-copy">MIT License &middot; Built for academic workflows</div>
 </footer>
 
 <script src="script.js"></script>
+<script>
+// Hero demo typing animation and scroll reveals.
+// All content is hardcoded static strings — no user input is rendered.
+(function() {
+  'use strict';
+
+  // -- Scroll reveal --
+  var reveals = document.querySelectorAll('.reveal');
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(function(el) { observer.observe(el); });
+
+  // -- Mobile nav toggle --
+  var toggle = document.querySelector('.nav-toggle');
+  var navLinks = document.querySelector('.nav-links');
+  if (toggle) {
+    toggle.addEventListener('click', function() {
+      var isOpen = navLinks.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(isOpen));
+    });
+  }
+
+  // -- Hero demo: animated typing of static .dex content --
+  var heroDex = [
+    '---',
+    'docex: "0.4.0"',
+    'authors:',
+    '  - name: "Fabio Votta"',
+    '---',
+    '',
+    '# Platform Governance and Ad Transparency',
+    '',
+    '{p id:3A7F2B1C}',
+    'We analyzed {b}300,000{/b} political ads from the',
+    'Meta Ad Library covering the 2024 election cycle.',
+    '{/p}',
+    '',
+    '### Methods',
+    '',
+    '{p id:7E011118}',
+    '{del by:"Fabio"}enforcement gap{/del}',
+    '{ins by:"Fabio"}regulatory gap{/ins}',
+    '{/p}',
+    '',
+    '{comment id:0 by:"Reviewer 2"}',
+    'Needs more recent citation here.',
+    '{/comment}',
+    '',
+    '{reply id:0 by:"Fabio Votta"}',
+    'Added Suzor 2019.',
+    '{/reply}',
+  ];
+
+  var heroCodeEl = document.getElementById('heroDexCode');
+  var heroPreviewEl = document.getElementById('heroDexPreview');
+
+  function hlLine(line) {
+    var s = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (s === '---') return '<span class="sh-front">---</span>';
+    if (/^(docex|authors|  - name):/.test(s)) return '<span class="sh-front">' + s + '</span>';
+    if (/^#{1,6}\s/.test(s)) return '<span class="sh-heading">' + s + '</span>';
+    if (/^\{(comment|reply)\b/.test(s)) return '<span class="sh-comment">' + s + '</span>';
+    if (/^\{\/(comment|reply)\}/.test(s)) return '<span class="sh-comment">' + s + '</span>';
+    if (/^\{p\b/.test(s) || s === '{/p}') return '<span class="sh-id">' + s + '</span>';
+    if (/\{del\b/.test(s)) return s.replace(/(\{del[^}]*\})/g, '<span class="sh-del">$1</span>').replace(/(\{\/del\})/g, '<span class="sh-del">$1</span>');
+    if (/\{ins\b/.test(s)) return s.replace(/(\{ins[^}]*\})/g, '<span class="sh-ins">$1</span>').replace(/(\{\/ins\})/g, '<span class="sh-ins">$1</span>');
+    return s.replace(/(\{\/?(b)\})/g, '<span class="sh-tag">$1</span>');
+  }
+
+  function buildPreview() {
+    // Static hardcoded preview HTML (no user input)
+    var container = document.createElement('div');
+    var h1 = document.createElement('h1');
+    h1.style.cssText = 'font-size:1.1rem;margin-bottom:10px;border-bottom:none;padding:0;color:#0c0a09;line-height:1.3';
+    h1.textContent = 'Platform Governance and Ad Transparency';
+    container.appendChild(h1);
+
+    var p1 = document.createElement('p');
+    p1.style.cssText = 'margin:0 0 10px;text-indent:0;font-size:13px;line-height:1.75;text-align:justify';
+    p1.textContent = 'We analyzed ';
+    var bold = document.createElement('strong');
+    bold.textContent = '300,000';
+    p1.appendChild(bold);
+    p1.appendChild(document.createTextNode(' political ads from the Meta Ad Library covering the 2024 election cycle.'));
+    container.appendChild(p1);
+
+    var h3 = document.createElement('h3');
+    h3.style.cssText = 'font-size:0.95rem;margin:16px 0 8px;color:#292524';
+    h3.textContent = 'Methods';
+    container.appendChild(h3);
+
+    var p2 = document.createElement('p');
+    p2.style.cssText = 'margin:0 0 10px;text-indent:0;font-size:13px;line-height:1.75;text-align:justify';
+    var del = document.createElement('span');
+    del.className = 'output-tracked-del';
+    del.textContent = 'enforcement gap';
+    var ins = document.createElement('span');
+    ins.className = 'output-tracked-ins';
+    ins.textContent = 'regulatory gap';
+    p2.appendChild(del);
+    p2.appendChild(ins);
+    container.appendChild(p2);
+
+    var c1 = document.createElement('div');
+    c1.style.cssText = 'background:#fef3c7;border-left:3px solid #d97706;padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;color:#92400e;font-style:italic;margin:8px 0';
+    var c1a = document.createElement('strong');
+    c1a.style.cssText = 'font-style:normal;color:#78350f;font-size:10px;text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:2px';
+    c1a.textContent = 'Reviewer 2';
+    c1.appendChild(c1a);
+    c1.appendChild(document.createTextNode('Needs more recent citation here.'));
+    container.appendChild(c1);
+
+    var c2 = document.createElement('div');
+    c2.style.cssText = 'background:#fef3c7;border-left:3px solid #d97706;padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;color:#92400e;font-style:italic;margin:8px 0 8px 20px';
+    var c2a = document.createElement('strong');
+    c2a.style.cssText = 'font-style:normal;color:#78350f;font-size:10px;text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:2px';
+    c2a.textContent = 'Fabio Votta (reply)';
+    c2.appendChild(c2a);
+    c2.appendChild(document.createTextNode('Added Suzor 2019.'));
+    container.appendChild(c2);
+
+    return container;
+  }
+
+  if (heroCodeEl && heroPreviewEl) {
+    var currentLine = 0;
+    var codeLines = [];
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reducedMotion) {
+      // Show everything immediately using safe DOM construction
+      var pre = document.createElement('pre');
+      pre.style.cssText = 'margin:0;padding:0;background:none;border:none';
+      var code = document.createElement('code');
+      // hlLine output is from static hardcoded strings only, safe for this context
+      code.innerHTML = heroDex.map(hlLine).join('\n');
+      pre.appendChild(code);
+      heroCodeEl.appendChild(pre);
+      heroPreviewEl.appendChild(buildPreview());
+    } else {
+      while (heroPreviewEl.firstChild) heroPreviewEl.removeChild(heroPreviewEl.firstChild);
+
+      function typeLine() {
+        if (currentLine >= heroDex.length) {
+          setTimeout(function() {
+            heroPreviewEl.style.opacity = '0';
+            heroPreviewEl.appendChild(buildPreview());
+            heroPreviewEl.style.transition = 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+            heroPreviewEl.offsetHeight;
+            heroPreviewEl.style.opacity = '1';
+          }, 300);
+          return;
+        }
+        codeLines.push(hlLine(heroDex[currentLine]));
+        // Rebuild code display - content is from static heroDex array only
+        var pre = document.createElement('pre');
+        pre.style.cssText = 'margin:0;padding:0;background:none;border:none';
+        var codeEl = document.createElement('code');
+        codeEl.innerHTML = codeLines.join('\n');
+        pre.appendChild(codeEl);
+        while (heroCodeEl.firstChild) heroCodeEl.removeChild(heroCodeEl.firstChild);
+        heroCodeEl.appendChild(pre);
+        currentLine++;
+        var delay = heroDex[currentLine - 1] === '' ? 40 : 65;
+        setTimeout(typeLine, delay);
+      }
+      setTimeout(typeLine, 800);
+    }
+  }
+
+})();
+</script>
 </body>
 </html>

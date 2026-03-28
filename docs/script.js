@@ -274,9 +274,37 @@ function initActiveNav() {
   });
 }
 
+// ---------- Mobile nav toggle (for pages using shared script) ----------
+function initMobileNav() {
+  const toggle = document.querySelector('.nav-toggle');
+  const navLinks = document.querySelector('.nav-links');
+  if (toggle && navLinks) {
+    toggle.addEventListener('click', function() {
+      const isOpen = navLinks.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(isOpen));
+    });
+  }
+}
+
+// ---------- Scroll reveal (for pages using shared script) ----------
+function initScrollReveal() {
+  const reveals = document.querySelectorAll('.reveal');
+  if (reveals.length === 0) return;
+  const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(function(el) { observer.observe(el); });
+}
+
 // ---------- Init ----------
 document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initCopyButtons();
   initActiveNav();
+  initMobileNav();
+  initScrollReveal();
 });

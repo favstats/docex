@@ -68,6 +68,44 @@ iVBORw0KGgoAAAANSUhEUgAA...
 - untouched XML is never normalized or reserialized
 - zip container metadata is not preserved; package contents are
 
+## Semantic Layer
+
+The current authoring layer is strict and limited on purpose. It targets
+document paragraphs by guide index and fails loudly if expectations no longer
+match.
+
+```text
+\replace-paragraph[index="0007", expectedText="Old paragraph text"]
+<<<TEXT
+New paragraph text.
+TEXT
+\end{replace-paragraph}
+
+\insert-paragraph-after[index="0003", expectedText="Methods", expectedStyle="Heading1"]
+<<<TEXT
+Inserted paragraph after the heading.
+TEXT
+\end{insert-paragraph-after}
+
+\insert-paragraph-before[index="0005", expectedText="Results", expectedStyle="Heading1"]
+<<<TEXT
+Inserted paragraph before the heading.
+TEXT
+\end{insert-paragraph-before}
+
+\delete-paragraph[index="0007", expectedText="Discussion", expectedStyle="Heading1"]
+\end{delete-paragraph}
+```
+
+Rules:
+
+- paragraph indices come from the `document-paragraphs` guide
+- transforms apply sequentially in file order
+- `expectedText` and `expectedStyle` are optional but strongly recommended
+- paragraph transforms currently target `word/document.xml`
+- replacing a paragraph preserves its existing paragraph properties unless a new
+  `style` is supplied
+
 ## Editing Loop
 
 After hand-editing a `.dedocs` file, run:

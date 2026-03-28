@@ -7,6 +7,29 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js"></script>
+  <style>
+    #docxPreviewPane { padding: 0 !important; }
+    #docxPreviewPane .docx-wrapper { background: #f5f5f5 !important; padding: 10px !important; }
+    #docxPreviewPane .docx-wrapper > section.docx {
+      margin: 0 auto 10px auto !important;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15) !important;
+      transform-origin: top center;
+      max-width: 100% !important;
+      width: auto !important;
+    }
+    /* Scale the page to fit the pane */
+    #docxPreviewPane .docx-wrapper {
+      zoom: 0.5;
+      -moz-transform: scale(0.5);
+      -moz-transform-origin: top left;
+    }
+    @media (min-width: 1400px) {
+      #docxPreviewPane .docx-wrapper { zoom: 0.6; }
+    }
+    @media (min-width: 1800px) {
+      #docxPreviewPane .docx-wrapper { zoom: 0.75; }
+    }
+  </style>
 </head>
 <body>
 
@@ -212,8 +235,8 @@ function handleFile(file) {
       renderEndnotes: true,
       renderChanges: true,
       renderComments: true,
-      ignoreWidth: false,
-      ignoreHeight: false
+      ignoreWidth: true,
+      ignoreHeight: true
     }).then(function() {
       statusEl.textContent += ' | Preview rendered';
     }).catch(function(err) {

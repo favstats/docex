@@ -114,7 +114,16 @@ function normalizePackage(pkg, opts = {}) {
   };
 
   if (opts.regenerateGuides !== false) {
-    normalized.guides = createGuides(normalized);
+    const guideSource = opts.previewTransforms === false
+      ? normalized
+      : applyTransforms({
+          ...normalized,
+          parts: normalized.parts.map(part => ({
+            ...part,
+            buffer: Buffer.from(part.buffer),
+          })),
+        });
+    normalized.guides = createGuides(guideSource);
   } else {
     normalized.guides = Array.isArray(pkg.guides) ? pkg.guides.map(guide => ({ ...guide })) : [];
   }

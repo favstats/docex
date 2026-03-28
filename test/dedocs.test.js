@@ -125,6 +125,108 @@ describe('dedocs format', () => {
     ]);
   });
 
+  it('serializes and applies replace-paragraph transforms', () => {
+    const pkg = parsePackage(dedocsFromDocx(FIXTURE, { source: 'test-manuscript.docx' }), {
+      strictMetadata: true,
+    });
+
+    pkg.transforms = [{
+      type: 'replace-paragraph',
+      index: '0001',
+      expectedText: 'This is the first paragraph of the introduction. It contains some text about platform governance and political advertising.',
+      text: 'This paragraph was rewritten through the semantic dedocs paragraph layer.',
+    }];
+
+    const transformedPkg = applyTransforms(pkg);
+    const transformedXml = transformedPkg.parts.find(part => part.path === 'word/document.xml').buffer.toString('utf8');
+    assert.match(transformedXml, /semantic dedocs paragraph layer/);
+
+    const outDocx = tmpPath('replace-paragraph.docx');
+    compileDedocsText(serializePackage(pkg), outDocx, { strictMetadata: true });
+
+    const documentXml = readDocxPart(outDocx, 'word/document.xml');
+    assert.match(documentXml, /semantic dedocs paragraph layer/);
+
+    const comparison = compareDocxPackages(FIXTURE, outDocx);
+    assert.deepEqual(comparison.diffs, [
+      { path: 'word/document.xml', type: 'content' },
+    ]);
+  });
+
+  it('serializes and applies insert-paragraph-after transforms', () => {
+    const pkg = parsePackage(dedocsFromDocx(FIXTURE, { source: 'test-manuscript.docx' }), {
+      strictMetadata: true,
+    });
+
+    pkg.transforms = [{
+      type: 'insert-paragraph-after',
+      index: '0003',
+      expectedText: 'Methods',
+      expectedStyle: 'Heading1',
+      text: 'Inserted paragraph after the Methods heading.',
+    }];
+
+    const outDocx = tmpPath('insert-paragraph.docx');
+    compileDedocsText(serializePackage(pkg), outDocx, { strictMetadata: true });
+
+    const documentXml = readDocxPart(outDocx, 'word/document.xml');
+    assert.match(documentXml, /Inserted paragraph after the Methods heading\./);
+
+    const comparison = compareDocxPackages(FIXTURE, outDocx);
+    assert.deepEqual(comparison.diffs, [
+      { path: 'word/document.xml', type: 'content' },
+    ]);
+  });
+
+  it('serializes and applies insert-paragraph-before transforms', () => {
+    const pkg = parsePackage(dedocsFromDocx(FIXTURE, { source: 'test-manuscript.docx' }), {
+      strictMetadata: true,
+    });
+
+    pkg.transforms = [{
+      type: 'insert-paragraph-before',
+      index: '0005',
+      expectedText: 'Results',
+      expectedStyle: 'Heading1',
+      text: 'Inserted paragraph before the Results heading.',
+    }];
+
+    const outDocx = tmpPath('insert-paragraph-before.docx');
+    compileDedocsText(serializePackage(pkg), outDocx, { strictMetadata: true });
+
+    const documentXml = readDocxPart(outDocx, 'word/document.xml');
+    assert.match(documentXml, /Inserted paragraph before the Results heading\./);
+
+    const comparison = compareDocxPackages(FIXTURE, outDocx);
+    assert.deepEqual(comparison.diffs, [
+      { path: 'word/document.xml', type: 'content' },
+    ]);
+  });
+
+  it('serializes and applies delete-paragraph transforms', () => {
+    const pkg = parsePackage(dedocsFromDocx(FIXTURE, { source: 'test-manuscript.docx' }), {
+      strictMetadata: true,
+    });
+
+    pkg.transforms = [{
+      type: 'delete-paragraph',
+      index: '0007',
+      expectedText: 'Discussion',
+      expectedStyle: 'Heading1',
+    }];
+
+    const outDocx = tmpPath('delete-paragraph.docx');
+    compileDedocsText(serializePackage(pkg), outDocx, { strictMetadata: true });
+
+    const documentXml = readDocxPart(outDocx, 'word/document.xml');
+    assert.doesNotMatch(documentXml, />Discussion</);
+
+    const comparison = compareDocxPackages(FIXTURE, outDocx);
+    assert.deepEqual(comparison.diffs, [
+      { path: 'word/document.xml', type: 'content' },
+    ]);
+  });
+
   it('normalizes stale metadata and regenerates guides after edits', () => {
     const original = dedocsFromDocx(FIXTURE, { source: 'test-manuscript.docx' });
     const edited = original.replace(
@@ -144,5 +246,24 @@ describe('dedocs format', () => {
     assert.deepEqual(comparison.diffs, [
       { path: 'word/document.xml', type: 'content' },
     ]);
+  });
+
+  it('normalizes guides against the transformed preview, not the raw core only', () => {
+    const pkg = parsePackage(dedocsFromDocx(FIXTURE, { source: 'test-manuscript.docx' }), {
+      strictMetadata: true,
+    });
+
+    pkg.transforms = [{
+      type: 'insert-paragraph-after',
+      index: '0003',
+      expectedText: 'Methods',
+      expectedStyle: 'Heading1',
+      text: 'Guide preview paragraph from semantic transform.',
+    }];
+
+    const normalized = normalizeDedocsText(serializePackage(pkg));
+    const reparsed = parsePackage(normalized, { strictMetadata: true });
+
+    assert.match(reparsed.guides[0].text, /Guide preview paragraph from semantic transform\./);
   });
 });

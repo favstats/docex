@@ -10,6 +10,14 @@ const PART_COMMAND = '\\part';
 const END_PART_COMMAND = '\\end{part}';
 const REPLACE_TEXT_COMMAND = '\\replace-text';
 const END_REPLACE_TEXT_COMMAND = '\\end{replace-text}';
+const REPLACE_PARAGRAPH_COMMAND = '\\replace-paragraph';
+const END_REPLACE_PARAGRAPH_COMMAND = '\\end{replace-paragraph}';
+const INSERT_PARAGRAPH_AFTER_COMMAND = '\\insert-paragraph-after';
+const END_INSERT_PARAGRAPH_AFTER_COMMAND = '\\end{insert-paragraph-after}';
+const INSERT_PARAGRAPH_BEFORE_COMMAND = '\\insert-paragraph-before';
+const END_INSERT_PARAGRAPH_BEFORE_COMMAND = '\\end{insert-paragraph-before}';
+const DELETE_PARAGRAPH_COMMAND = '\\delete-paragraph';
+const END_DELETE_PARAGRAPH_COMMAND = '\\end{delete-paragraph}';
 const END_DOC_COMMAND = '\\end{dedocs}';
 
 function sha256(buffer) {
@@ -246,6 +254,11 @@ function readLabelBlock(lines, text, lineIndex, openLabel, closeLabel, label) {
   };
 }
 
+function parseTextTransform(lines, text, lineIndex, transformName) {
+  const textBlock = readLabelBlock(lines, text, lineIndex, '<<<TEXT', 'TEXT', transformName);
+  return textBlock;
+}
+
 function serializePackage(pkg) {
   if (!pkg || typeof pkg !== 'object') {
     throw new Error('Package must be an object');
@@ -285,26 +298,89 @@ function serializePackage(pkg) {
   });
 
   transforms.forEach(transform => {
-    if (!transform || transform.type !== 'replace-text') {
+    if (!transform || typeof transform !== 'object') {
       throw new Error(`Unsupported transform type: ${transform && transform.type}`);
     }
 
-    const attrs = {
-      part: transform.part,
-      count: transform.count == null ? '' : String(transform.count),
-    };
+    if (transform.type === 'replace-text') {
+      const attrs = {
+        part: transform.part,
+        count: transform.count == null ? '' : String(transform.count),
+      };
 
-    chunks.push('\n');
-    chunks.push(`${REPLACE_TEXT_COMMAND}[${formatAttrs(attrs)}]\n`);
-    chunks.push('<<<FIND\n');
-    chunks.push(transform.find || '');
-    if (!(transform.find || '').endsWith('\n')) chunks.push('\n');
-    chunks.push('FIND\n');
-    chunks.push('<<<WITH\n');
-    chunks.push(transform.replace || '');
-    if (!(transform.replace || '').endsWith('\n')) chunks.push('\n');
-    chunks.push('WITH\n');
-    chunks.push(`${END_REPLACE_TEXT_COMMAND}\n`);
+      chunks.push('\n');
+      chunks.push(`${REPLACE_TEXT_COMMAND}[${formatAttrs(attrs)}]\n`);
+      chunks.push('<<<FIND\n');
+      chunks.push(transform.find || '');
+      if (!(transform.find || '').endsWith('\n')) chunks.push('\n');
+      chunks.push('FIND\n');
+      chunks.push('<<<WITH\n');
+      chunks.push(transform.replace || '');
+      if (!(transform.replace || '').endsWith('\n')) chunks.push('\n');
+      chunks.push('WITH\n');
+      chunks.push(`${END_REPLACE_TEXT_COMMAND}\n`);
+      return;
+    }
+
+    if (transform.type === 'replace-paragraph') {
+      const attrs = {
+        part: transform.part || '',
+        index: transform.index,
+        style: transform.style || '',
+        expectedText: transform.expectedText || '',
+        expectedStyle: transform.expectedStyle || '',
+      };
+
+      chunks.push('\n');
+      chunks.push(`${REPLACE_PARAGRAPH_COMMAND}[${formatAttrs(attrs)}]\n`);
+      chunks.push('<<<TEXT\n');
+      chunks.push(transform.text || '');
+      if (!(transform.text || '').endsWith('\n')) chunks.push('\n');
+      chunks.push('TEXT\n');
+      chunks.push(`${END_REPLACE_PARAGRAPH_COMMAND}\n`);
+      return;
+    }
+
+    if (transform.type === 'insert-paragraph-after' || transform.type === 'insert-paragraph-before') {
+      const command = transform.type === 'insert-paragraph-after'
+        ? INSERT_PARAGRAPH_AFTER_COMMAND
+        : INSERT_PARAGRAPH_BEFORE_COMMAND;
+      const endCommand = transform.type === 'insert-paragraph-after'
+        ? END_INSERT_PARAGRAPH_AFTER_COMMAND
+        : END_INSERT_PARAGRAPH_BEFORE_COMMAND;
+      const attrs = {
+        part: transform.part || '',
+        index: transform.index,
+        style: transform.style || '',
+        expectedText: transform.expectedText || '',
+        expectedStyle: transform.expectedStyle || '',
+      };
+
+      chunks.push('\n');
+      chunks.push(`${command}[${formatAttrs(attrs)}]\n`);
+      chunks.push('<<<TEXT\n');
+      chunks.push(transform.text || '');
+      if (!(transform.text || '').endsWith('\n')) chunks.push('\n');
+      chunks.push('TEXT\n');
+      chunks.push(`${endCommand}\n`);
+      return;
+    }
+
+    if (transform.type === 'delete-paragraph') {
+      const attrs = {
+        part: transform.part || '',
+        index: transform.index,
+        expectedText: transform.expectedText || '',
+        expectedStyle: transform.expectedStyle || '',
+      };
+
+      chunks.push('\n');
+      chunks.push(`${DELETE_PARAGRAPH_COMMAND}[${formatAttrs(attrs)}]\n`);
+      chunks.push(`${END_DELETE_PARAGRAPH_COMMAND}\n`);
+      return;
+    }
+
+    throw new Error(`Unsupported transform type: ${transform.type}`);
   });
 
   pkg.parts.forEach((rawPart, index) => {
@@ -430,6 +506,76 @@ function parsePackage(text, opts = {}) {
       continue;
     }
 
+    if (line.startsWith(REPLACE_PARAGRAPH_COMMAND)) {
+      const transformAttrs = parseCommandLine(lines[lineIndex].line, REPLACE_PARAGRAPH_COMMAND);
+      lineIndex += 1;
+
+      const textBlock = parseTextTransform(lines, text, lineIndex, 'replace-paragraph');
+      lineIndex = textBlock.nextLineIndex;
+
+      if (lineIndex >= lines.length || lines[lineIndex].line.trim() !== END_REPLACE_PARAGRAPH_COMMAND) {
+        throw new Error(`replace-paragraph is missing ${END_REPLACE_PARAGRAPH_COMMAND}`);
+      }
+      lineIndex += 1;
+
+      transforms.push({
+        type: 'replace-paragraph',
+        part: transformAttrs.part || '',
+        index: transformAttrs.index || '',
+        style: transformAttrs.style || '',
+        expectedText: transformAttrs.expectedText || '',
+        expectedStyle: transformAttrs.expectedStyle || '',
+        text: textBlock.payload,
+      });
+      continue;
+    }
+
+    if (line.startsWith(INSERT_PARAGRAPH_AFTER_COMMAND) || line.startsWith(INSERT_PARAGRAPH_BEFORE_COMMAND)) {
+      const isAfter = line.startsWith(INSERT_PARAGRAPH_AFTER_COMMAND);
+      const command = isAfter ? INSERT_PARAGRAPH_AFTER_COMMAND : INSERT_PARAGRAPH_BEFORE_COMMAND;
+      const endCommand = isAfter ? END_INSERT_PARAGRAPH_AFTER_COMMAND : END_INSERT_PARAGRAPH_BEFORE_COMMAND;
+      const transformAttrs = parseCommandLine(lines[lineIndex].line, command);
+      lineIndex += 1;
+
+      const textBlock = parseTextTransform(lines, text, lineIndex, isAfter ? 'insert-paragraph-after' : 'insert-paragraph-before');
+      lineIndex = textBlock.nextLineIndex;
+
+      if (lineIndex >= lines.length || lines[lineIndex].line.trim() !== endCommand) {
+        throw new Error(`${isAfter ? 'insert-paragraph-after' : 'insert-paragraph-before'} is missing ${endCommand}`);
+      }
+      lineIndex += 1;
+
+      transforms.push({
+        type: isAfter ? 'insert-paragraph-after' : 'insert-paragraph-before',
+        part: transformAttrs.part || '',
+        index: transformAttrs.index || '',
+        style: transformAttrs.style || '',
+        expectedText: transformAttrs.expectedText || '',
+        expectedStyle: transformAttrs.expectedStyle || '',
+        text: textBlock.payload,
+      });
+      continue;
+    }
+
+    if (line.startsWith(DELETE_PARAGRAPH_COMMAND)) {
+      const transformAttrs = parseCommandLine(lines[lineIndex].line, DELETE_PARAGRAPH_COMMAND);
+      lineIndex += 1;
+
+      if (lineIndex >= lines.length || lines[lineIndex].line.trim() !== END_DELETE_PARAGRAPH_COMMAND) {
+        throw new Error(`delete-paragraph is missing ${END_DELETE_PARAGRAPH_COMMAND}`);
+      }
+      lineIndex += 1;
+
+      transforms.push({
+        type: 'delete-paragraph',
+        part: transformAttrs.part || '',
+        index: transformAttrs.index || '',
+        expectedText: transformAttrs.expectedText || '',
+        expectedStyle: transformAttrs.expectedStyle || '',
+      });
+      continue;
+    }
+
     const partAttrs = parseCommandLine(lines[lineIndex].line, PART_COMMAND);
     lineIndex += 1;
 
@@ -514,9 +660,17 @@ module.exports = {
   END_DOC_COMMAND,
   END_GUIDE_COMMAND,
   END_PART_COMMAND,
+  END_DELETE_PARAGRAPH_COMMAND,
+  END_INSERT_PARAGRAPH_AFTER_COMMAND,
+  END_INSERT_PARAGRAPH_BEFORE_COMMAND,
+  END_REPLACE_PARAGRAPH_COMMAND,
   END_REPLACE_TEXT_COMMAND,
+  DELETE_PARAGRAPH_COMMAND,
   GUIDE_COMMAND,
+  INSERT_PARAGRAPH_AFTER_COMMAND,
+  INSERT_PARAGRAPH_BEFORE_COMMAND,
   PART_COMMAND,
+  REPLACE_PARAGRAPH_COMMAND,
   REPLACE_TEXT_COMMAND,
   TOP_LEVEL_COMMAND,
   formatAttrs,

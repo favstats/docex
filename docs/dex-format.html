@@ -3,27 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>.dex Format Specification - docex</title>
+  <title>.dex Format Specification — docex</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;0,9..144,900;1,9..144,400&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<nav class="nav">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" role="navigation" aria-label="Main navigation">
   <div class="nav-inner">
-    <a href="index.html" class="nav-logo">doc<span>ex</span></a>
-    <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="playground.html">Playground</a>
-      <a href="examples.html">Examples</a>
-      <a href="api.html">API</a>
-      <a href="cli.html">CLI</a>
-      <a href="dex-format.html">.dex Format</a>
-      <a href="vision.html">Vision</a>
+    <a href="index.html" class="nav-logo" aria-label="docex home">doc<span>ex</span></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+    <div class="nav-links" role="menubar">
+      <a href="index.html" role="menuitem">Home</a>
+      <a href="playground.html" role="menuitem">Playground</a>
+      <a href="examples.html" role="menuitem">Examples</a>
+      <a href="api.html" role="menuitem">API</a>
+      <a href="cli.html" role="menuitem">CLI</a>
+      <a href="dex-format.html" role="menuitem">.dex Format</a>
+      <a href="vision.html" role="menuitem">Vision</a>
     </div>
   </div>
 </nav>
 
-<div class="container">
+<main id="main">
 
   <section class="section" style="border-top:none">
     <h1>.dex Format Specification</h1>
@@ -322,10 +329,20 @@ Figure 1. Results overview.
 {section margins:"1440 1440 1440 1440"}</code></pre>
   </section>
 
-</div>
+</main>
 
-<footer class="footer">
-  <p>docex is MIT licensed. <a href="https://github.com/favstats/docex">View on GitHub</a></p>
+<footer class="footer" role="contentinfo">
+  <div class="footer-inner">
+    <div class="footer-brand">doc<span>ex</span></div>
+    <div class="footer-links">
+      <a href="https://github.com/favstats/docex">GitHub</a>
+      <a href="api.html">API Docs</a>
+      <a href="cli.html">CLI Reference</a>
+      <a href="playground.html">Playground</a>
+      <a href="dex-format.html">.dex Spec</a>
+    </div>
+  </div>
+  <div class="footer-copy">MIT License &middot; Built for academic workflows</div>
 </footer>
 
 <script src="script.js"></script>

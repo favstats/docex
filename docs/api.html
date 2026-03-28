@@ -163,7 +163,7 @@ doc.after("Results").table([["A","B"],["1","2"]]);</code></pre>
       <div class="api-entry-header">await doc.find(text)</div>
       <div class="api-entry-body">
         <p>Find all occurrences of text in the document.</p>
-        <pre><code>const results = await doc.find("Meta");
+        <pre><code>const results = await doc.find("sleep");
 // [{paragraph: 3, text: "...the research dataset..."}]</code></pre>
       </div>
     </div>
@@ -266,7 +266,7 @@ doc.at("var x = 1").code();</code></pre>
       <div class="api-entry-header">doc.after(anchor).figure(imagePath, caption, opts?)</div>
       <div class="api-entry-body">
         <p>Insert a figure after a heading or paragraph. Auto-detects image dimensions.</p>
-        <pre><code>doc.after("Results").figure("fig03.png", "Figure 3. Ad removal rates by platform.");</code></pre>
+        <pre><code>doc.after("Results").figure("fig03.png", "Figure 3. Effect sizes by study.");</code></pre>
       </div>
     </div>
 
@@ -275,10 +275,10 @@ doc.at("var x = 1").code();</code></pre>
       <div class="api-entry-body">
         <p>Insert a table. Supports booktabs styling and captions.</p>
         <pre><code>doc.after("Results").table(
-  [["Party", "Ads", "Spend"],
-   ["VVD", "342", "EUR 12,450"],
-   ["D66", "289", "EUR 9,800"]],
-  { style: "booktabs", caption: "Table 1. Ad counts by party." }
+  [["Study", "N", "Effect Size"],
+   ["Smith 2023", "342", "d = 0.45"],
+   ["Lee 2022", "289", "d = 0.38"]],
+  { style: "booktabs", caption: "Table 1. Effect sizes by study." }
 );</code></pre>
       </div>
     </div>
@@ -288,9 +288,9 @@ doc.at("var x = 1").code();</code></pre>
       <div class="api-entry-body">
         <p>Insert a bullet or numbered list.</p>
         <pre><code>doc.after("Key findings").bulletList([
-  "192 political accounts ran ads despite the ban",
-  "Only 14.2% of violating ads were removed",
-  "Average time to removal: 10.4 days"
+  "Screen time >4h/day associated with 23% reduction in sleep quality",
+  "Only 14.2% of studies used objective sleep measures",
+  "Average effect size: d = 0.42"
 ]);</code></pre>
       </div>
     </div>
@@ -314,7 +314,7 @@ doc.at("var x = 1").code();</code></pre>
       <div class="api-entry-body">
         <p>List all tracked changes.</p>
         <pre><code>const revs = await doc.revisions();
-// [{id: 17, type: "del", author: "Research Assistant", text: "12,847 ads"}]</code></pre>
+// [{id: 17, type: "del", author: "Research Assistant", text: "12,847 records"}]</code></pre>
       </div>
     </div>
 

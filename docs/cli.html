@@ -125,12 +125,12 @@ Saved paper.docx</code></pre>
   H2  Abstract
   H2  Introduction
   H2  Literature Review
-  H3  The EU Transparency Regulation
+  H3  Methodological Framework
   H2  Methods
   H3  Data Collection
   H3  Classification Pipeline
   H2  Results
-  H3  Enforcement Analysis
+  H3  Effect Size Analysis
   H2  Discussion
   H2  Conclusion
   H2  References</code></pre>
@@ -139,7 +139,7 @@ Saved paper.docx</code></pre>
         <p>Output:</p>
         <pre><code>Comments in paper.docx:
   #1  [Research Assistant] Strong framing. Consider whether reviewers might...
-  #2  [Research Assistant] Verify: is this the total from the Ad Library...
+  #2  [Research Assistant] Verify: is this the total from the research dataset...
   #31 [Editor Williams] TYPO: The abstract contains "scraped from..."</code></pre>
 
         <pre><code>docex list paper.docx figures</code></pre>
@@ -152,8 +152,8 @@ Saved paper.docx</code></pre>
         <pre><code>docex list paper.docx revisions</code></pre>
         <p>Output:</p>
         <pre><code>Tracked changes in paper.docx:
-  #17 DEL by Research Assistant: "12,847 ads"
-  #18 INS by Research Assistant: "12,847 advertisements scraped from the research dataset"
+  #17 DEL by Research Assistant: "12,847 records"
+  #18 INS by Research Assistant: "12,847 records extracted from the research dataset"
   #21 DEL by Research Assistant: "10.4 days"
   #22 INS by Research Assistant: "10.4 calendar days"
   ...</code></pre>
@@ -168,10 +168,10 @@ Saved paper.docx</code></pre>
     <div class="api-entry">
       <div class="api-entry-header">docex figure &lt;file&gt; &lt;position&gt; &lt;image&gt; [--caption &lt;text&gt;] [--width &lt;inches&gt;]</div>
       <div class="api-entry-body">
-        <pre><code>docex figure paper.docx "after:Results" fig03.png --caption "Figure 3. Ad removal rates." --width 5</code></pre>
+        <pre><code>docex figure paper.docx "after:Results" fig03.png --caption "Figure 3. Effect sizes by study." --width 5</code></pre>
         <p>Output:</p>
         <pre><code>Inserted figure fig03.png after "Results" (5" wide)
-Caption: "Figure 3. Ad removal rates."
+Caption: "Figure 3. Effect sizes by study."
 Saved paper.docx</code></pre>
       </div>
     </div>
@@ -186,9 +186,9 @@ Saved paper.docx</code></pre>
       <div class="api-entry-body">
         <pre><code>docex table paper.docx "after:Results" data.json --style booktabs --caption "Table 1."</code></pre>
         <p>Where <code>data.json</code> contains:</p>
-        <pre><code>[["Party", "Ads", "Spend"],
- ["VVD", "342", "EUR 12,450"],
- ["D66", "289", "EUR 9,800"]]</code></pre>
+        <pre><code>[["Study", "N", "Effect Size"],
+ ["Smith 2023", "342", "d = 0.45"],
+ ["Lee 2022", "289", "d = 0.38"]]</code></pre>
       </div>
     </div>
   </section>

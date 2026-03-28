@@ -151,8 +151,30 @@ editor.addEventListener('scroll', function() {
   highlightEl.scrollLeft = editor.scrollLeft;
 });
 
-// Live update
-editor.addEventListener('input', updateEditor);
+// Live update (syntax highlighting + auto-rebuild docx preview)
+var rebuildTimer = null;
+editor.addEventListener('input', function() {
+  updateEditor();
+  // Auto-rebuild docx preview after 500ms of no typing
+  clearTimeout(rebuildTimer);
+  rebuildTimer = setTimeout(function() {
+    if (typeof DexCompiler !== 'undefined') {
+      DexCompiler.compile(editor.value).then(function(arrayBuffer) {
+        previewEl.style.display = 'none';
+        docxPreviewPane.style.display = 'block';
+        docxPreviewPane.textContent = '';
+        previewModeEl.textContent = 'live preview';
+        docx.renderAsync(arrayBuffer, docxPreviewPane, null, {
+          className: 'docx-preview', inWrapper: true, breakPages: true,
+          renderHeaders: true, renderFooters: true, renderFootnotes: true,
+          renderEndnotes: true, renderChanges: true, renderComments: true,
+          ignoreWidth: true, ignoreHeight: true
+        });
+        window._lastCompiledDocx = arrayBuffer;
+      }).catch(function() {});
+    }
+  }, 500);
+});
 
 function updateEditor() {
   // Syntax highlighting layer

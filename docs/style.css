@@ -216,7 +216,7 @@ p { margin-bottom: 1rem; font-size: var(--text-base); }
 
 /* ---------- Section ---------- */
 .section {
-  padding: clamp(48px, 8vw, 96px) 0;
+  padding: clamp(40px, 6vw, 72px) 0;
   border-top: 1px solid var(--border-subtle);
 }
 .section:first-of-type { border-top: none; }
@@ -360,6 +360,16 @@ p { margin-bottom: 1rem; font-size: var(--text-base); }
 .code-output:hover {
   border-color: rgba(245, 158, 11, 0.3);
   box-shadow: 0 4px 24px rgba(245, 158, 11, 0.06);
+}
+
+/* Slide-in reveal for code-output panels */
+.code-output.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.code-output.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 @media (max-width: 768px) {
   .code-output { grid-template-columns: 1fr; }
@@ -592,6 +602,38 @@ p { margin-bottom: 1rem; font-size: var(--text-base); }
   font-family: 'Calibri', 'Segoe UI', sans-serif;
 }
 
+/* Hover-reveal comment popup — highlight in text, balloon on hover */
+.word-comment-hover-wrap {
+  position: relative;
+  display: inline;
+  cursor: pointer;
+}
+.word-comment-popup {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 200px;
+  max-width: 260px;
+  background: #fff;
+  border: 1px solid #d4d4d4;
+  border-radius: 4px;
+  padding: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  animation: commentFadeIn 0.2s ease;
+}
+.word-comment-hover-wrap:hover .word-comment-popup,
+.word-comment-hover-wrap:focus-within .word-comment-popup {
+  display: block;
+}
+@keyframes commentFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Hide the connector in popup mode */
+.word-comment-popup .word-comment-connector { display: none; }
+
 /* Word status bar */
 .word-status-bar {
   display: flex;
@@ -604,7 +646,42 @@ p { margin-bottom: 1rem; font-size: var(--text-base); }
   margin-top: 4px;
 }
 
-/* Legacy aliases (keep for dex-showcase and other contexts) */
+/* Word typography helpers */
+.word-heading-1 {
+  font-family: 'Calibri', 'Carlito', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 6px;
+  line-height: 1.3;
+  border: none;
+  padding: 0;
+}
+.word-heading-3 {
+  font-family: 'Calibri', 'Carlito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 8px 0 4px;
+  line-height: 1.3;
+}
+.word-draft-text {
+  font-style: italic;
+  color: #999;
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+.word-pagebreak {
+  border: none;
+  border-top: 1px dashed #ccc;
+  margin: 10px 0;
+}
+
+/* Green avatar variant */
+.word-comment-avatar-green { background: #548235; }
+.word-comment-author-green { color: #548235; }
+
+/* Legacy aliases (keep for playground/other pages) */
 .output-tracked-del { color: #c0392b; text-decoration: line-through; }
 .output-tracked-ins { color: #c0392b; text-decoration: underline; }
 .output-comment {
@@ -874,29 +951,9 @@ code {
   color: var(--text-dim);
 }
 .dex-showcase-render {
-  background: var(--paper);
-  padding: 32px 36px;
-  font-family: 'Fraunces', 'Georgia', serif;
-  font-size: 14px;
-  line-height: 1.8;
-  color: var(--paper-text);
+  background: #f0f0f0;
+  padding: 16px;
   overflow: auto;
-}
-.dex-showcase-render h1 {
-  font-size: 1.4rem;
-  color: var(--paper-heading);
-  margin-bottom: 0.75rem;
-}
-.dex-showcase-render h3 {
-  font-size: 1.1rem;
-  color: #292524;
-  margin-bottom: 0.5rem;
-}
-.dex-showcase-render p {
-  font-family: 'Fraunces', 'Georgia', serif;
-  color: var(--paper-text);
-  margin-bottom: 0.75rem;
-  text-align: justify;
 }
 .dex-showcase-render .result-label {
   font-family: 'JetBrains Mono', monospace;
@@ -904,8 +961,8 @@ code {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--paper-dim);
-  margin-bottom: 16px;
+  color: #888;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -918,21 +975,9 @@ code {
   background: var(--green);
   display: inline-block;
 }
-.dex-showcase-draft {
-  font-style: italic;
-  color: var(--paper-dim);
-  font-size: 13px;
-  margin-bottom: 16px;
-  text-indent: 0;
-}
-.dex-showcase-break {
-  border: none;
-  border-top: 2px dashed var(--paper-border);
-  margin: 16px 0;
-}
-.dex-showcase-render .output-comment {
-  margin-top: 8px;
-}
+.dex-showcase-render .word-body { font-size: 13px; }
+.dex-showcase-render .word-text-col { padding: 20px 18px; }
+.dex-showcase-render .word-margin-col { padding: 16px 10px; }
 
 /* ============================================================================
    CARDS (for "Everything you need")

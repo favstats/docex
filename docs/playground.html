@@ -228,10 +228,10 @@ window.addEventListener('load', function() {
   triggerCompile();
 });
 
-// Sync scroll (highlight overlay disabled — causes ghost text)
+// Sync scroll between textarea and highlight overlay
 editor.addEventListener('scroll', function() {
-  // highlightEl.scrollTop = editor.scrollTop;
-  // highlightEl.scrollLeft = editor.scrollLeft;
+  highlightEl.scrollTop = editor.scrollTop;
+  highlightEl.scrollLeft = editor.scrollLeft;
 });
 
 // Live update — line count + auto-rebuild docx preview
@@ -244,6 +244,19 @@ editor.addEventListener('input', function() {
 });
 
 function updateEditor() {
+  // Syntax highlighting: highlightDex HTML-escapes the source first,
+  // then adds <span> tags around known .dex patterns. Content is from
+  // the user's own local textarea — runs entirely client-side.
+  highlightEl.textContent = '';
+  var highlighted = highlightDex(editor.value);
+  var temp = document.createElement('div');
+  temp.innerHTML = highlighted;
+  while (temp.firstChild) highlightEl.appendChild(temp.firstChild);
+
+  // Sync scroll position
+  highlightEl.scrollTop = editor.scrollTop;
+  highlightEl.scrollLeft = editor.scrollLeft;
+
   // Line count
   var lines = editor.value.split('\n').length;
   lineCountEl.textContent = lines + ' lines';

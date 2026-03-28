@@ -1484,8 +1484,32 @@ tr:hover td { background: var(--accent-glow); }
   height: 100%;
 }
 .editor-highlight {
-  /* Overlay disabled — was causing ghost text / blurry rendering */
-  display: none;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  padding: 16px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: hidden;
+  pointer-events: none;
+  color: transparent;
+  border: none;
+  margin: 0;
+  /* CRITICAL: match textarea rendering exactly */
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+  letter-spacing: normal;
+  word-spacing: normal;
+}
+
+/* Make textarea text invisible — the overlay provides the colored version */
+.editor-container .dex-editor {
+  color: transparent;
+  caret-color: var(--text);
+  /* Prevent browser from adding its own text rendering adjustments */
+  -webkit-text-fill-color: transparent;
 }
 
 /* Preview pane */

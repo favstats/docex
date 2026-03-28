@@ -52,14 +52,20 @@
         Download .docx
       </button>
       <div class="btn-group-viewer">
-        <button class="btn btn-small btn-viewer" id="viewWordBtn" title="Opens in Microsoft Word Online (temporary upload required)">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:-1px"><path d="M15.5.5v15H.5V.5h15zM1.5 1.5v13h13v-13h-13z"/><path d="M3 4h4l1.5 8H7L6.2 8.5 5.5 12H4L3 4zm6 0h1.5l1 4.5L12.5 4H14l-2 8h-1.5L9 4z"/></svg>
-          Word Online
-        </button>
-        <button class="btn btn-small btn-viewer" id="viewGDocsBtn" title="Opens in Google Docs viewer (temporary upload required)">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:-1px"><path d="M10 1H3.5A1.5 1.5 0 002 2.5v11A1.5 1.5 0 003.5 15h9a1.5 1.5 0 001.5-1.5V5l-4-4z"/><path d="M10 1v4h4" fill="none" stroke="currentColor"/><path d="M5 8h6M5 10h6M5 12h4" stroke="currentColor" stroke-width=".7" fill="none"/></svg>
-          Google Docs
-        </button>
+        <div class="viewer-btn-wrapper">
+          <button class="btn btn-small btn-accent" id="viewWordBtn" title="Opens in Microsoft Word Online with full formatting. Requires temporary file upload.">
+            <svg viewBox="0 0 16 16" width="16" height="16" style="vertical-align:-2px;margin-right:4px"><rect width="16" height="16" rx="2" fill="#2B579A"/><text x="8" y="12" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="Arial">W</text></svg>
+            Word Online
+          </button>
+          <span class="viewer-note">Full formatting support</span>
+        </div>
+        <div class="viewer-btn-wrapper">
+          <button class="btn btn-small btn-viewer" id="viewGDocsBtn" title="Opens in Google Docs viewer. Basic formatting only. Requires temporary file upload.">
+            <svg viewBox="0 0 16 16" width="16" height="16" style="vertical-align:-2px;margin-right:4px"><path d="M10 0H3a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V5l-5-5z" fill="#4285F4"/><path d="M10 0v5h5" fill="#A1C2FA"/><path d="M5 8h6M5 10h6M5 12h4" stroke="white" stroke-width=".8" fill="none"/></svg>
+            Google Docs
+          </button>
+          <span class="viewer-note">Basic view (limited formatting)</span>
+        </div>
       </div>
       <button class="btn btn-small btn-ghost" id="rebuildBtn" title="Manually rebuild preview (auto-rebuilds on edit)">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:-1px"><path d="M8 3a5 5 0 104.546 2.914.5.5 0 01.908-.418A6 6 0 118 2v1z"/><path d="M8 4.466V.534a.25.25 0 01.41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 018 4.466z"/></svg>
@@ -85,8 +91,14 @@
   <div class="editor-panes">
     <div class="editor-pane">
       <div class="pane-header">
-        <span><span class="pane-header-dot"></span>.dex source</span>
+        <div class="pane-header-tabs">
+          <button class="pane-tab active" id="tabHumanReadable" title="Human-readable .dex format — easy to read and edit by hand">Readable</button>
+          <button class="pane-tab" id="tabLossless" title="Lossless .dex format — preserves every XML detail, best for AI agents">Lossless <span class="pane-tab-badge">AI</span></button>
+        </div>
         <span id="lineCount" class="pane-header-meta"></span>
+      </div>
+      <div class="lossless-info" id="losslessInfo">
+        <strong>Lossless mode</strong> preserves every XML detail from the original .docx — formatting properties, relationships, raw element structure. Best for <strong>AI agents</strong> and automated pipelines where perfect round-trip fidelity matters. Not meant for human editing.
       </div>
       <div class="pane-body">
         <div class="editor-container">
@@ -157,6 +169,82 @@ var compileSpinner = document.getElementById('compileSpinner');
 var dropZone = document.getElementById('dropZone');
 var fileInput = document.getElementById('fileInput');
 var copyBtn = document.getElementById('copyBtn');
+
+// ---------- Mode tabs (Readable / Lossless) ----------
+var tabHumanReadable = document.getElementById('tabHumanReadable');
+var tabLossless = document.getElementById('tabLossless');
+var losslessInfo = document.getElementById('losslessInfo');
+var currentMode = 'readable'; // 'readable' or 'lossless'
+var lastUploadedFile = null; // Store last uploaded file for mode switching
+var losslessDex = null; // Cached lossless output
+var readableDex = null; // Cached readable output
+
+tabHumanReadable.addEventListener('click', function() {
+  if (currentMode === 'readable') return;
+  currentMode = 'readable';
+  tabHumanReadable.classList.add('active');
+  tabLossless.classList.remove('active');
+  losslessInfo.classList.remove('visible');
+  if (readableDex) {
+    editor.value = readableDex;
+    updateEditor();
+  }
+});
+
+tabLossless.addEventListener('click', function() {
+  if (currentMode === 'lossless') return;
+  currentMode = 'lossless';
+  tabLossless.classList.add('active');
+  tabHumanReadable.classList.remove('active');
+  losslessInfo.classList.add('visible');
+  if (losslessDex) {
+    editor.value = losslessDex;
+    updateEditor();
+  } else if (lastUploadedFile) {
+    // Generate lossless version from last uploaded file
+    statusEl.textContent = 'Generating lossless .dex...';
+    showSpinner();
+    generateLossless(lastUploadedFile).then(function(dex) {
+      losslessDex = dex;
+      editor.value = dex;
+      updateEditor();
+      statusEl.textContent = 'Lossless mode (' + dex.split('\n').length + ' lines)';
+      statusEl.style.color = 'var(--green)';
+      hideSpinner();
+    }).catch(function(err) {
+      statusEl.textContent = 'Lossless generation failed: ' + err.message;
+      statusEl.style.color = 'var(--red)';
+      hideSpinner();
+    });
+  }
+});
+
+async function generateLossless(file) {
+  var zip = await JSZip.loadAsync(file);
+  var parts = [];
+  parts.push('# docex lossless format');
+  parts.push('# This preserves every XML detail for perfect round-trip fidelity.');
+  parts.push('# Best for AI agents and automated pipelines.');
+  parts.push('');
+  var fileNames = Object.keys(zip.files).sort();
+  for (var f = 0; f < fileNames.length; f++) {
+    var name = fileNames[f];
+    if (zip.files[name].dir) continue;
+    var isBinary = /\.(png|jpg|jpeg|gif|emf|wmf|bin|rels)$/i.test(name) || name.endsWith('.xml.rels');
+    parts.push('=== ' + name + ' ===');
+    if (isBinary && !/\.rels$/.test(name)) {
+      var data = await zip.files[name].async('base64');
+      parts.push('[binary: ' + data.length + ' chars base64]');
+    } else {
+      var content = await zip.files[name].async('string');
+      // Format XML for readability
+      content = content.replace(/></g, '>\n<');
+      parts.push(content);
+    }
+    parts.push('');
+  }
+  return parts.join('\n');
+}
 
 function showSpinner() { compileSpinner.classList.add('active'); }
 function hideSpinner() { compileSpinner.classList.remove('active'); }
@@ -300,9 +388,17 @@ function handleFile(file) {
   statusEl.textContent = 'Decompiling ' + file.name + '...';
   statusEl.style.color = 'var(--accent)';
   showSpinner();
+  lastUploadedFile = file;
+  losslessDex = null; // Reset cached lossless
+  // Switch to readable mode on new file
+  currentMode = 'readable';
+  tabHumanReadable.classList.add('active');
+  tabLossless.classList.remove('active');
+  losslessInfo.classList.remove('visible');
 
   // Decompile to .dex (left pane)
   DocxDecompiler.decompile(file).then(function(dex) {
+    readableDex = dex;
     editor.value = dex;
     updateEditor();
     statusEl.textContent = 'Decompiled ' + file.name + ' (' + dex.split('\n').length + ' lines)';

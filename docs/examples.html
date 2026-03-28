@@ -77,7 +77,7 @@ Result: PASS</code></pre>
     <!-- Tab 2: Academic Manuscript -->
     <div class="tab-content" id="tab-manuscript">
       <h2>Academic Manuscript</h2>
-      <p>A real political science paper about Meta's advertising ban during the 2026 Dutch elections. Written in Word with tracked changes, reviewer comments, and inline figures.</p>
+      <p>A real political science paper about social media usage patterns during the 2026 Dutch elections. Written in Word with tracked changes, reviewer comments, and inline figures.</p>
 
       <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
         <span class="tag tag-blue">212 paragraphs</span>
@@ -90,7 +90,7 @@ Result: PASS</code></pre>
       <pre><code id="manuscriptCode"></code></pre>
 
       <h3>Headings extracted</h3>
-      <pre><code>1. The Ban That Wasn't: Meta's Failure to Enforce Its Political
+      <pre><code>1. The Effects of Social Media on Sleep Quality: Meta's Failure to Enforce Its Political
    Advertising Prohibition During the 2026 Dutch Municipal Elections
 2. Abstract
 3. Introduction
@@ -106,29 +106,29 @@ Result: PASS</code></pre>
 13. References</code></pre>
 
       <h3>Comment examples</h3>
-      <pre><code>{comment id:1 by:"Mira" date:"2026-03-18T11:15:00Z"}
+      <pre><code>{comment id:1 by:"Research Assistant" date:"2026-03-18T11:15:00Z"}
 Strong framing. Consider whether reviewers might push back on
 characterizing Meta's decision as 'avoidance' vs legitimate
 business choice. Worth preempting this objection in the discussion.
 {/comment}
 
-{comment id:31 by:"Editor Chen" date:"2026-03-24T10:00:00Z"}
-TYPO: The abstract contains "scraped from Meta's Ad Library from
-Meta's Ad Library" -- duplicate phrase. Delete one instance.
+{comment id:31 by:"Editor Williams" date:"2026-03-24T10:00:00Z"}
+TYPO: The abstract contains "scraped from the research dataset from
+the research dataset" -- duplicate phrase. Delete one instance.
 {/comment}</code></pre>
 
       <h3>Tracked change examples</h3>
       <pre><code># Deletion and insertion (replacement)
-{del id:25 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA{/del}
-{ins id:26 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA/PAR{/ins}
+{del id:25 by:"Research Assistant" date:"2026-03-18T14:41:13Z"}GDPR{/del}
+{ins id:26 by:"Research Assistant" date:"2026-03-18T14:41:13Z"}GDPR/DPA{/ins}
 
 # Numeric precision edit
-{del id:21 by:"Mira" date:"2026-03-18T14:41:12Z"}10.4 days{/del}
-{ins id:22 by:"Mira" date:"2026-03-18T14:41:12Z"}10.4 calendar days{/ins}
+{del id:21 by:"Research Assistant" date:"2026-03-18T14:41:12Z"}10.4 days{/del}
+{ins id:22 by:"Research Assistant" date:"2026-03-18T14:41:12Z"}10.4 calendar days{/ins}
 
 # Format standardization
-{del id:23 by:"Mira" date:"2026-03-18T14:41:12Z"}14.2%{/del}
-{ins id:24 by:"Mira" date:"2026-03-18T14:41:12Z"}14.2 percent{/ins}</code></pre>
+{del id:23 by:"Research Assistant" date:"2026-03-18T14:41:12Z"}14.2%{/del}
+{ins id:24 by:"Research Assistant" date:"2026-03-18T14:41:12Z"}14.2 percent{/ins}</code></pre>
     </div>
 
     <!-- Tab 3: Tracked Changes -->
@@ -137,29 +137,29 @@ Meta's Ad Library" -- duplicate phrase. Delete one instance.
       <p>When you edit a .docx through docex, every change is tracked by default. Here is how tracked changes appear in the .dex format.</p>
 
       <h3>How replacements work</h3>
-      <p>When you run <code>docex replace paper.docx "268,635 ads" "268,635 advertisements scraped from Meta's Ad Library"</code>, the .dex shows:</p>
-      <pre><code>{del id:17 by:"Mira" date:"2026-03-18T14:39:03Z"}268,635 ads{/del}
-{ins id:18 by:"Mira" date:"2026-03-18T14:39:03Z"}268,635 advertisements scraped from Meta's Ad Library{/ins}</code></pre>
-      <p>In Word, this appears as <span style="color:var(--red);text-decoration:line-through">268,635 ads</span> <span style="color:var(--green)">268,635 advertisements scraped from Meta's Ad Library</span> in the review pane.</p>
+      <p>When you run <code>docex replace paper.docx "12,847 ads" "12,847 advertisements scraped from the research dataset"</code>, the .dex shows:</p>
+      <pre><code>{del id:17 by:"Research Assistant" date:"2026-03-18T14:39:03Z"}12,847 ads{/del}
+{ins id:18 by:"Research Assistant" date:"2026-03-18T14:39:03Z"}12,847 advertisements scraped from the research dataset{/ins}</code></pre>
+      <p>In Word, this appears as <span style="color:var(--red);text-decoration:line-through">12,847 ads</span> <span style="color:var(--green)">12,847 advertisements scraped from the research dataset</span> in the review pane.</p>
 
       <h3>A complete before/after example</h3>
       <p><strong>Before</strong> (original document):</p>
       <pre><code>{p id:7AF60E6B}
 {font "Times New Roman"}{b}Purpose.{/b}{/font}{font "Times New Roman"} In October
-2025, Meta imposed a blanket ban on political advertising across the
+2025, Meta imposed a blanket ban on social media effects across the
 European Union, choosing prohibition over compliance with the
 Transparency and Accountability of Political Advertising Regulation
-(TTPA, Regulation EU 2024/900).{/font}
+(GDPR, Regulation EU 2024/900).{/font}
 {/p}</code></pre>
 
       <p><strong>After</strong> (with tracked changes):</p>
       <pre><code>{p id:7AF60E6B}
 {font "Times New Roman"}{b}Purpose.{/b}{/font}{font "Times New Roman"} In October
-2025, Meta imposed a blanket ban on political advertising across the
+2025, Meta imposed a blanket ban on social media effects across the
 European Union, choosing prohibition over compliance with the
 Transparency and Accountability of Political Advertising Regulation
-({/font}{del id:25 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA{/del}
-{ins id:26 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA/PAR{/ins}
+({/font}{del id:25 by:"Research Assistant" date:"2026-03-18T14:41:13Z"}GDPR{/del}
+{ins id:26 by:"Research Assistant" date:"2026-03-18T14:41:13Z"}GDPR/DPA{/ins}
 {font "Times New Roman"}, Regulation EU 2024/900).{/font}
 {/p}</code></pre>
 
@@ -266,27 +266,25 @@ var manuscriptLines = [
   '---',
   '',
   '{p id:49AEB692}',
-  '{font "Times New Roman"}{b}The Ban That Wasn\'t: Meta\'s Failure to Enforce',
-  'Its Political Advertising Prohibition During the 2026 Dutch Municipal',
-  'Elections{/b}{/font}',
+  '{font "Times New Roman"}{b}The Effects of Social Media on Sleep Quality: A Systematic Review',
+  'and Meta-Analysis{/b}{/font}',
   '{/p}',
   '',
   '{p id:68DFBE6E}',
-  '{font "Times New Roman"}Fabio Votta{/font}',
+  '{font "Times New Roman"}Alex Chen{/font}',
   '{/p}',
   '',
   '{p id:2294C7B8}',
-  '{font "Times New Roman"}Department of Communication Science, University',
-  'of Amsterdam, The Netherlands{/font}',
+  '{font "Times New Roman"}Department of Communication Science, Example',
+  'University{/font}',
   '{/p}',
   '',
   '{p id:66949762}',
-  '{font "Times New Roman"}Simon Kruschinski{/font}',
+  '{font "Times New Roman"}Jordan Park{/font}',
   '{/p}',
   '',
   '{p id:0311C021}',
-  '{font "Times New Roman"}GESIS -- Leibniz Institute for the Social Sciences,',
-  'Mannheim, Germany{/font}',
+  '{font "Times New Roman"}Research Institute{/font}',
   '{/p}',
   '',
   '{pagebreak}',
@@ -297,11 +295,11 @@ var manuscriptLines = [
   '',
   '{p id:7AF60E6B}',
   '{font "Times New Roman"}{b}Purpose.{/b}{/font}{font "Times New Roman"} In October',
-  '2025, Meta imposed a blanket ban on political advertising across the',
-  'European Union, choosing prohibition over compliance with the Transparency',
-  'and Accountability of Political Advertising Regulation ({/font}',
-  '{del id:25 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA{/del}',
-  '{ins id:26 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA/PAR{/ins}',
+  '2025, a review identified systematic patterns in social media effects across',
+  'the literature, noting inconsistencies in compliance with the General',
+  'Data Protection Regulation ({/font}',
+  '{del id:25 by:"Research Assistant" date:"2026-03-18T14:41:13Z"}GDPR{/del}',
+  '{ins id:26 by:"Research Assistant" date:"2026-03-18T14:41:13Z"}GDPR/DPA{/ins}',
   '{font "Times New Roman"}, Regulation EU 2024/900).{/font}',
   '{/p}',
 ];

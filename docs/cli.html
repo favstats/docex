@@ -43,9 +43,9 @@ docex --version
     <div class="api-entry">
       <div class="api-entry-header">docex replace &lt;file&gt; &lt;old&gt; &lt;new&gt; [--author &lt;name&gt;]</div>
       <div class="api-entry-body">
-        <pre><code>docex replace paper.docx "268,635" "300,000" --author "Fabio"</code></pre>
+        <pre><code>docex replace paper.docx "12,847" "300,000" --author "Alex"</code></pre>
         <p>Output:</p>
-        <pre><code>Replaced "268,635" with "300,000" (tracked change by Fabio)
+        <pre><code>Replaced "12,847" with "300,000" (tracked change by Alex)
 Saved paper.docx (verified: 212 paragraphs, 156.2 KB)</code></pre>
       </div>
     </div>
@@ -88,9 +88,9 @@ Saved paper.docx</code></pre>
     <div class="api-entry">
       <div class="api-entry-header">docex comment &lt;file&gt; &lt;anchor&gt; &lt;text&gt; --by &lt;name&gt;</div>
       <div class="api-entry-body">
-        <pre><code>docex comment paper.docx "platform governance" "Needs citation" --by "Reviewer 2"</code></pre>
+        <pre><code>docex comment paper.docx "digital wellbeing" "Needs citation" --by "Reviewer 2"</code></pre>
         <p>Output:</p>
-        <pre><code>Added comment by "Reviewer 2" on "platform governance": "Needs citation"
+        <pre><code>Added comment by "Reviewer 2" on "digital wellbeing": "Needs citation"
 Saved paper.docx</code></pre>
       </div>
     </div>
@@ -103,9 +103,9 @@ Saved paper.docx</code></pre>
     <div class="api-entry">
       <div class="api-entry-header">docex reply &lt;file&gt; &lt;comment-id&gt; &lt;text&gt; --by &lt;name&gt;</div>
       <div class="api-entry-body">
-        <pre><code>docex reply paper.docx 1 "Added Suzor 2019 citation." --by "Fabio Votta"</code></pre>
+        <pre><code>docex reply paper.docx 1 "Added Johnson 2022 citation." --by "Alex Chen"</code></pre>
         <p>Output:</p>
-        <pre><code>Replied to comment #1 by "Fabio Votta": "Added Suzor 2019 citation."
+        <pre><code>Replied to comment #1 by "Alex Chen": "Added Johnson 2022 citation."
 Saved paper.docx</code></pre>
       </div>
     </div>
@@ -121,7 +121,7 @@ Saved paper.docx</code></pre>
         <pre><code>docex list paper.docx headings</code></pre>
         <p>Output:</p>
         <pre><code>Headings in paper.docx:
-  H1  The Ban That Wasn't
+  H1  The Effects of Social Media on Sleep Quality
   H2  Abstract
   H2  Introduction
   H2  Literature Review
@@ -138,9 +138,9 @@ Saved paper.docx</code></pre>
         <pre><code>docex list paper.docx comments</code></pre>
         <p>Output:</p>
         <pre><code>Comments in paper.docx:
-  #1  [Mira] Strong framing. Consider whether reviewers might...
-  #2  [Mira] Verify: is this the total from the Ad Library...
-  #31 [Editor Chen] TYPO: The abstract contains "scraped from..."</code></pre>
+  #1  [Research Assistant] Strong framing. Consider whether reviewers might...
+  #2  [Research Assistant] Verify: is this the total from the Ad Library...
+  #31 [Editor Williams] TYPO: The abstract contains "scraped from..."</code></pre>
 
         <pre><code>docex list paper.docx figures</code></pre>
         <p>Output:</p>
@@ -152,10 +152,10 @@ Saved paper.docx</code></pre>
         <pre><code>docex list paper.docx revisions</code></pre>
         <p>Output:</p>
         <pre><code>Tracked changes in paper.docx:
-  #17 DEL by Mira: "268,635 ads"
-  #18 INS by Mira: "268,635 advertisements scraped from Meta's Ad Library"
-  #21 DEL by Mira: "10.4 days"
-  #22 INS by Mira: "10.4 calendar days"
+  #17 DEL by Research Assistant: "12,847 ads"
+  #18 INS by Research Assistant: "12,847 advertisements scraped from the research dataset"
+  #21 DEL by Research Assistant: "10.4 days"
+  #22 INS by Research Assistant: "10.4 calendar days"
   ...</code></pre>
       </div>
     </div>
@@ -369,7 +369,7 @@ docex highlight paper.docx "needs review"</code></pre>
     <div class="api-entry">
       <div class="api-entry-header">docex footnote &lt;file&gt; &lt;anchor&gt; &lt;text&gt;</div>
       <div class="api-entry-body">
-        <pre><code>docex footnote paper.docx "enforcement gap" "See appendix B for methodology."</code></pre>
+        <pre><code>docex footnote paper.docx "measurement validity" "See appendix B for methodology."</code></pre>
       </div>
     </div>
   </section>
@@ -384,8 +384,8 @@ docex highlight paper.docx "needs review"</code></pre>
         <pre><code>docex meta paper.docx</code></pre>
         <p>Output:</p>
         <pre><code>Metadata for paper.docx:
-  Title:    The Ban That Wasn't
-  Creator:  Fabio Votta
+  Title:    The Effects of Social Media on Sleep Quality
+  Creator:  Alex Chen
   Created:  2026-02-15
   Modified: 2026-03-18
   Pages:    24

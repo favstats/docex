@@ -114,10 +114,10 @@
     <h2>One-minute demo</h2>
     <p>Respond to peer review in 3 commands:</p>
     <pre><code># Replace a number (shows as tracked change in Word)
-docex replace paper.docx "268,635" "300,000" --author "Fabio"
+docex replace paper.docx "12,847" "300,000" --author "Alex"
 
 # Add a comment to a phrase
-docex comment paper.docx "platform governance" "Added Suzor 2019" --by "Fabio"
+docex comment paper.docx "digital wellbeing" "Added Johnson 2022" --by "Alex"
 
 # Format for Political Communication journal
 docex style paper.docx --preset polcomm</code></pre>
@@ -125,10 +125,10 @@ docex style paper.docx --preset polcomm</code></pre>
     <p>Or use the JavaScript API:</p>
     <pre><code>const docex = require('./src/docex');
 const doc = docex("paper.docx");
-doc.author("Fabio Votta");
+doc.author("Alex Chen");
 
-doc.replace("enforcement gap", "regulatory gap");
-doc.at("platform governance").comment("Added Suzor 2019 citation");
+doc.replace("measurement validity", "regulatory gap");
+doc.at("digital wellbeing").comment("Added Johnson 2022 citation");
 doc.after("Methods").insert("We used a mixed-methods approach.");
 
 await doc.save();</code></pre>

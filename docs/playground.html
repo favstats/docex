@@ -120,6 +120,31 @@ var copyBtn = document.getElementById('copyBtn');
 editor.value = EXAMPLE_DEX;
 updateEditor();
 
+// Auto-compile on load so right pane always shows real docx-preview
+window.addEventListener('load', function() {
+  if (typeof DexCompiler !== 'undefined') {
+    statusEl.textContent = 'Compiling example...';
+    statusEl.style.color = 'var(--accent)';
+    DexCompiler.compile(editor.value).then(function(arrayBuffer) {
+      previewEl.style.display = 'none';
+      docxPreviewPane.style.display = 'block';
+      docxPreviewPane.textContent = '';
+      previewModeEl.textContent = 'real .docx rendering';
+      docx.renderAsync(arrayBuffer, docxPreviewPane, null, {
+        className: 'docx-preview', inWrapper: true, breakPages: true,
+        renderHeaders: true, renderFooters: true, renderFootnotes: true,
+        renderEndnotes: true, renderChanges: true, renderComments: true,
+        ignoreWidth: true, ignoreHeight: true
+      });
+      window._lastCompiledDocx = arrayBuffer;
+      statusEl.textContent = 'Example loaded with real .docx preview';
+      statusEl.style.color = 'var(--green)';
+    }).catch(function(err) {
+      console.error('Auto-compile failed:', err);
+    });
+  }
+});
+
 // Sync scroll
 editor.addEventListener('scroll', function() {
   highlightEl.scrollTop = editor.scrollTop;

@@ -50,10 +50,10 @@
         <div class="vision-step-content">
           <h4>Make your edits</h4>
           <pre><code># Fix the number reviewers flagged
-docex replace paper.docx "268,635" "300,000" --author "Fabio"
+docex replace paper.docx "12,847" "300,000" --author "Alex"
 
 # Reply to Reviewer 2's comment
-docex reply paper.docx 5 "Added citation." --by "Fabio Votta"
+docex reply paper.docx 5 "Added citation." --by "Alex Chen"
 
 # Insert a new paragraph after Methods
 docex insert paper.docx "after:Methods" "We used a mixed-methods approach."</code></pre>
@@ -220,13 +220,13 @@ How was inter-coder reliability measured?
           <h4>AI makes edits</h4>
           <p>The agent calls docex tools to make tracked changes and reply to comments, all attributed to you:</p>
           <pre><code># AI calls these operations via MCP:
-doc.author("Fabio Votta");
+doc.author("Alex Chen");
 doc.after("Classification Pipeline").insert(
   "Inter-coder reliability was measured using Krippendorff's alpha..."
 );
 doc.at("classification methodology").reply(
   "Added inter-coder reliability section. Alpha = 0.87.",
-  { by: "Fabio Votta" }
+  { by: "Alex Chen" }
 );</code></pre>
         </div>
       </div>

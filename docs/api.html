@@ -30,7 +30,7 @@
     <p>A fluent API that reads like English. Every edit is tracked by default. Author is set once and applied to everything.</p>
     <pre><code>const docex = require('./src/docex');
 const doc = docex("paper.docx");
-doc.author("Fabio Votta");</code></pre>
+doc.author("Alex Chen");</code></pre>
   </section>
 
   <!-- Opening and Saving -->
@@ -49,7 +49,7 @@ doc.author("Fabio Votta");</code></pre>
       <div class="api-entry-header">doc.author(name)</div>
       <div class="api-entry-body">
         <p>Set the author name for all subsequent operations. Applied to tracked changes and comments.</p>
-        <pre><code>doc.author("Fabio Votta");</code></pre>
+        <pre><code>doc.author("Alex Chen");</code></pre>
       </div>
     </div>
 
@@ -90,9 +90,9 @@ doc.replace("old", "new");  // no tracked change record</code></pre>
       <div class="api-entry-header">doc.at(text)</div>
       <div class="api-entry-body">
         <p>Select the position <strong>at</strong> a phrase. Used for comments, formatting, and inline operations.</p>
-        <pre><code>doc.at("platform governance").comment("Needs citation");
-doc.at("enforcement gap").bold();
-doc.at("268,635").highlight("yellow");</code></pre>
+        <pre><code>doc.at("digital wellbeing").comment("Needs citation");
+doc.at("measurement validity").bold();
+doc.at("12,847").highlight("yellow");</code></pre>
       </div>
     </div>
 
@@ -131,7 +131,7 @@ doc.after("Results").table([["A","B"],["1","2"]]);</code></pre>
       <div class="api-entry-header">doc.replace(old, new)</div>
       <div class="api-entry-body">
         <p>Replace text. Shows as a tracked change (strikethrough + insertion) in Word.</p>
-        <pre><code>doc.replace("enforcement gap", "regulatory gap");</code></pre>
+        <pre><code>doc.replace("measurement validity", "regulatory gap");</code></pre>
       </div>
     </div>
 
@@ -139,7 +139,7 @@ doc.after("Results").table([["A","B"],["1","2"]]);</code></pre>
       <div class="api-entry-header">doc.replaceAll(old, new)</div>
       <div class="api-entry-body">
         <p>Replace all occurrences of a string throughout the document.</p>
-        <pre><code>doc.replaceAll("TTPA", "TTPA/PAR");</code></pre>
+        <pre><code>doc.replaceAll("GDPR", "GDPR/DPA");</code></pre>
       </div>
     </div>
 
@@ -164,7 +164,7 @@ doc.after("Results").table([["A","B"],["1","2"]]);</code></pre>
       <div class="api-entry-body">
         <p>Find all occurrences of text in the document.</p>
         <pre><code>const results = await doc.find("Meta");
-// [{paragraph: 3, text: "...Meta's Ad Library..."}]</code></pre>
+// [{paragraph: 3, text: "...the research dataset..."}]</code></pre>
       </div>
     </div>
   </section>
@@ -228,7 +228,7 @@ doc.at("var x = 1").code();</code></pre>
       <div class="api-entry-header">doc.at(anchor).comment(text, opts?)</div>
       <div class="api-entry-body">
         <p>Add a comment anchored to a phrase.</p>
-        <pre><code>doc.at("platform governance").comment("Needs citation", { by: "Reviewer 2" });</code></pre>
+        <pre><code>doc.at("digital wellbeing").comment("Needs citation", { by: "Reviewer 2" });</code></pre>
       </div>
     </div>
 
@@ -236,7 +236,7 @@ doc.at("var x = 1").code();</code></pre>
       <div class="api-entry-header">doc.at(anchor).reply(text, opts?)</div>
       <div class="api-entry-body">
         <p>Reply to an existing comment (threaded reply in Word).</p>
-        <pre><code>doc.at("platform governance").reply("Added Suzor 2019", { by: "Fabio Votta" });</code></pre>
+        <pre><code>doc.at("digital wellbeing").reply("Added Johnson 2022", { by: "Alex Chen" });</code></pre>
       </div>
     </div>
 
@@ -245,7 +245,7 @@ doc.at("var x = 1").code();</code></pre>
       <div class="api-entry-body">
         <p>List all comments in the document.</p>
         <pre><code>const comments = await doc.comments();
-// [{id: 1, author: "Reviewer 2", text: "Needs citation", anchor: "platform governance"}]</code></pre>
+// [{id: 1, author: "Reviewer 2", text: "Needs citation", anchor: "digital wellbeing"}]</code></pre>
       </div>
     </div>
 
@@ -314,7 +314,7 @@ doc.at("var x = 1").code();</code></pre>
       <div class="api-entry-body">
         <p>List all tracked changes.</p>
         <pre><code>const revs = await doc.revisions();
-// [{id: 17, type: "del", author: "Mira", text: "268,635 ads"}]</code></pre>
+// [{id: 17, type: "del", author: "Research Assistant", text: "12,847 ads"}]</code></pre>
       </div>
     </div>
 
@@ -422,7 +422,7 @@ await doc.style("academic"); // Generic academic</code></pre>
       <div class="api-entry-body">
         <p>Get document metadata (title, author, creation date, etc.).</p>
         <pre><code>const meta = await doc.metadata();
-// { title: "The Ban That Wasn't", creator: "Fabio Votta", created: "2026-02-15" }</code></pre>
+// { title: "The Effects of Social Media on Sleep Quality", creator: "Alex Chen", created: "2026-02-15" }</code></pre>
       </div>
     </div>
 
@@ -434,7 +434,7 @@ await doc.style("academic"); // Generic academic</code></pre>
 // [{level: 1, text: "Introduction", index: 5}]
 
 const paras = await doc.paragraphs();
-// [{id: "3A7F2B1C", text: "We analyzed 268,635...", index: 12}]</code></pre>
+// [{id: "3A7F2B1C", text: "We analyzed 12,847...", index: 12}]</code></pre>
       </div>
     </div>
 

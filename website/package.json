@@ -1,0 +1,12 @@
+{
+  "name": "docex-website",
+  "version": "1.0.0",
+  "description": "Demo website for docex - live .dex editor with document preview",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

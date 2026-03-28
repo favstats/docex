@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>docex - LaTeX for .docx</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   RESET & BASE
+   ==================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0f0f1a;
+  color: #e0e0e0;
+}
+
+/* ====================================================================
+   TOP BAR
+   ==================================================================== */
+.topbar {
+  height: 56px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(233, 69, 96, 0.3);
+  position: relative;
+  z-index: 100;
+}
+.topbar-logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+.topbar-logo span {
+  color: #e94560;
+}
+.topbar-tagline {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  margin-left: 14px;
+  font-style: italic;
+  letter-spacing: 0.3px;
+}
+.topbar-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-upload {
+  background: rgba(233, 69, 96, 0.15);
+  color: #e94560;
+  border: 1px solid rgba(233, 69, 96, 0.3);
+}
+.btn-upload:hover {
+  background: rgba(233, 69, 96, 0.25);
+  border-color: #e94560;
+}
+.btn-build {
+  background: #e94560;
+  color: #fff;
+}
+.btn-build:hover {
+  background: #d63b55;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4);
+}
+.btn-preview {
+  background: rgba(100, 200, 255, 0.1);
+  color: #64c8ff;
+  border: 1px solid rgba(100, 200, 255, 0.25);
+}
+.btn-preview:hover {
+  background: rgba(100, 200, 255, 0.2);
+  border-color: #64c8ff;
+}
+.btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* ====================================================================
+   MAIN LAYOUT (SPLIT PANE)
+   ==================================================================== */
+.main {
+  display: flex;
+  height: calc(100vh - 56px);
+}
+.pane-editor {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a2e;
+  position: relative;
+}
+.pane-preview {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  position: relative;
+}
+.divider {
+  width: 6px;
+  background: #0f0f1a;
+  cursor: col-resize;
+  position: relative;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 40px;
+  background: rgba(233, 69, 96, 0.4);
+  border-radius: 2px;
+}
+.divider:hover::after {
+  background: #e94560;
+}
+
+/* ====================================================================
+   PANE HEADERS
+   ==================================================================== */
+.pane-header {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  flex-shrink: 0;
+}
+.pane-editor .pane-header {
+  background: rgba(0,0,0,0.3);
+  color: rgba(255,255,255,0.5);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.pane-preview .pane-header {
+  background: #f8f8f8;
+  color: #888;
+  border-bottom: 1px solid #e8e8e8;
+}
+.pane-header .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+.pane-editor .pane-header .dot { background: #e94560; }
+.pane-preview .pane-header .dot { background: #4ecdc4; }
+
+/* ====================================================================
+   CODE EDITOR
+   ==================================================================== */
+.editor-wrap {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+#editor {
+  width: 100%;
+  height: 100%;
+  background: #1a1a2e;
+  color: #c8d6e5;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 16px 16px 16px 56px;
+  tab-size: 2;
+  overflow: auto;
+  white-space: pre;
+}
+/* Line numbers via overlay */
+.line-numbers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 44px;
+  padding: 16px 8px 16px 0;
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.15);
+  pointer-events: none;
+  overflow: hidden;
+  user-select: none;
+  background: rgba(0,0,0,0.15);
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+
+/* ====================================================================
+   SYNTAX-HIGHLIGHTED OVERLAY
+   ==================================================================== */
+.highlight-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 16px 16px 16px 56px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre;
+  pointer-events: none;
+  overflow: hidden;
+  color: transparent;
+}
+.highlight-overlay .h-heading { color: #64b5f6; font-weight: 700; }
+.highlight-overlay .h-comment { background: rgba(255, 235, 59, 0.12); color: #fdd835; border-radius: 2px; }
+.highlight-overlay .h-del { color: #ef5350; }
+.highlight-overlay .h-ins { color: #66bb6a; }
+.highlight-overlay .h-tag { color: #ce93d8; }
+.highlight-overlay .h-id { color: #78909c; }
+.highlight-overlay .h-pagebreak { color: #ff9800; font-weight: 700; }
+.highlight-overlay .h-frontmatter { color: #78909c; }
+.highlight-overlay .h-font { color: #90a4ae; }
+
+/* ====================================================================
+   DOCUMENT PREVIEW
+   ==================================================================== */
+.preview-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 48px;
+}
+.preview-content {
+  max-width: 680px;
+  margin: 0 auto;
+  font-family: 'Source Serif 4', 'Georgia', serif;
+  font-size: 16px;
+  line-height: 1.75;
+  color: #1a1a1a;
+}
+.preview-content h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 32px 0 16px 0;
+  color: #111;
+  line-height: 1.3;
+  border-bottom: 2px solid #e94560;
+  padding-bottom: 8px;
+}
+.preview-content h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 28px 0 12px 0;
+  color: #222;
+  line-height: 1.3;
+}
+.preview-content h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 24px 0 10px 0;
+  color: #333;
+  line-height: 1.3;
+}
+.preview-content h4, .preview-content h5, .preview-content h6 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 20px 0 8px 0;
+  color: #444;
+}
+.preview-content p, .preview-content .dex-para {
+  margin: 0 0 12px 0;
+  text-align: justify;
+  text-indent: 0;
+}
+.preview-content .dex-para + .dex-para {
+  text-indent: 1.5em;
+}
+.preview-content .dex-comment {
+  background: #fffde7;
+  border-left: 3px solid #fdd835;
+  padding: 10px 14px;
+  margin: 12px 0;
+  border-radius: 0 6px 6px 0;
+  font-size: 14px;
+  color: #5d4037;
+  position: relative;
+}
+.preview-content .dex-comment-author {
+  font-weight: 700;
+  color: #e65100;
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.preview-content .dex-del {
+  color: #c62828;
+  text-decoration: line-through;
+  background: rgba(198, 40, 40, 0.08);
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+.preview-content .dex-ins {
+  color: #2e7d32;
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: rgba(46, 125, 50, 0.4);
+  background: rgba(46, 125, 50, 0.06);
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+.preview-content .dex-footnote {
+  cursor: help;
+}
+.preview-content .dex-footnote sup {
+  color: #e94560;
+  font-weight: 600;
+}
+.preview-content hr.dex-pagebreak {
+  border: none;
+  border-top: 2px dashed #ccc;
+  margin: 32px 0;
+  position: relative;
+}
+.preview-content hr.dex-pagebreak::after {
+  content: 'PAGE BREAK';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  padding: 0 12px;
+  font-size: 10px;
+  color: #bbb;
+  letter-spacing: 1px;
+  font-family: 'Inter', sans-serif;
+}
+.preview-content .dex-figure-placeholder {
+  background: #f5f5f5;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  margin: 16px 0;
+}
+.preview-content .dex-table-placeholder {
+  background: #f0f4f8;
+  border: 2px dashed #b0bec5;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  color: #607d8b;
+  font-style: italic;
+  margin: 16px 0;
+}
+
+/* ====================================================================
+   DRAG & DROP OVERLAY
+   ==================================================================== */
+.drop-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 15, 26, 0.92);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+.drop-overlay.active { display: flex; }
+.drop-box {
+  border: 3px dashed #e94560;
+  border-radius: 20px;
+  padding: 60px 80px;
+  text-align: center;
+  color: #e94560;
+}
+.drop-box-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+.drop-box-text {
+  font-size: 22px;
+  font-weight: 600;
+}
+.drop-box-sub {
+  font-size: 14px;
+  color: rgba(233, 69, 96, 0.6);
+  margin-top: 8px;
+}
+
+/* ====================================================================
+   STATUS BAR
+   ==================================================================== */
+.statusbar {
+  height: 24px;
+  background: #16213e;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  border-top: 1px solid rgba(255,255,255,0.04);
+  flex-shrink: 0;
+}
+.statusbar .status-item {
+  margin-right: 20px;
+}
+.statusbar .status-item.right {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* ====================================================================
+   TOAST NOTIFICATIONS
+   ==================================================================== */
+.toast-container {
+  position: fixed;
+  bottom: 40px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  background: #16213e;
+  color: #e0e0e0;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  border-left: 3px solid #e94560;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  animation: toastIn 0.3s ease;
+  max-width: 360px;
+}
+.toast.success { border-left-color: #4ecdc4; }
+.toast.error { border-left-color: #ef5350; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ====================================================================
+   LOADING SPINNER
+   ==================================================================== */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: #e94560;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Hidden file input */
+#file-input { display: none; }
+
+/* ====================================================================
+   SCROLLBAR STYLING
+   ==================================================================== */
+#editor::-webkit-scrollbar,
+.preview-wrap::-webkit-scrollbar { width: 8px; height: 8px; }
+#editor::-webkit-scrollbar-track { background: transparent; }
+#editor::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+#editor::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+.preview-wrap::-webkit-scrollbar-track { background: transparent; }
+.preview-wrap::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 4px; }
+.preview-wrap::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+</style>
+</head>
+<body>
+
+<!-- ================================================================
+     TOP BAR
+     ================================================================ -->
+<div class="topbar">
+  <div class="topbar-logo">doc<span>ex</span></div>
+  <div class="topbar-tagline">LaTeX for .docx</div>
+  <div class="topbar-actions">
+    <button class="btn btn-upload" id="btn-upload" title="Upload a .docx file">
+      <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+      Upload .docx
+    </button>
+    <button class="btn btn-preview" id="btn-refresh" title="Refresh preview">
+      <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+      Preview
+    </button>
+    <button class="btn btn-build" id="btn-build" title="Build and download .docx">
+      <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      Build .docx
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MAIN SPLIT PANE
+     ================================================================ -->
+<div class="main">
+  <!-- LEFT: Code Editor -->
+  <div class="pane-editor" id="pane-editor">
+    <div class="pane-header">
+      <span class="dot"></span>
+      .dex source
+    </div>
+    <div class="editor-wrap">
+      <div class="line-numbers" id="line-numbers"></div>
+      <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+    </div>
+  </div>
+
+  <!-- DIVIDER -->
+  <div class="divider" id="divider"></div>
+
+  <!-- RIGHT: Document Preview -->
+  <div class="pane-preview" id="pane-preview">
+    <div class="pane-header">
+      <span class="dot"></span>
+      document preview
+    </div>
+    <div class="preview-wrap">
+      <div class="preview-content" id="preview"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <span class="status-item" id="status-lines">Lines: 0</span>
+  <span class="status-item" id="status-words">Words: 0</span>
+  <span class="status-item right">docex v0.4.0</span>
+</div>
+
+<!-- DRAG & DROP OVERLAY -->
+<div class="drop-overlay" id="drop-overlay">
+  <div class="drop-box">
+    <div class="drop-box-icon">&#128196;</div>
+    <div class="drop-box-text">Drop your .docx file here</div>
+    <div class="drop-box-sub">It will be decompiled to .dex format</div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- HIDDEN FILE INPUT -->
+<input type="file" id="file-input" accept=".docx">
+
+<!-- ================================================================
+     JAVASCRIPT
+     ================================================================ -->
+<script>
+(function() {
+  'use strict';
+
+  const editor = document.getElementById('editor');
+  const preview = document.getElementById('preview');
+  const lineNumbers = document.getElementById('line-numbers');
+  const divider = document.getElementById('divider');
+  const paneEditor = document.getElementById('pane-editor');
+  const panePreview = document.getElementById('pane-preview');
+  const btnUpload = document.getElementById('btn-upload');
+  const btnBuild = document.getElementById('btn-build');
+  const btnRefresh = document.getElementById('btn-refresh');
+  const fileInput = document.getElementById('file-input');
+  const dropOverlay = document.getElementById('drop-overlay');
+  const statusLines = document.getElementById('status-lines');
+  const statusWords = document.getElementById('status-words');
+
+  // ==================================================================
+  // TOAST NOTIFICATIONS
+  // ==================================================================
+  function toast(message, type) {
+    type = type || 'info';
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.textContent = message;
+    container.appendChild(el);
+    setTimeout(function() {
+      el.style.opacity = '0';
+      el.style.transition = 'opacity 0.3s';
+      setTimeout(function() { el.remove(); }, 300);
+    }, 3000);
+  }
+
+  // ==================================================================
+  // SPLIT PANE DIVIDER
+  // ==================================================================
+  let isDragging = false;
+
+  divider.addEventListener('mousedown', function(e) {
+    isDragging = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    const container = document.querySelector('.main');
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const total = rect.width;
+    const pct = (x / total) * 100;
+    if (pct < 15 || pct > 85) return;
+    paneEditor.style.flex = 'none';
+    paneEditor.style.width = pct + '%';
+    panePreview.style.flex = 'none';
+    panePreview.style.width = (100 - pct) + '%';
+    updateLineNumbers();
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (isDragging) {
+      isDragging = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+
+  // ==================================================================
+  // LINE NUMBERS
+  // ==================================================================
+  function updateLineNumbers() {
+    const text = editor.value;
+    const count = text.split('\n').length;
+    let html = '';
+    for (let i = 1; i <= count; i++) {
+      html += i + '\n';
+    }
+    lineNumbers.textContent = html;
+    lineNumbers.scrollTop = editor.scrollTop;
+  }
+
+  editor.addEventListener('scroll', function() {
+    lineNumbers.scrollTop = editor.scrollTop;
+  });
+
+  // ==================================================================
+  // STATUS BAR
+  // ==================================================================
+  function updateStatus() {
+    const text = editor.value;
+    const lines = text.split('\n').length;
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    statusLines.textContent = 'Lines: ' + lines;
+    statusWords.textContent = 'Words: ' + words;
+  }
+
+  // ==================================================================
+  // CLIENT-SIDE DEX -> HTML PREVIEW
+  // ==================================================================
+  function escHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderInline(text) {
+    var html = escHtml(text);
+
+    // Bold
+    html = html.replace(/\{b\}([\s\S]*?)\{\/b\}/g, '<strong>$1</strong>');
+    // Italic
+    html = html.replace(/\{i\}([\s\S]*?)\{\/i\}/g, '<em>$1</em>');
+    // Underline
+    html = html.replace(/\{u\}([\s\S]*?)\{\/u\}/g, '<u>$1</u>');
+    // Strikethrough
+    html = html.replace(/\{strike\}([\s\S]*?)\{\/strike\}/g, '<s>$1</s>');
+    // Superscript
+    html = html.replace(/\{sup\}([\s\S]*?)\{\/sup\}/g, '<sup>$1</sup>');
+    // Subscript
+    html = html.replace(/\{sub\}([\s\S]*?)\{\/sub\}/g, '<sub>$1</sub>');
+
+    // Deletions
+    html = html.replace(/\{del[^}]*\}([\s\S]*?)\{\/del\}/g, '<span class="dex-del">$1</span>');
+    // Insertions
+    html = html.replace(/\{ins[^}]*\}([\s\S]*?)\{\/ins\}/g, '<span class="dex-ins">$1</span>');
+
+    // Strip formatting tags but keep content
+    html = html.replace(/\{font[^}]*\}/g, '');
+    html = html.replace(/\{\/font\}/g, '');
+    html = html.replace(/\{color[^}]*\}/g, '');
+    html = html.replace(/\{\/color\}/g, '');
+    html = html.replace(/\{highlight[^}]*\}/g, '');
+    html = html.replace(/\{\/highlight\}/g, '');
+
+    // Footnotes with content
+    html = html.replace(/\{footnote id:(\d+)\}([\s\S]*?)\{\/footnote\}/g,
+      '<span class="dex-footnote" title="$2"><sup>[$1]</sup></span>');
+    // Empty footnote refs
+    html = html.replace(/\{footnote id:(\d+)\}\{\/footnote\}/g,
+      '<span class="dex-footnote"><sup>[$1]</sup></span>');
+
+    return html;
+  }
+
+  function renderPreview(dex) {
+    var lines = dex.split('\n');
+    var parts = [];
+    var inFrontmatter = false;
+    var inComment = false;
+    var commentMeta = '';
+    var commentBody = [];
+    var inParagraph = false;
+    var paragraphContent = [];
+
+    function flushParagraph() {
+      if (paragraphContent.length > 0) {
+        var text = paragraphContent.join('\n');
+        parts.push('<p class="dex-para">' + renderInline(text) + '</p>');
+        paragraphContent = [];
+      }
+      inParagraph = false;
+    }
+
+    function flushComment() {
+      if (commentBody.length > 0) {
+        parts.push('<div class="dex-comment"><span class="dex-comment-author">' +
+          escHtml(commentMeta) + '</span>' + escHtml(commentBody.join('\n')) + '</div>');
+        commentBody = [];
+      }
+      inComment = false;
+    }
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var trimmed = line.trim();
+
+      // Frontmatter
+      if (i === 0 && trimmed === '---') { inFrontmatter = true; continue; }
+      if (inFrontmatter) { if (trimmed === '---') inFrontmatter = false; continue; }
+
+      // Comment start
+      if (trimmed.indexOf('{comment ') === 0) {
+        flushParagraph();
+        var byMatch = trimmed.match(/by:"([^"]+)"/);
+        commentMeta = byMatch ? byMatch[1] : 'Comment';
+        inComment = true;
+        if (trimmed.indexOf('{/comment}') !== -1) {
+          var inner = trimmed.replace(/\{comment[^}]*\}/, '').replace(/\{\/comment\}/, '');
+          parts.push('<div class="dex-comment"><span class="dex-comment-author">' +
+            escHtml(commentMeta) + '</span>' + escHtml(inner) + '</div>');
+          inComment = false;
+        }
+        continue;
+      }
+      if (trimmed === '{/comment}') { flushComment(); continue; }
+      if (inComment) { commentBody.push(line); continue; }
+
+      // Paragraph start
+      if (/^\{p(\s|})/.test(trimmed) && trimmed.endsWith('}') && trimmed.indexOf('{pagebreak}') === -1) {
+        flushParagraph();
+        inParagraph = true;
+        continue;
+      }
+      if (trimmed === '{/p}') { flushParagraph(); continue; }
+      if (inParagraph) { paragraphContent.push(line); continue; }
+
+      // Pagebreak
+      if (trimmed === '{pagebreak}') {
+        flushParagraph();
+        parts.push('<hr class="dex-pagebreak">');
+        continue;
+      }
+
+      // Headings
+      var headingMatch = trimmed.match(/^(#{1,6})\s+(.+?)(?:\s*\{id:[A-Fa-f0-9]+\})?\s*$/);
+      if (headingMatch) {
+        flushParagraph();
+        var level = headingMatch[1].length;
+        var text = headingMatch[2];
+        parts.push('<h' + level + '>' + escHtml(text) + '</h' + level + '>');
+        continue;
+      }
+
+      // Table
+      if (trimmed.indexOf('{table') === 0) {
+        flushParagraph();
+        parts.push('<div class="dex-table-placeholder">[Table]</div>');
+        continue;
+      }
+
+      // Figure
+      if (trimmed.indexOf('{figure') === 0) {
+        flushParagraph();
+        var captionMatch = trimmed.match(/caption:"([^"]+)"/);
+        var caption = captionMatch ? captionMatch[1] : 'Figure';
+        parts.push('<div class="dex-figure-placeholder">[Figure: ' + escHtml(caption) + ']</div>');
+        continue;
+      }
+
+      // Empty line
+      if (trimmed === '') continue;
+
+      // Plain text
+      parts.push('<p class="dex-para">' + renderInline(trimmed) + '</p>');
+    }
+
+    flushParagraph();
+    flushComment();
+
+    return parts.join('\n');
+  }
+
+  function updatePreview() {
+    var html = renderPreview(editor.value);
+    preview.innerHTML = html;
+  }
+
+  // ==================================================================
+  // EDITOR INPUT HANDLER
+  // ==================================================================
+  var previewTimeout = null;
+
+  editor.addEventListener('input', function() {
+    updateLineNumbers();
+    updateStatus();
+    clearTimeout(previewTimeout);
+    previewTimeout = setTimeout(updatePreview, 300);
+  });
+
+  // Handle tab key in editor
+  editor.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      var start = this.selectionStart;
+      var end = this.selectionEnd;
+      this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+      this.selectionStart = this.selectionEnd = start + 2;
+      updateLineNumbers();
+    }
+  });
+
+  // ==================================================================
+  // FILE UPLOAD
+  // ==================================================================
+  btnUpload.addEventListener('click', function() {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', function() {
+    if (this.files.length === 0) return;
+    uploadFile(this.files[0]);
+    this.value = '';
+  });
+
+  function uploadFile(file) {
+    if (!file.name.endsWith('.docx')) {
+      toast('Please upload a .docx file', 'error');
+      return;
+    }
+    toast('Decompiling ' + file.name + '...');
+
+    var reader = new FileReader();
+    reader.onload = function() {
+      fetch('/api/decompile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: reader.result
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.error) {
+          toast('Error: ' + data.error, 'error');
+          return;
+        }
+        editor.value = data.dex;
+        updateLineNumbers();
+        updateStatus();
+        if (data.html) {
+          preview.innerHTML = data.html;
+        } else {
+          updatePreview();
+        }
+        toast('Decompiled successfully!', 'success');
+      })
+      .catch(function(err) {
+        toast('Upload failed: ' + err.message, 'error');
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // ==================================================================
+  // DRAG & DROP
+  // ==================================================================
+  var dragCounter = 0;
+
+  document.addEventListener('dragenter', function(e) {
+    e.preventDefault();
+    dragCounter++;
+    dropOverlay.classList.add('active');
+  });
+
+  document.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter <= 0) {
+      dragCounter = 0;
+      dropOverlay.classList.remove('active');
+    }
+  });
+
+  document.addEventListener('dragover', function(e) {
+    e.preventDefault();
+  });
+
+  document.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dragCounter = 0;
+    dropOverlay.classList.remove('active');
+    if (e.dataTransfer.files.length > 0) {
+      uploadFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  // ==================================================================
+  // BUILD .DOCX
+  // ==================================================================
+  btnBuild.addEventListener('click', function() {
+    var dex = editor.value.trim();
+    if (!dex) {
+      toast('Editor is empty', 'error');
+      return;
+    }
+    toast('Building .docx...');
+
+    fetch('/api/build', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dex: dex })
+    })
+    .then(function(res) {
+      if (!res.ok) {
+        return res.json().then(function(d) { throw new Error(d.error || 'Build failed'); });
+      }
+      return res.blob();
+    })
+    .then(function(blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'document.docx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast('Download started!', 'success');
+    })
+    .catch(function(err) {
+      toast('Build failed: ' + err.message, 'error');
+    });
+  });
+
+  // ==================================================================
+  // REFRESH PREVIEW (SERVER-SIDE)
+  // ==================================================================
+  btnRefresh.addEventListener('click', function() {
+    var dex = editor.value.trim();
+    if (!dex) {
+      toast('Editor is empty', 'error');
+      return;
+    }
+
+    fetch('/api/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dex: dex })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.error) {
+        toast('Preview error: ' + data.error, 'error');
+        return;
+      }
+      preview.innerHTML = data.html;
+      toast('Preview refreshed', 'success');
+    })
+    .catch(function(err) {
+      toast('Preview failed: ' + err.message, 'error');
+    });
+  });
+
+  // ==================================================================
+  // LOAD EXAMPLE ON START
+  // ==================================================================
+  function loadExample() {
+    fetch('/api/example')
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.dex) {
+          editor.value = data.dex;
+          updateLineNumbers();
+          updateStatus();
+          updatePreview();
+        }
+      })
+      .catch(function() {
+        // Fallback: show a minimal example
+        editor.value = '---\ndocex: "0.4.0"\nauthors:\n  - name: "Author"\n---\n\n# My Document\n\n{p id:00000001}\nHello from {b}docex{/b}! Edit this .dex source and watch the preview update.\n{/p}\n';
+        updateLineNumbers();
+        updateStatus();
+        updatePreview();
+      });
+  }
+
+  loadExample();
+
+})();
+</script>
+</body>
+</html>

@@ -42,11 +42,11 @@ const DocxDecompiler = {
       }
 
       if (level > 0) {
-        const rawText = this._extractTextDecoded(pXml);
-        const text = rawText.replace(/\\/g, '\\\\').replace(/\{/g, '\\{').replace(/\}/g, '\\}');
+        // Use _decompileRuns for headings too, so comment anchors are preserved
+        const content = this._decompileRuns(pXml, footnoteMap);
         const hashes = '#'.repeat(level);
         const idAttr = paraId ? ' {id:' + paraId + '}' : '';
-        parts.push(hashes + ' ' + text + idAttr);
+        parts.push(hashes + ' ' + content + idAttr);
         parts.push('');
       } else if (hasFigure) {
         parts.push(this._decompileFigure(pXml, paraId, relsXml));
@@ -334,11 +334,20 @@ const DocxDecompiler = {
         // Skip comment references
         if (/<w:commentReference/.test(runXml)) { pos = endIdx + endTag.length; continue; }
 
-        // Text
+        // Text + tabs + breaks
         const texts = [];
-        const tRe = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+        const runBody = runXml.replace(/<w:rPr>[\s\S]*?<\/w:rPr>/g, '');
+        const elemRe = /<w:t[^>]*>([^<]*)<\/w:t>|<w:tab\s*\/>|<w:br\s*\/?>|<w:br\s+w:type="([^"]*)"[^>]*\/?>/g;
         let tMatch;
-        while ((tMatch = tRe.exec(runXml)) !== null) texts.push(this._decodeXml(tMatch[1]));
+        while ((tMatch = elemRe.exec(runBody)) !== null) {
+          if (tMatch[0].indexOf('<w:t') === 0) texts.push(this._decodeXml(tMatch[1]));
+          else if (tMatch[0].indexOf('<w:tab') === 0) texts.push('\t');
+          else if (tMatch[0].indexOf('<w:br') === 0) {
+            var brType = tMatch[2] || '';
+            if (brType === 'page') texts.push('{pagebreak}');
+            else texts.push('{br}');
+          }
+        }
         const text = texts.join('');
         if (text) {
           const escaped = text.replace(/\\/g, '\\\\').replace(/\{/g, '\\{').replace(/\}/g, '\\}');
@@ -353,9 +362,32 @@ const DocxDecompiler = {
         const hlXml = xmlStr.slice(pos, endIdx + endTag.length);
         this._walkElements(hlXml.slice(hlXml.indexOf('>') + 1, hlXml.lastIndexOf('<')), parts, footnoteMap);
         pos = endIdx + endTag.length;
-      } else if (xmlStr.startsWith('<w:commentRangeStart', pos) || xmlStr.startsWith('<w:commentRangeEnd', pos) ||
-                 xmlStr.startsWith('<w:bookmarkStart', pos) || xmlStr.startsWith('<w:bookmarkEnd', pos)) {
+      } else if (xmlStr.startsWith('<w:commentRangeStart', pos)) {
         const closeAngle = xmlStr.indexOf('>', pos);
+        const tag = xmlStr.slice(pos, closeAngle + 1);
+        const idMatch = tag.match(/w:id="(\d+)"/);
+        if (idMatch) parts.push('{comment-start id:' + idMatch[1] + '}');
+        pos = closeAngle + 1;
+      } else if (xmlStr.startsWith('<w:commentRangeEnd', pos)) {
+        const closeAngle = xmlStr.indexOf('>', pos);
+        const tag = xmlStr.slice(pos, closeAngle + 1);
+        const idMatch = tag.match(/w:id="(\d+)"/);
+        if (idMatch) parts.push('{comment-end id:' + idMatch[1] + '}');
+        pos = closeAngle + 1;
+      } else if (xmlStr.startsWith('<w:bookmarkStart', pos)) {
+        const closeAngle = xmlStr.indexOf('>', pos);
+        const tag = xmlStr.slice(pos, closeAngle + 1);
+        const idMatch = tag.match(/w:id="(\d+)"/);
+        const nameMatch = tag.match(/w:name="([^"]*)"/);
+        if (idMatch && nameMatch && nameMatch[1] !== '_GoBack') {
+          parts.push('{bookmark-start id:' + idMatch[1] + ' name:"' + nameMatch[1] + '"}');
+        }
+        pos = closeAngle + 1;
+      } else if (xmlStr.startsWith('<w:bookmarkEnd', pos)) {
+        const closeAngle = xmlStr.indexOf('>', pos);
+        const tag = xmlStr.slice(pos, closeAngle + 1);
+        const idMatch = tag.match(/w:id="(\d+)"/);
+        if (idMatch) parts.push('{bookmark-end id:' + idMatch[1] + '}');
         pos = closeAngle + 1;
       } else {
         const closeAngle = xmlStr.indexOf('>', pos);

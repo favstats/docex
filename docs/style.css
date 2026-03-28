@@ -1223,8 +1223,11 @@ tr:hover td { background: var(--accent-glow); }
 .playground-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
+  margin-left: auto;
+}
+.playground-actions-right {
   margin-left: auto;
 }
 .playground-actions .btn-small {
@@ -1697,15 +1700,15 @@ tr:hover td { background: var(--accent-glow); }
   width: auto !important;
 }
 #docxPreviewPane .docx-wrapper {
-  zoom: 0.5;
-  -moz-transform: scale(0.5);
-  -moz-transform-origin: top left;
+  transform: scale(0.5);
+  transform-origin: top left;
+  width: 200%; /* compensate for scale */
 }
 @media (min-width: 1400px) {
-  #docxPreviewPane .docx-wrapper { zoom: 0.6; }
+  #docxPreviewPane .docx-wrapper { transform: scale(0.6); width: 166.67%; }
 }
 @media (min-width: 1800px) {
-  #docxPreviewPane .docx-wrapper { zoom: 0.75; }
+  #docxPreviewPane .docx-wrapper { transform: scale(0.75); width: 133.33%; }
 }
 
 /* ============================================================================
@@ -1917,18 +1920,68 @@ tr:hover td { background: var(--accent-glow); }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-/* Viewer button notes */
-.btn-group-viewer { position: relative; }
-.viewer-note {
-  display: block;
-  font-size: 10px;
-  color: var(--text-muted);
-  text-align: center;
-  margin-top: 2px;
-  line-height: 1.2;
+/* "Open in..." dropdown */
+.dropdown { position: relative; }
+.dropdown-menu {
+  position: absolute; top: 100%; right: 0; margin-top: 4px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 4px; min-width: 200px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 100;
 }
-.viewer-btn-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.dropdown-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 10px 12px; background: none; border: none; color: var(--text);
+  border-radius: 6px; cursor: pointer; font-size: var(--text-sm);
+  text-align: left;
+}
+.dropdown-item:hover { background: var(--bg-surface); }
+.dropdown-item svg { flex-shrink: 0; }
+.dropdown-hint {
+  margin-left: auto; font-size: var(--text-xs); color: var(--text-muted);
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVE — playground (Fix 1)
+   ============================================================================ */
+@media (max-width: 768px) {
+  .editor-panes {
+    flex-direction: column;
+  }
+  .editor-pane {
+    width: 100% !important;
+    min-height: 300px;
+  }
+  .playground-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .btn-group-viewer {
+    flex-direction: column;
+    width: 100%;
+  }
+  .viewer-btn-wrapper {
+    width: 100%;
+  }
+  .viewer-btn-wrapper .btn {
+    width: 100%;
+  }
+  .drop-zone {
+    padding: 24px 16px;
+  }
+  /* Touch targets >= 44x44px on mobile */
+  .playground-actions .btn-small {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 14px;
+  }
+  .dropdown-item {
+    min-height: 44px;
+  }
+  .modal-close {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }

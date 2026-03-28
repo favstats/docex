@@ -51,26 +51,26 @@
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:-1px"><path d="M2.75 14A1.75 1.75 0 011 12.25v-2.5a.75.75 0 011.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 00.25-.25v-2.5a.75.75 0 011.5 0v2.5A1.75 1.75 0 0113.25 14H2.75z"/><path d="M7.25 7.689V2a.75.75 0 011.5 0v5.689l1.97-1.969a.749.749 0 111.06 1.06l-3.25 3.25a.749.749 0 01-1.06 0L4.22 6.78a.749.749 0 111.06-1.06l1.97 1.969z"/></svg>
         Download .docx
       </button>
-      <div class="btn-group-viewer">
-        <div class="viewer-btn-wrapper">
-          <button class="btn btn-small btn-accent" id="viewWordBtn" title="Opens in Microsoft Word Online with full formatting. Requires temporary file upload.">
-            <svg viewBox="0 0 16 16" width="16" height="16" style="vertical-align:-2px;margin-right:4px"><rect width="16" height="16" rx="2" fill="#2B579A"/><text x="8" y="12" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="Arial">W</text></svg>
-            Word Online
+      <div class="playground-actions-right">
+        <div class="dropdown" id="openInDropdown">
+          <button class="btn btn-small btn-secondary" id="openInBtn">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:-1px"><path d="M8.636 3.5a.5.5 0 00-.5-.5H1.5A1.5 1.5 0 000 4.5v10A1.5 1.5 0 001.5 16h10a1.5 1.5 0 001.5-1.5V7.864a.5.5 0 00-1 0V14.5a.5.5 0 01-.5.5h-10a.5.5 0 01-.5-.5v-10a.5.5 0 01.5-.5h6.636a.5.5 0 00.5-.5z"/><path d="M16 .5a.5.5 0 00-.5-.5h-5a.5.5 0 000 1h3.793L6.146 9.146a.5.5 0 10.708.708L15 1.707V5.5a.5.5 0 001 0v-5z"/></svg>
+            Open in...
           </button>
-          <span class="viewer-note">Full formatting support</span>
-        </div>
-        <div class="viewer-btn-wrapper">
-          <button class="btn btn-small btn-viewer" id="viewGDocsBtn" title="Opens in Google Docs viewer. Basic formatting only. Requires temporary file upload.">
-            <svg viewBox="0 0 16 16" width="16" height="16" style="vertical-align:-2px;margin-right:4px"><path d="M10 0H3a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V5l-5-5z" fill="#4285F4"/><path d="M10 0v5h5" fill="#A1C2FA"/><path d="M5 8h6M5 10h6M5 12h4" stroke="white" stroke-width=".8" fill="none"/></svg>
-            Google Docs
-          </button>
-          <span class="viewer-note">Basic view (limited formatting)</span>
+          <div class="dropdown-menu" id="openInMenu" style="display:none">
+            <button class="dropdown-item" id="viewWordBtn">
+              <svg viewBox="0 0 16 16" width="16" height="16"><rect width="16" height="16" rx="2" fill="#2B579A"/><text x="8" y="12" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="Arial">W</text></svg>
+              Word Online
+              <span class="dropdown-hint">Full formatting</span>
+            </button>
+            <button class="dropdown-item" id="viewGDocsBtn">
+              <svg viewBox="0 0 16 16" width="16" height="16"><path d="M10 0H3a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V5l-5-5z" fill="#4285F4"/><path d="M10 0v5h5" fill="#A1C2FA"/><path d="M5 8h6M5 10h6M5 12h4" stroke="white" stroke-width=".8" fill="none"/></svg>
+              Google Docs
+              <span class="dropdown-hint">Basic view</span>
+            </button>
+          </div>
         </div>
       </div>
-      <button class="btn btn-small btn-ghost" id="rebuildBtn" title="Manually rebuild preview (auto-rebuilds on edit)">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:-1px"><path d="M8 3a5 5 0 104.546 2.914.5.5 0 01.908-.418A6 6 0 118 2v1z"/><path d="M8 4.466V.534a.25.25 0 01.41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 018 4.466z"/></svg>
-        Rebuild
-      </button>
     </div>
   </div>
 
@@ -97,7 +97,7 @@
       <div class="pane-body">
         <div class="editor-container">
           <div class="editor-highlight" id="editorHighlight"></div>
-          <textarea class="dex-editor" id="dexEditor" spellcheck="false"></textarea>
+          <textarea class="dex-editor" id="dexEditor" spellcheck="false" aria-label="Edit .dex source code"></textarea>
         </div>
       </div>
     </div>
@@ -127,7 +127,7 @@
 </div>
 
 <!-- Upload confirmation modal -->
-<div class="modal-overlay" id="uploadModal" style="display:none">
+<div class="modal-overlay" id="uploadModal" role="dialog" aria-modal="true" style="display:none">
   <div class="modal">
     <div class="modal-header">
       <h3>Open in <span id="modalViewerName">Word Online</span></h3>
@@ -385,58 +385,34 @@ function handleFile(file) {
 // The .dex editor and docx preview are independent views of the same document
 // User sees: left = editable .dex source, right = last rendered .docx (read-only reference)
 
-// ---------- Rebuild Preview (compile .dex -> .docx) ----------
-var rebuildBtn = document.getElementById('rebuildBtn');
+// ---------- Download .docx ----------
 var downloadBtn = document.getElementById('downloadBtn');
-
-rebuildBtn.addEventListener('click', function() {
-  rebuildBtn.disabled = true;
-  showSpinner();
-
-  DexCompiler.compile(editor.value).then(function(arrayBuffer) {
-    // Render the compiled .docx in the preview pane
-    previewEl.style.display = 'none';
-    docxPreviewPane.style.display = 'block';
-    docxPreviewPane.textContent = '';
-    previewModeEl.textContent = 'compiled from .dex';
-
-    docx.renderAsync(arrayBuffer, docxPreviewPane, null, {
-      className: 'docx-preview',
-      inWrapper: true,
-      breakPages: true,
-      renderHeaders: true,
-      renderFooters: true,
-      renderFootnotes: true,
-      renderEndnotes: true,
-      renderChanges: true,
-      renderComments: true,
-      ignoreWidth: true,
-      ignoreHeight: true
-    });
-
-    // Store for download
-    window._lastCompiledDocx = arrayBuffer;
-    downloadBtn.disabled = false;
-    rebuildBtn.disabled = false;
-    statusEl.textContent = 'Preview rebuilt from .dex';
-    statusEl.style.color = 'var(--green)';
-    hideSpinner();
-  }).catch(function(err) {
-    rebuildBtn.disabled = false;
-    statusEl.textContent = 'Build error: ' + err.message;
-    statusEl.style.color = 'var(--red)';
-    hideSpinner();
-    console.error(err);
-  });
-});
 
 downloadBtn.addEventListener('click', function() {
   if (!window._lastCompiledDocx) {
-    // No compiled docx yet, trigger a build first
-    rebuildBtn.click();
+    // No compiled docx yet, compile first then download
+    showSpinner();
+    statusEl.textContent = 'Compiling...';
+    statusEl.style.color = 'var(--accent)';
+    DexCompiler.compile(editor.value).then(function(arrayBuffer) {
+      window._lastCompiledDocx = arrayBuffer;
+      hideSpinner();
+      statusEl.textContent = 'Compiled and downloading';
+      statusEl.style.color = 'var(--green)';
+      triggerDownload(arrayBuffer);
+    }).catch(function(err) {
+      hideSpinner();
+      statusEl.textContent = 'Build error: ' + err.message;
+      statusEl.style.color = 'var(--red)';
+      console.error(err);
+    });
     return;
   }
-  var blob = new Blob([window._lastCompiledDocx], {
+  triggerDownload(window._lastCompiledDocx);
+});
+
+function triggerDownload(arrayBuffer) {
+  var blob = new Blob([arrayBuffer], {
     type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   });
   var url = URL.createObjectURL(blob);
@@ -445,6 +421,16 @@ downloadBtn.addEventListener('click', function() {
   a.download = 'document.docx';
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ---------- "Open in..." dropdown ----------
+var openInBtn = document.getElementById('openInBtn');
+var openInMenu = document.getElementById('openInMenu');
+openInBtn.addEventListener('click', function() {
+  openInMenu.style.display = openInMenu.style.display === 'none' ? 'block' : 'none';
+});
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#openInDropdown')) openInMenu.style.display = 'none';
 });
 
 // ---------- Upload & View helper ----------
@@ -459,17 +445,27 @@ var _pendingViewerType = null;
 var wordLogoSvg = '<svg viewBox="0 0 16 16" width="48" height="48"><rect width="16" height="16" rx="2" fill="#2B579A"/><text x="8" y="12" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="Arial">W</text></svg>';
 var gdocsLogoSvg = '<svg viewBox="0 0 16 16" width="48" height="48"><path d="M10 0H3a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V5l-5-5z" fill="#4285F4"/><path d="M10 0v5h5" fill="#A1C2FA"/><path d="M5 8h6M5 10h6M5 12h4" stroke="white" stroke-width=".8" fill="none"/></svg>';
 
+var _modalTriggerEl = null; // Store the element that opened the modal
+
 function showUploadModal(viewerType) {
   _pendingViewerType = viewerType;
+  _modalTriggerEl = document.activeElement; // Remember trigger for focus return
   var isWord = viewerType === 'word';
   modalViewerName.textContent = isWord ? 'Word Online' : 'Google Docs';
   modalIcon.innerHTML = isWord ? wordLogoSvg : gdocsLogoSvg;
   uploadModal.style.display = '';
+  // Move focus into modal
+  modalConfirm.focus();
 }
 
 function hideUploadModal() {
   uploadModal.style.display = 'none';
   _pendingViewerType = null;
+  // Return focus to the element that triggered the modal
+  if (_modalTriggerEl) {
+    _modalTriggerEl.focus();
+    _modalTriggerEl = null;
+  }
 }
 
 modalClose.addEventListener('click', hideUploadModal);
@@ -479,6 +475,24 @@ uploadModal.addEventListener('click', function(e) {
 });
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && uploadModal.style.display !== 'none') hideUploadModal();
+  // Focus trap: cycle tab within modal when open
+  if (e.key === 'Tab' && uploadModal.style.display !== 'none') {
+    var focusable = uploadModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
 });
 
 modalConfirm.addEventListener('click', function() {
@@ -500,10 +514,9 @@ function uploadAndView(viewerType) {
 function performUploadAndView(viewerType) {
   var viewerLabel = viewerType === 'word' ? 'Word Online' : 'Google Docs';
 
-  var btn = viewerType === 'word' ? viewWordBtn : viewGDocsBtn;
-  var origHtml = btn.innerHTML;
-  btn.innerHTML = '<span class="btn-spinner"></span> Uploading...';
-  btn.disabled = true;
+  var origHtml = openInBtn.innerHTML;
+  openInBtn.innerHTML = '<span class="btn-spinner"></span> Uploading...';
+  openInBtn.disabled = true;
   statusEl.textContent = 'Uploading to tmpfiles.org...';
   statusEl.style.color = 'var(--accent)';
   showSpinner();
@@ -540,8 +553,8 @@ function performUploadAndView(viewerType) {
     var viewerUrl = viewerType === 'word' ? msViewerUrl : googleViewerUrl;
     window.open(viewerUrl, '_blank');
 
-    btn.innerHTML = origHtml;
-    btn.disabled = false;
+    openInBtn.innerHTML = origHtml;
+    openInBtn.disabled = false;
     hideSpinner();
 
     // Show status with links to both viewers and direct download
@@ -579,13 +592,13 @@ function performUploadAndView(viewerType) {
     console.error('View online failed:', err);
     statusEl.textContent = 'Upload failed: ' + err.message;
     statusEl.style.color = 'var(--red)';
-    btn.innerHTML = origHtml;
-    btn.disabled = false;
+    openInBtn.innerHTML = origHtml;
+    openInBtn.disabled = false;
     hideSpinner();
   });
 }
 
-// ---------- Viewer buttons ----------
+// ---------- Viewer buttons (dropdown items) ----------
 var viewWordBtn = document.getElementById('viewWordBtn');
 var viewGDocsBtn = document.getElementById('viewGDocsBtn');
 

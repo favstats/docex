@@ -147,6 +147,73 @@
       </div>
     </div>
 
+    <!-- Example 4: Insert a figure -->
+    <div class="code-output reveal">
+      <div class="code-output-code">
+        <div class="code-output-label">Command</div>
+        <pre><code>docex figure paper.docx "after:Results" fig03.png \
+  --caption "Figure 3. Ad removal rates"</code></pre>
+      </div>
+      <div class="code-output-result word-page">
+        <div class="result-label">What it looks like in Word</div>
+        <div class="word-body">
+          <div class="word-figure-placeholder">
+            <div class="word-figure-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            </div>
+            <div class="word-figure-label">fig03.png</div>
+          </div>
+          <p class="word-caption"><em>Figure 3.</em> Ad removal rates by platform over the campaign period.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Example 5: Insert a table -->
+    <div class="code-output reveal">
+      <div class="code-output-code">
+        <div class="code-output-label">Code</div>
+        <pre><code>doc.after("Results").table(
+  [["Party", "Ads", "Spend"],
+   ["VVD",   "342", "\u20ac12,450"],
+   ["D66",   "289", "\u20ac9,800"]],
+  { style: "booktabs" }
+);</code></pre>
+      </div>
+      <div class="code-output-result word-page">
+        <div class="result-label">What it looks like in Word</div>
+        <div class="word-body">
+          <table class="word-table-booktabs">
+            <thead>
+              <tr><th>Party</th><th>Ads</th><th>Spend</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>VVD</td><td>342</td><td>&euro;12,450</td></tr>
+              <tr><td>D66</td><td>289</td><td>&euro;9,800</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Example 6: Add a footnote -->
+    <div class="code-output reveal">
+      <div class="code-output-code">
+        <div class="code-output-label">Code</div>
+        <pre><code>doc.at("platform governance")
+   .footnote("See Suzor (2019) for a comprehensive review.");</code></pre>
+      </div>
+      <div class="code-output-result word-page">
+        <div class="result-label">What it looks like in Word</div>
+        <div class="word-body">
+          <p>...challenges to platform governance<sup class="word-footnote-ref">1</sup> in the European context.</p>
+          <div class="word-footnote-area">
+            <hr class="word-footnote-rule">
+            <p class="word-footnote-text"><sup>1</sup> See Suzor (2019) for a comprehensive review.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- JS API version -->
     <h3 class="reveal">Or use the JavaScript API:</h3>
     <div class="code-output reveal">
@@ -232,32 +299,32 @@ WHO WROTE THIS???
       <div class="feature-cell">
         <span class="feature-tag">Editing</span>
         <h3>Text &amp; formatting</h3>
-        <p>Replace, insert, delete, bold, italic, underline, highlight, color, strikethrough, superscript, subscript, small caps, code formatting.</p>
+        <p>Replace, insert, delete with full formatting: bold, italic, underline (all types), strikethrough, font size, small caps, all caps, color, highlight, superscript, subscript.</p>
       </div>
       <div class="feature-cell">
         <span class="feature-tag">Review</span>
-        <h3>Comments</h3>
-        <p>Add comments anchored to text, reply to existing comments, resolve, export. Manages all 5 OOXML comment files automatically.</p>
-      </div>
-      <div class="feature-cell">
-        <span class="feature-tag">Review</span>
-        <h3>Tracked changes</h3>
-        <p>Every edit is tracked by default. Accept or reject changes individually or in bulk. Compare two document versions with diff.</p>
+        <h3>Comments &amp; tracked changes</h3>
+        <p>Comments anchored to specific text with inline markers. Tracked changes preserve formatting. Move tracking, format changes, accept/reject individually or in bulk.</p>
       </div>
       <div class="feature-cell">
         <span class="feature-tag">Media</span>
         <h3>Figures &amp; tables</h3>
-        <p>Insert images with auto-dimensions and relationship management. Create tables with booktabs styling. Bullet and numbered lists.</p>
+        <p>Insert images with auto-dimensions. Tables with booktabs styling, cell merging, borders, shading, and widths. Bullet and numbered lists.</p>
+      </div>
+      <div class="feature-cell">
+        <span class="feature-tag">Structure</span>
+        <h3>Headers, footers, sections</h3>
+        <p>Headers and footers decompiled per-section. Multiple section properties: page size, orientation, columns, margins. Field codes, bookmarks, cross-references.</p>
       </div>
       <div class="feature-cell">
         <span class="feature-tag">Academic</span>
-        <h3>Journal styles</h3>
-        <p>Built-in presets for Political Communication, APA 7, JCMC, JoC. Sets fonts, margins, spacing, and headers automatically.</p>
+        <h3>Journal styles &amp; citations</h3>
+        <p>Built-in presets for Political Communication, APA 7, JCMC, JoC. Zotero citation injection. Footnotes and endnotes with rich formatting.</p>
       </div>
       <div class="feature-cell">
-        <span class="feature-tag">Academic</span>
-        <h3>Submission tools</h3>
-        <p>Word count, anonymize for blind review, Zotero citation injection, response letter generation, submission validation.</p>
+        <span class="feature-tag">Round-trip</span>
+        <h3>40+ OOXML features</h3>
+        <p>Lossless .dex round-trip preserves tabs, bookmarks, hyperlinks, math equations, text boxes, content controls, ruby text, field codes, and embedded objects.</p>
       </div>
     </div>
   </section>
@@ -286,10 +353,12 @@ WHO WROTE THIS???
         <div class="result-label">What the agent can do</div>
         <ul class="capability-list">
           <li>Replace text with tracked changes</li>
-          <li>Add reviewer comments and replies</li>
-          <li>Insert figures, tables, footnotes</li>
+          <li>Add comments anchored to specific text</li>
+          <li>Insert figures, tables, footnotes, endnotes</li>
           <li>Apply journal formatting presets</li>
-          <li>Decompile/compile .dex round-trips</li>
+          <li>Lossless .dex round-trip (40+ OOXML features)</li>
+          <li>Headers, footers, field codes, bookmarks</li>
+          <li>Math equations, content controls, text boxes</li>
           <li>Validate for submission</li>
         </ul>
       </div>

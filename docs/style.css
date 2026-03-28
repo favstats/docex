@@ -641,6 +641,93 @@ p { margin-bottom: 1rem; font-size: var(--text-base); }
 .word-comment-popup .word-comment-connector { display: none; }
 
 /* Word status bar */
+/* Word figure placeholder */
+.word-figure-placeholder {
+  background: #f8f8f8;
+  border: 1px solid #e0e0e0;
+  border-radius: 2px;
+  padding: 24px;
+  text-align: center;
+  margin: 8px 0;
+}
+.word-figure-icon { margin-bottom: 8px; opacity: 0.5; }
+.word-figure-label {
+  font-size: 11px;
+  color: #999;
+  font-family: 'Calibri', sans-serif;
+}
+.word-caption {
+  font-size: 12px;
+  color: #444;
+  text-align: center;
+  margin: 4px 0 0;
+  font-family: 'Calibri', sans-serif;
+}
+
+/* Word booktabs table */
+.word-table-booktabs {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Calibri', 'Carlito', sans-serif;
+  font-size: 13px;
+  margin: 8px 0;
+}
+.word-table-booktabs thead tr {
+  border-top: 2px solid #1a1a1a;
+  border-bottom: 1px solid #1a1a1a;
+}
+.word-table-booktabs th {
+  padding: 6px 12px;
+  font-weight: 600;
+  text-align: left;
+  background: none;
+  color: #1a1a1a;
+  border: none;
+  border-bottom: 1px solid #1a1a1a;
+}
+.word-table-booktabs td {
+  padding: 5px 12px;
+  border: none;
+  border-bottom: none;
+  color: #333;
+}
+.word-table-booktabs tbody tr:last-child {
+  border-bottom: 2px solid #1a1a1a;
+}
+.word-table-booktabs tbody tr:hover td {
+  background: rgba(0,0,0,0.02);
+}
+
+/* Word footnote */
+.word-footnote-ref {
+  color: #4472c4;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: default;
+}
+.word-footnote-area {
+  margin-top: 20px;
+  padding-top: 0;
+}
+.word-footnote-rule {
+  border: none;
+  border-top: 1px solid #999;
+  width: 33%;
+  margin: 0 0 6px;
+}
+.word-footnote-text {
+  font-size: 10px;
+  color: #555;
+  line-height: 1.4;
+  margin: 0;
+  font-family: 'Calibri', sans-serif;
+}
+.word-footnote-text sup {
+  color: #4472c4;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
 .word-status-bar {
   display: flex;
   justify-content: space-between;

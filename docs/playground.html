@@ -250,14 +250,9 @@ function handleFile(file) {
   reader.readAsArrayBuffer(file);
 }
 
-// When user edits .dex manually, switch back to mock preview
-editor.addEventListener('input', function() {
-  if (docxPreviewPane.style.display === 'block') {
-    previewEl.style.display = 'block';
-    docxPreviewPane.style.display = 'none';
-    previewModeEl.textContent = '.dex preview';
-  }
-});
+// Keep docx preview visible when editing .dex
+// The .dex editor and docx preview are independent views of the same document
+// User sees: left = editable .dex source, right = last rendered .docx (read-only reference)
 </script>
 </body>
 </html>

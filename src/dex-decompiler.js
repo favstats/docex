@@ -51,7 +51,8 @@ class DexDecompiler {
       }
 
       if (level > 0) {
-        const text = xml.extractTextDecoded(pXml);
+        const rawText = xml.extractTextDecoded(pXml);
+        const text = rawText.replace(/\\/g, '\\\\').replace(/\{/g, '\\{').replace(/\}/g, '\\}');
         const hashes = '#'.repeat(level);
         const idAttr = paraId ? ' {id:' + paraId + '}' : '';
         parts.push(hashes + ' ' + text + idAttr);
@@ -272,7 +273,12 @@ class DexDecompiler {
     const parts = [];
     const tagRe = new RegExp('<' + textTag + '[^>]*>([^<]*)</' + textTag + '>', 'g');
     let m;
-    while ((m = tagRe.exec(elXml)) !== null) parts.push(xml.decodeXml(m[1]));
+    while ((m = tagRe.exec(elXml)) !== null) {
+      // Decode XML entities, then escape .dex special characters
+      let text = xml.decodeXml(m[1]);
+      text = text.replace(/\\/g, '\\\\').replace(/\{/g, '\\{').replace(/\}/g, '\\}');
+      parts.push(text);
+    }
     return parts.join('');
   }
 

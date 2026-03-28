@@ -1,0 +1,816 @@
+---
+docex: "0.4.0"
+---
+
+{p id:49AEB692}
+{font "Times New Roman"}{b}The Ban That Wasn't: Met{/b}{/font}{font "Times New Roman"}{b}a's Failur{/b}{/font}{font "Times New Roman"}{b}e to Enforce Its Political Advertising Prohibition During the 2026 Dutch Municipal Elections{/b}{/font}
+{/p}
+
+{p id:68DFBE6E}
+{font "Times New Roman"}Fabio Votta{/font}
+{/p}
+
+{p id:2294C7B8}
+{font "Times New Roman"}Department of Communication Science, University of Amsterdam, The Netherlands{/font}
+{/p}
+
+{p id:66949762}
+{font "Times New Roman"}Simon Kruschinski{/font}
+{/p}
+
+{p id:0311C021}
+{font "Times New Roman"}GESIS -- Leibniz Institute for the Social Sciences, Mannheim, Germany{/font}
+{/p}
+
+{p id:7D7751D9}
+{font "Times New Roman"}Corresponding author: Fabio Votta, f.r.votta@uva.nl{/font}
+{/p}
+
+{p id:54433B57}
+{del id:20 by:"Mira" date:"2026-03-18T14:39:25Z"}Word count:{/del}{font "Times New Roman"} ~7,000 (including tables and references){/font}
+{/p}
+
+{pagebreak}
+
+{p id:52124736}
+{font "Times New Roman"}{b}Abstract{/b}{/font}
+{/p}
+
+{p id:7AF60E6B}
+{font "Times New Roman"}{b}Purpose.{/b}{/font}{font "Times New Roman"} In October 2025, Meta imposed a blanket ban on political advertising across the European Union, choosing prohibition over compliance with the Transparency and Accountability of Political Advertising Re{/font}{font "Times New Roman"}gulation ({/font}{del id:25 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA{/del}{ins id:26 by:"Mira" date:"2026-03-18T14:41:13Z"}TTPA/PAR{/ins}{font "Times New Roman"}, Regulation EU 2024/900). This paper provides the first systematic empirical assessment of whether and how effectively Meta enforced that ban during an active election campaign: the 2026 Dutch municipal elections (Gemeenteraadsverkiezingen).{/font}
+{/p}
+
+{comment id:1 by:"Mira" date:"2026-03-18T11:15:00Z"}
+Strong framing. Consider whether reviewers might push back on characterizing Meta's decision as 'avoidance' vs legitimate business choice. Worth preempting this objection in the discussion.
+{/comment}
+
+{p id:6E5B268D}
+{font "Times New Roman"}{b}Method.{/b}{/font}{font "Times New Roman"} We developed an automated monitoring system that collected {/font}{del id:17 by:"Mira" date:"2026-03-18T14:39:03Z"}268,635 ads{/del}{ins id:18 by:"Mira" date:"2026-03-18T14:39:03Z"}268,635 advertisements scraped from Meta's Ad Library{/ins}{font "Times New Roman"} from Meta&apos;s Ad Library for the Netherlands during the campaign period (February--March 2026). We classified 193,505 unique advertisers using a tw{/font}{font "Times New Roman"}o-stage process: large language model screening followed by human review. Human coders reviewed 335 accounts and 10,084 individual ads, confirming 192 accounts (57.3% of those reviewed) as political and 1,275 individual ads as containing political content.{/font}
+{/p}
+
+{comment id:2 by:"Mira" date:"2026-03-18T11:15:00Z"}
+Verify: is this the total from the Ad Library for NL during the period, or a filtered subset? The methods section should specify the exact query parameters and date range.
+{/comment}
+
+{comment id:31 by:"Editor Chen" date:"2026-03-24T10:00:00Z"}
+TYPO: The abstract contains "scraped from Meta's Ad Library from Meta's Ad Library" — duplicate phrase. Delete one instance.
+{/comment}
+
+{p id:2E6D7975}
+{font "Times New Roman"}{b}Findings.{/b}{/font}{font "Times New Roman"} Despit{/font}{font "Times New Roman"}e the ban, 192 confirmed political accounts ran 1,329 ads on Meta&apos;s platforms, accumulating between 167,000 and 328,846 impressions and spending between EUR 100 and EUR 15,346. Meta removed only 189 of these ads ({/font}{del id:23 by:"Mira" date:"2026-03-18T14:41:12Z"}14.2%{/del}{ins id:24 by:"Mira" date:"2026-03-18T14:41:12Z"}14.2 percent{/ins}{font "Times New Roman"}), leaving 410 ads (30.9%) still activ{/font}{font "Times New Roman"}e at the time of analysis. Ads that were eventually removed had run for an average of {/font}{del id:21 by:"Mira" date:"2026-03-18T14:41:12Z"}10.4 days{/del}{ins id:22 by:"Mira" date:"2026-03-18T14:41:12Z"}10.4 calendar days{/ins}{font "Times New Roman"} (median: 7.2 days) before takedown. Enforcement was concentrated on 68 of 192 political accounts, leaving the majority of violating accounts entirely untouched.{/font}
+{/p}
+
+{comment id:21 by:"Dr. Numbers" date:"2026-03-24T10:00:00Z"}
+DATA CHECK: Only 154 of 1,329 ads (11.6%) have spend/impression data. The reported spend and impression ranges are based on fewer than 12% of confirmed political ads. This limitation is buried — it should be stated prominently alongside the numbers, not just in the Limitations section.
+{/comment}
+
+{p id:0D7D4A9A}
+{font "Times New Roman"}{b}Implications.{/b}{/font}{font "Times New Roman"} Meta's self-imposed ban produced a worse outcome for electoral transparency than compliance with the TTPA would have. Political actors who ignored the ban gained paid t{/font}{font "Times New Roman"}argeting advantages over those who complied, distorting the level playing field. The findings demonstrate that platform self-regulation through prohibition, absent meaningful enforcement, functions as regulatory avoidance rather than regulatory compliance.{/font}
+{/p}
+
+{p id:61C63485}
+{font "Times New Roman"}{b}Keywords:{/b}{/font}{font "Times New Roman"} political advertising, platform governance, Meta, enforcement gap, electoral transparency, EU regulation{/font}
+{/p}
+
+{pagebreak}
+
+## Introduction {id:601B5438}
+
+{p id:78BD680A}
+{font "Times New Roman"}On October 10, 2025, the European Union's Transparency and Accountability of Political Advertising Regulation ({/font}{font "Times New Roman"}TTPA, Regulation EU 2024/900) entered into force. The regulation requires platforms hosting political advertisements to label such ads clearly, disclose who paid for them, provide information about targeting techniques used, and make this information avail{/font}{font "Times New Roman"}able in searchable repositories {/font}{font "Times New Roman"}(European Parliament & Council of the European Union, 2024){/font}{font "Times New Roman"}. Rather than building the infrastructure to comply with these requirements, Meta chose a different path: it banned all political advertising across the EU entirely.{/font}
+{/p}
+
+{p id:64A456F8}
+{font "Times New Roman"}Meta framed this decision as a response to regulatory complexity. The company stated it could not reliably determine which ads qualified as "political" under the regulation's broad defin{/font}{font "Times New Roman"}ition, which encompasses not only electoral advertisements but also issue-based advocacy {/font}{font "Times New Roman"}(Meta, 2025){/font}{font "Times New Roman"}. By prohibiting all political ads, Meta avoided the obligation to build transparency mechanisms while presenting the decision as a form of overcompliance.{/font}
+{/p}
+
+{comment id:34 by:"Professor Platform" date:"2026-03-24T10:00:00Z"}
+Cite Meta's actual announcement (blog post, press release, or spokesperson quote) with a date. "Meta framed" needs attribution. If this is from the October 2025 announcement, provide a URL or reference. Platform policy scholars will check.
+{/comment}
+
+{p id:3E295C44}
+{font "Times New Roman"}This {/font}{font "Times New Roman"}paper examines the consequences of that choice. Using automated monitoring data from the 2026 Dutch municipal elections (Gemeenteraadsverkiezingen, held on March 18, 2026), we document that political advertising continued on Meta's platforms despite the ba{/font}{font "Times New Roman"}n, and that Meta's enforcement of its own policy was minimal and selective. Of 1,329 ads placed by 192 confirmed political accounts, Meta removed only 189 (14.2%). The remaining ads ran freely, many accumulating thousands of impressions over days or weeks.{/font}
+{/p}
+
+{p id:5D887B0E}
+{font "Times New Roman"}The empirical contribution of this paper is straightforward: it measures, for the first time, the gap between a platform's stated advertising policy and its{/font}{font "Times New Roman"} actual enforcement during an election. But the implications extend beyond measurement. Meta's ban created a regulatory outcome that is worse than either of the two scenarios it was designed to avoid. Under TTPA compliance, political ads would run with tra{/font}{font "Times New Roman"}nsparency labels and targeting disclosures. Under an effective ban, political ads would not run at all. Instead, Meta produced a third outcome: political ads run without any transparency protections, because the ban exempts them from TTPA disclosure requir{/font}{font "Times New Roman"}ements while failing to prevent their publication. The result is a system in which the political actors who respect the ban are disadvantaged relative to those who ignore it, and voters receive no information about who is paying to influence their choices.{/font}
+{/p}
+
+{comment id:3 by:"Mira" date:"2026-03-18T11:15:00Z"}
+This is the paper's core theoretical contribution. Consider foregrounding it even more prominently.
+{/comment}
+
+{comment id:24 by:"Reviewer 2" date:"2026-03-24T10:00:00Z"}
+"For the first time" is a strong claim. Has no prior study examined enforcement gaps in platform ad bans? What about studies of Google's political ad ban in Canada (2019) or the Twitter political ad ban (2019–2023)? If this really is novel, cite the absence explicitly. If not, reframe.
+{/comment}
+
+{p id:19E4CAF4}
+{font "Times New Roman"}The Dutch case is particularly instructive for several reasons. The municipal elections (Gemeenteraadsverkiezingen) involved 31 municipalities electing new councils, with hundreds of local{/font}{font "Times New Roman"} parties and candidates competing. Municipal elections in the Netherlands feature a diverse field of actors, including branches of national parties, independent local parties, and individual candidates, many of whom have limited campaign budgets and rely o{/font}{font "Times New Roman"}n affordable digital advertising to reach voters. The ban thus affected a constituency of political actors for whom alternatives to platform advertising are costly or unavailable. The topic reached the Dutch parliament on March 10, 2026, when Member of Par{/font}{font "Times New Roman"}liament Laurens Dassen (Volt) questioned Minister Heerma of the Interior (BZK) about the enforcement gap during the weekly Question Hour (Vragenuur). The case further illustrates the jurisdictional complications of EU platform regulation: Meta is headquart{/font}{font "Times New Roman"}ered in Dublin and supervised by the Irish Data Protection Commission, while the Dutch media authority (Commissariaat voor de Media), designated as the national authority under the TTPA, had not yet received fine-levying powers at the time of the election.{/font}
+{/p}
+
+{comment id:4 by:"Mira" date:"2026-03-18T11:15:00Z"}
+Check: the 2026 Gemeenteraadsverkiezingen covered more than 31 municipalities. Is this the number monitored or the total? Clarify.
+{/comment}
+
+{comment id:37 by:"Reviewer International" date:"2026-03-24T10:00:00Z"}
+Dutch municipal elections are structurally unusual: highly fragmented party systems, many hyperlocal parties, low-budget campaigns. These features may amplify the enforcement gap (many small actors harder to detect) or diminish its impact (low spend = low stakes). Discuss which direction the bias runs, so readers can calibrate transferability to national elections or other EU member states.
+{/comment}
+
+{p id:1979F8BA}
+{font "Times New Roman"}This paper proceeds as follows. We first situate the problem wi{/font}{font "Times New Roman"}thin the literature on platform governance and political advertising regulation. We then describe our data collection and classification methodology. The analysis section addresses three research questions: the extent of political advertising despite the b{/font}{font "Times New Roman"}an, the patterns and effectiveness of Meta's enforcement, and the consequences for the electoral level playing field. We conclude with implications for the ongoing regulatory debate about platform self-regulation versus co-regulation in the European Union.{/font}
+{/p}
+
+## Theoretical Framework {id:40073B81}
+
+### Platform Governance as Private Regulation {id:49B74721}
+
+{p id:1D426B29}
+{font "Times New Roman"}Digital platforms exercise regulatory power over political communication through their content mode{/font}{font "Times New Roman"}ration policies, advertising rules, and algorithmic systems. {/font}{font "Times New Roman"}Gorwa {/font}{font "Times New Roman"}(2019){/font}{font "Times New Roman"} conceptualized this as "platform governance," a form of private regulation in which technology companies establish and enforce rules that shape public discourse. {/font}{font "Times New Roman"}Gillespie {/font}{font "Times New Roman"}(2018){/font}{font "Times New Roman"} doc{/font}{font "Times New Roman"}umented how platforms' content moderation decisions are inherently political, even when framed as neutral policy enforcement. These decisions determine what speech is amplified, what is suppressed, and what conditions apply to paid political communication.{/font}
+{/p}
+
+{comment id:5 by:"Mira" date:"2026-03-18T11:15:00Z"}
+Also consider citing Suzor (2019) 'Lawless' on the broader question of platform governance without democratic accountability.
+{/comment}
+
+{p id:03572DAF}
+{font "Times New Roman"}The governance of political advertising on platforms represents a specific domain within this broader phenomenon. Platforms have adopted varying approaches over the past decade. In 2018, following the Cambridge Analytica scand{/font}{font "Times New Roman"}al, Meta introduced political ad transparency tools including an Ad Library and mandatory "paid for by" disclaimers. Google similarly implemented a political advertising transparency report. X (formerly Twitter) took a different approach in 2019, banning p{/font}{font "Times New Roman"}olitical advertising entirely under then-CEO Jack Dorsey. Each approach reflects a different model of how platforms relate to democratic processes: transparency (make ads visible), prohibition (remove ads entirely), or laissez-faire (no special treatment).{/font}
+{/p}
+
+{p id:404D3FBC}
+{font "Times New Roman"}Meta's EU political ad ban represents a shift from the transparency{/font}{font "Times New Roman"} model it had championed since 2018 to the prohibition model. This shift occurred not because Meta concluded that transparency was inadequate, but because the TTPA imposed transparency requirements that Meta judged too costly to implement. The move has sig{/font}{font "Times New Roman"}nificant implications for both democratic accountability and regulatory compliance, as it removes the monitoring infrastructure that researchers, journalists, and civil society organizations had come to rely on for studying digital political communication.{/font}
+{/p}
+
+### Self-Regulation and Its Limits {id:4138EA04}
+
+{p id:3B5BAB74}
+{font "Times New Roman"}The debate between self-regulation and co-regulation in platform governance has produced a substantial body of scholarship. {/font}{font "Times New Roman"}Dommett and Power {/font}{font "Times New Roman"}(2019){/font}{font "Times New Roman"} examined how platforms' self-regulatory commitments to political advertising transparency varied{/font}{font "Times New Roman"} across jurisdictions, finding significant inconsistencies in implementation. {/font}{font "Times New Roman"}Kreiss and McGregor {/font}{font "Times New Roman"}(2024){/font}{font "Times New Roman"} traced how platforms' political advertising policies shifted in response to political pressure rather than principled commitments to transparency. The {/font}{font "Times New Roman"}pattern they identified, of reactive policy changes driven by reputational concerns, maps onto Meta's EU ban: a broad prohibition adopted in response to regulatory pressure, without investment in the enforcement infrastructure that would make it effective.{/font}
+{/p}
+
+{p id:66E57D39}
+{font "Times New Roman"}Helberger, Pierson, and Poell {/font}{font "Times New Roman"}(2018){/font}{font "Times New Roman"} argued that platforms' governing role in democratic processes requires democratic accountability mechanisms that self-regulation cannot provide. Their framework distinguishes between platforms as passive conduits, as {/font}{font "Times New Roman"}active editors, and as democratic intermediaries. A platform that bans political advertising positions itself as an editor exercising judgment about acceptable content, but without the editorial accountability that traditionally accompanies such decisions.{/font}
+{/p}
+
+{p id:21600AF9}
+{font "Times New Roman"}The distinction between de jure and de {/font}{font "Times New Roman"}facto regulation is central to understanding enforcement gaps. A policy exists on paper (de jure) but may not be implemented in practice (de facto). {/font}{font "Times New Roman"}Suzor {/font}{font "Times New Roman"}(2019){/font}{font "Times New Roman"} documented how platform rules are often enforced inconsistently, creating uncertainty for user{/font}{font "Times New Roman"}s and undermining the legitimacy of the regulatory system. When enforcement is selective, the policy functions not as a universal rule but as a discretionary tool that can be applied unevenly. This is particularly consequential in the domain of political a{/font}{font "Times New Roman"}dvertising, where uneven enforcement directly affects electoral competition. A rule that applies to some political actors but not others is not merely an imperfect rule; it is a rule that actively distorts the competitive environment it purports to govern.{/font}
+{/p}
+
+### The Transparency Paradox {id:2769A4C1}
+
+{comment id:26 by:"Dr. Framing" date:"2026-03-24T10:00:00Z"}
+This is the paper's most original theoretical contribution. Consider expanding it into a more formal framework — define the conditions under which prohibition produces less transparency than regulation. This could become the contribution reviewers remember.
+{/comment}
+
+{p id:2167D64E}
+{font "Times New Roman"}The TTPA was designed to increase transparency in political advertising, not to eliminate {/font}{font "Times New Roman"}it. Article 7 requires that political ads be clearly labeled as such. Article 9 mandates disclosure of targeting techniques and, where applicable, the use of AI-generated or manipulated content. Article 11 requires platforms to maintain publicly accessible{/font}{font "Times New Roman"} advertisement repositories with political ad metadata. The regulation's logic is that political advertising is a legitimate form of political communication that should be visible and accountable {/font}{font "Times New Roman"}(European Parliament & Council of the European Union, 2024){/font}{font "Times New Roman"}.{/font}
+{/p}
+
+{p id:7642A0E0}
+{font "Times New Roman"}Meta's ban inverts this logic. By prohibiting political ads rather than labeling them, Meta removes them from the transparency infrastructure the TTPA was designed to create. Ads placed by political actors that evade the{/font}{font "Times New Roman"} ban do not appear in political ad repositories, do not carry transparency labels, and do not disclose targeting information. The ban thus creates a transparency deficit: the ads that do run are less visible than they would have been under TTPA compliance.{/font}
+{/p}
+
+{p id:6B582B78}
+{font "Times New Roman"}This is the transparency paradox at the hea{/font}{font "Times New Roman"}rt of Meta's approach. A policy nominally stricter than the regulation produces an outcome with less transparency than the regulation requires. The paradox has a structural cause. The TTPA's transparency provisions are conditional on the existence of polit{/font}{font "Times New Roman"}ical advertising: they require disclosure for ads that are classified as political. When a platform bans political advertising, the classification trigger is removed, and the transparency provisions have nothing to attach to. Ads that circumvent the ban ex{/font}{font "Times New Roman"}ist in a regulatory blind spot: they are not classified as political (because the platform claims not to host political ads), and therefore they are not subject to the transparency requirements that would apply if the platform acknowledged their existence.{/font}
+{/p}
+
+### The Level Playing Field {id:5B3AEC8C}
+
+{p id:1F5FA15E}
+{font "Times New Roman"}Democratic theory assigns importance to the conditions under which political actors compete for voter support. The concept of the level playing field, while imprecise, captures the idea tha{/font}{font "Times New Roman"}t electoral competition should not be systematically skewed by advantages unrelated to the merits of competing programs {/font}{font "Times New Roman"}(Dommett, 2020){/font}{font "Times New Roman"}. In the context of political advertising regulation, this means that rules should apply equally to all political actors.{/font}
+{/p}
+
+{p id:5E007D34}
+{font "Times New Roman"}Selective enforcement of an advertising ban disrupts the level playing field in a specific way. Political actors who comply with the ban forgo the reach advantages of paid advertising. Those who ignore the ban, an{/font}{font "Times New Roman"}d whose ads are not removed, gain targeting capabilities that their compliant competitors lack. The distortion is compounded by the absence of transparency: because the ads do not appear in political ad libraries, voters and competing campaigns cannot see {/font}{font "Times New Roman"}who is spending money to reach them. {/font}{font "Times New Roman"}Dobber, Fathaigh, and Borgesius {/font}{font "Times New Roman"}(2019){/font}{font "Times New Roman"} identified this combination of targeting power and opacity as a core concern for digital political advertising. Meta's ban, selectively enforced, produces exactly this combination.{/font}
+{/p}
+
+{p id:1DDB23B9}
+{font "Times New Roman"}The level playing field concern is especially acute in municipal elections, where campaign budgets are small and marginal advantages in voter reac{/font}{font "Times New Roman"}h can determine outcomes. In national elections, parties have access to television advertising, billboards, and large-scale canvassing operations that can partially compensate for the loss of digital advertising. In municipal elections, digital advertising{/font}{font "Times New Roman"} often represents the most cost-effective channel available to small parties and independent candidates. A ban that removes this channel for compliant actors while leaving it available to non-compliant ones has a disproportionate effect at the local level.{/font}
+{/p}
+
+### Research Questions {id:66BB474A}
+
+{p id:589B0847}
+{font "Times New Roman"}We formulate three research questions to guide the empirical analysis:{/font}
+{/p}
+
+{p id:44EA1AF5}
+{font "Times New Roman"}{b}RQ1:{/b}{/font}{font "Times New Roman"} To what extent do political actors continue to advertise on Meta's platforms despite the platform's self-imposed ban on political advertising in the EU?{/font}
+{/p}
+
+{p id:71862ADB}
+{font "Times New Roman"}{b}RQ2:{/b}{/font}{font "Times New Roman"} How effectively does Meta enforce its political advertising ban, in terms of detection rates, takedown timing, and consistency across accounts?{/font}
+{/p}
+
+{p id:045BBA62}
+{font "Times New Roman"}{b}RQ3:{/b}{/font}{font "Times New Roman"} What consequences does selective enforcement have for electoral transparency and the level playing field?{/font}
+{/p}
+
+## Method {id:67B7EE24}
+
+### Data Collection {id:37EA2EA8}
+
+{p id:2E1301FC}
+{font "Times New Roman"}We developed an automated monitoring system (metamonitor) that collected advertisements from Meta's Ad Library for the Netherlands betwee{/font}{font "Times New Roman"}n February 1 and March 18, 2026, covering the full campaign period for the municipal elections. The system ran continuously, executing data collection sweeps multiple times per day to capture newly placed ads and detect removals of previously observed ads.{/font}
+{/p}
+
+{p id:1E6B810F}
+{font "Times New Roman"}The system combined two data collection strategies. The primary strategy queried the Meta Ad Library Graph API using both page-specific identifiers (for known political actors from candidate lists and party regi{/font}{font "Times New Roman"}strations) and keyword-based searches using 96 politically relevant Dutch-language search terms. These terms covered party names (e.g., "VVD," "GroenLinks-PvdA," "PVV"), candidate names, election-specific vocabulary (e.g., "gemeenteraadsverkiezingen," "ste{/font}{font "Times New Roman"}m op," "lijsttrekker," "kieswijzer"), and policy topics prominent in the campaign (e.g., "woningcrisis," "klimaat," "bestaanszekerheid"). The secondary strategy used browser-based scraping via headless Chromium as a fallback when API access was interrupted{/font}{font "Times New Roman"}. In total, the system collected 268,635 ads during the monitoring period. Because Meta blocks the "political and issue ads" filter for EU countries in its API, we collected all ad types and relied on the classification stage to identify political content.{/font}
+{/p}
+
+### Advertiser Classification {id:2688D92D}
+
+{p id:6B71A2A7}
+{font "Times New Roman"}We employed a two-stage classification process to identify political advertisers within the collected data.{/font}
+{/p}
+
+{comment id:17 by:"Prof. Strict" date:"2026-03-24T10:00:00Z"}
+The stats file records 40,803 unique advertisers but 193,505 total items classified. Was classification performed at the ad level or the advertiser level? If the former, "193,505 unique advertisers" is incorrect and should read "193,505 ads." Clarify.
+{/comment}
+
+{comment id:18 by:"Prof. Strict" date:"2026-03-24T10:00:00Z"}
+What was the exact GPT-4o prompt? Reviewers will want to see it (at minimum in an appendix). Also report validation metrics: precision, recall, and F1 against a human-coded gold standard. Without these, the automated classification is a black box.
+{/comment}
+
+{p id:4F05D505}
+{font "Times New Roman"}{i}Stage 1: Automated screening.{/i}{/font}{font "Times New Roman"} We classified 193,505 unique adv{/font}{font "Times New Roman"}ertisers using a large language model (GPT-4o), which analyzed the text content of each advertiser's ads and page metadata to determine whether the account was likely a political actor. The model was prompted to identify political parties, candidates, elec{/font}{font "Times New Roman"}ted officials, political movements, and advocacy organizations engaged in electoral campaigning. It classified each advertiser as "political," "not political," or "uncertain." The model flagged 977 accounts (0.5% of all advertisers) as potentially politica{/font}{font "Times New Roman"}l. This low base rate reflects the fact that the vast majority of advertisers on Meta's platforms are commercial entities, and the keyword-based collection strategy cast a wide net that captured many non-political ads containing politically relevant terms.{/font}
+{/p}
+
+{comment id:6 by:"Mira" date:"2026-03-18T11:15:00Z"}
+Reviewers will ask: which LLM? What prompt? What was the false positive/negative rate? Consider adding a brief validation analysis or at minimum reporting the model name and classification threshold.
+{/comment}
+
+{comment id:36 by:"Dr. Ethics" date:"2026-03-24T10:00:00Z"}
+Was ethics approval (IRB or institutional equivalent) obtained for this study? While Meta Ad Library data is publicly accessible, human coding of political actors' identities and advertising behavior may require ethics review at some institutions. State explicitly whether approval was sought and from which body.
+{/comment}
+
+{p id:0E069354}
+{font "Times New Roman"}{i}Stage 2: Human review.{/i}{/font}{font "Times New Roman"} Trained human coders re{/font}{font "Times New Roman"}viewed the flagged accounts and their associated ads using a custom-built web-based review tool. Coders examined the advertiser's page name, page description, ad content, and public profile to make a determination. They assessed 335 accounts and confirmed {/font}{font "Times New Roman"}192 (57.3%) as political, meaning the account belonged to a political party, candidate, political movement, or organization directly engaged in campaigning for the municipal elections. The remaining 143 accounts (42.7%) were classified as non-political, in{/font}{font "Times New Roman"}cluding news organizations reporting on the elections, commercial advertisers using political keywords in their ad copy, and non-governmental organizations with no direct electoral engagement. In addition, coders reviewed 10,084 individual ads from politic{/font}{font "Times New Roman"}al and borderline accounts and confirmed 1,275 (12.6%) as containing explicitly political content, defined as electoral appeals, candidate promotions, party branding in the context of the elections, or issue advocacy directly tied to electoral competition.{/font}
+{/p}
+
+{comment id:7 by:"Mira" date:"2026-03-18T11:15:00Z"}
+How were these 335 selected from the 977 AI-flagged accounts? Random sample? Purposive? Top-N by ad count? This is a potential selection bias that needs explicit justification.
+{/comment}
+
+{comment id:8 by:"Mira" date:"2026-03-18T11:15:00Z"}
+Report intercoder reliability if multiple coders annotated the same items. If single-coder, acknowledge this as a limitation.
+{/comment}
+
+{comment id:19 by:"Prof. Strict" date:"2026-03-24T10:00:00Z"}
+How many coders? Was intercoder reliability (ICR) computed? If multiple coders, report Krippendorff's alpha. If a single coder, acknowledge this as a limitation. "Trained human coders" without ICR will draw a major revision request from any methods-oriented reviewer.
+{/comment}
+
+### Operational Definitions {id:374C36EC}
+
+{p id:315F1510}
+{font "Times New Roman"}We defined a "political ad{/font}{font "Times New Roman"}vertiser" as any account that self-identified as a political party, candidate, or political movement, or that placed ads with explicit electoral content (calls to vote, candidate endorsements, party branding in the context of the elections). This definitio{/font}{font "Times New Roman"}n is intentionally narrower than the TTPA's definition of political advertising, which includes issue-based advocacy without explicit electoral content. Our figures therefore represent a conservative lower bound on the true volume of political advertising.{/font}
+{/p}
+
+{p id:0A550818}
+{font "Times New Roman"}We defined "takedown" as the removal of an ad by {/font}{font "Times New Roman"}Meta during the monitoring period, detected through comparison of successive data collection sweeps. An ad was classified as "taken down" if it appeared in an earlier collection sweep but was absent from subsequent sweeps while its account remained active.{/font}
+{/p}
+
+{comment id:20 by:"Prof. Strict" date:"2026-03-24T10:00:00Z"}
+What was the sweep interval? If sweeps ran every 6 hours vs every 24 hours, the takedown timing estimates change substantially. Report the median sweep interval.
+{/comment}
+
+### Monitoring Takedowns {id:6FDAC6A9}
+
+{p id:7AE5023A}
+{font "Times New Roman"}The monitoring system collected data in repeated sweeps, allowing us to track the lifecycle of individual ads through their unique ad archive identifiers. By comparing ad presenc{/font}{font "Times New Roman"}e across sweeps, we identified three categories: ads that were removed (taken down by Meta, identified by disappearance from the Ad Library while the parent account and other ads remained visible), ads that remained active at the end of the monitoring peri{/font}{font "Times New Roman"}od, and ads that became inactive for other reasons (campaign end, budget exhaustion, or advertiser-initiated pauses). For ads that were taken down, we calculated the duration between first observation and last observation as a proxy for time-to-takedown. T{/font}{font "Times New Roman"}his proxy likely underestimates true ad duration, because an ad may have been placed before our first observation of it. A dedicated takedown log recorded each detected removal event with timestamps, enabling the temporal analysis reported in the findings.{/font}
+{/p}
+
+### Limitations {id:29588401}
+
+{p id:2E3886FB}
+{font "Times New Roman"}Several limitations should be noted. First, our system could only observe ads that appeared in Meta's Ad Library. Ads that were placed and removed before our monitoring sweeps would not be captured, meaning our figures undercount both the to{/font}{font "Times New Roman"}tal volume of political advertising and the total number of takedowns. Second, the distinction between Meta-initiated takedowns and advertiser-initiated ad pauses or removals is not always clear from the data. We classify an ad as taken down only when the {/font}{font "Times New Roman"}pattern is consistent with platform enforcement (ad removed while other ads from the same account remain active), but some misclassification is possible. Third, our classification of political accounts and ads relied on human judgment, and we cannot rule o{/font}{font "Times New Roman"}ut that some political accounts were missed by the automated screening stage. Fourth, spend and impression data from the Meta Ad Library are reported in ranges rather than exact figures, introducing imprecision in our estimates of total spending and reach.{/font}
+{/p}
+
+{comment id:25 by:"Reviewer 2" date:"2026-03-24T10:00:00Z"}
+This is a fundamental threat to validity that the paper underplays. If Meta's enforcement is actually fast (removing ads within hours), your system would systematically miss successful enforcement actions, making Meta look worse than it is. Can you bound this? E.g., what fraction of your sweep intervals were <6 hours?
+{/comment}
+
+{figure id:08689503 rId:rId9 src:"word/media/image1.png" width:5943600emu height:3714750emu}
+{/figure}
+
+{p id:7E50408D}
+{font "Times New Roman"}{b}Figure 1. {/b}{/font}{font "Times New Roman"}{i}Classification funnel: from 268,635 collected ads to 1,329 confirmed political ads.{/i}{/font}
+{/p}
+
+{figure id:21737807 rId:rId10 src:"word/media/image2.png" width:5943600emu height:5349240emu}
+{/figure}
+
+{p id:19F20DD6}
+{font "Times New Roman"}{b}Figure 2. {/b}{/font}{font "Times New Roman"}{i}Annotation outcomes: distribution of human review decisions across screened accounts and ads.{/i}{/font}
+{/p}
+
+## Analysis {id:45FB94B0}
+
+### RQ1: Political Advertising Despite the Ban {id:1797F2AC}
+
+{p id:390363D6}
+{font "Times New Roman"}Despite Meta's prohibition on political advertising, we confirmed 192 accounts as political advertisers that placed a total of 1,329 ads during the campaign period. These accounts represented a range of{/font}{font "Times New Roman"} political actors, from local parties and individual candidates to national advocacy organizations and political movements. To put this in context: the automated screening flagged 977 of 193,505 unique advertisers (0.5%) as potentially political, and human{/font}{font "Times New Roman"} reviewers confirmed 192 of 335 reviewed accounts (57.3%) as genuinely political. The 192 confirmed accounts represent a conservative lower bound, as the remaining 642 flagged accounts that were not reviewed likely include additional political advertisers.{/font}
+{/p}
+
+{p id:66C1B290}
+{font "Times New Roman"}Table 1 pr{/font}{font "Times New Roman"}esents the most active political advertisers by ad volume. The leading advertiser was PAX, a peace organization, with 117 ads (8.8% of all confirmed political ads). Wakker Emmen, a local party in the municipality of Emmen, placed 82 ads (6.2%). DURF, a loc{/font}{font "Times New Roman"}al political movement, placed 63 ads (4.7%). Toekomstig KLM placed 38 ads (2.9%). The distribution was heavily skewed: the top four accounts were responsible for 300 of 1,329 ads (22.6%), while many of the remaining 188 accounts placed only one or two ads.{/font}
+{/p}
+
+{comment id:9 by:"Mira" date:"2026-03-18T11:15:00Z"}
+PAX is a peace organization, not a political party. Clarify the operational definition: are advocacy organizations included alongside parties and candidates? This affects the claim about 'political advertising.'
+{/comment}
+
+{p id:2CFBD236}
+{font "Times New Roman"}{b}Table 1. Top Political Advertisers by Number of Ads{/b}{/font}
+{/p}
+
+{table style:plain cols:3}
+| Advertiser | Ads (N) | Share of Total (%) |
+|---|---|---|
+| PAX | 117 | 8.8 |
+| Wakker Emmen | 82 | 6.2 |
+| DURF | 63 | 4.7 |
+| Toekomstig KLM | 38 | 2.9 |
+| Other (188 accounts) | 1,029 | 77.4 |
+| Total | 1,329 | 100.0 |
+{/table}
+{p id:16BA9BD6}
+{font "Times New Roman"}{b}Advertiser{/b}{/font}
+{/p}
+
+{p id:6DA4F2AF}
+{font "Times New Roman"}{b}Ads (N){/b}{/font}
+{/p}
+
+{p id:36F9979B}
+{font "Times New Roman"}{b}Share of Total (%){/b}{/font}
+{/p}
+
+{p id:14C9329F}
+{font "Times New Roman"}PAX{/font}
+{/p}
+
+{p id:0D8D6D5F}
+{font "Times New Roman"}117{/font}
+{/p}
+
+{p id:686B85E2}
+{font "Times New Roman"}8.8{/font}
+{/p}
+
+{p id:6D5B3811}
+{font "Times New Roman"}Wakker Emmen{/font}
+{/p}
+
+{p id:5AA778BF}
+{font "Times New Roman"}82{/font}
+{/p}
+
+{p id:04654067}
+{font "Times New Roman"}6.2{/font}
+{/p}
+
+{p id:76320551}
+{font "Times New Roman"}DURF{/font}
+{/p}
+
+{p id:4B3DB572}
+{font "Times New Roman"}63{/font}
+{/p}
+
+{p id:29696E28}
+{font "Times New Roman"}4.7{/font}
+{/p}
+
+{p id:0D4790DE}
+{font "Times New Roman"}Toekomstig KLM{/font}
+{/p}
+
+{p id:1C4E5C70}
+{font "Times New Roman"}38{/font}
+{/p}
+
+{p id:79420ED0}
+{font "Times New Roman"}2.9{/font}
+{/p}
+
+{p id:25155580}
+{font "Times New Roman"}Other (188 accounts){/font}
+{/p}
+
+{p id:40EBB439}
+{font "Times New Roman"}1,029{/font}
+{/p}
+
+{p id:37E10CA4}
+{font "Times New Roman"}77.4{/font}
+{/p}
+
+{p id:50DA794F}
+{font "Times New Roman"}{b}Total{/b}{/font}
+{/p}
+
+{p id:4784B441}
+{font "Times New Roman"}{b}1,329{/b}{/font}
+{/p}
+
+{p id:3C7EB456}
+{font "Times New Roman"}{b}100.0{/b}{/font}
+{/p}
+
+{p id:1484C398}
+{font "Times New Roman"}The total spend across all confirmed political ads ranged from EUR 100 to EUR 15,346 (Meta reports spend in ranges rather than exact figures). Total impressions ranged from 167,000 to 328,8{/font}{font "Times New Roman"}46. While these figures are modest compared to national election campaigns, they are significant in the context of Dutch municipal elections. In municipalities with 30,000 to 80,000 eligible voters, even modest ad budgets can reach a substantial fraction o{/font}{font "Times New Roman"}f the electorate. A single ad with 5,000 impressions in a municipality of 50,000 residents reaches the equivalent of 10% of the local electorate, a margin that can matter in council elections where seats are allocated proportionally and thresholds are low.{/font}
+{/p}
+
+{comment id:10 by:"Mira" date:"2026-03-18T11:15:00Z"}
+This is the Ad Library's reported range (lower/upper bounds). Note that Meta's spend reporting in the Ad Library uses broad ranges and may underestimate actual expenditure.
+{/comment}
+
+{comment id:23 by:"Reviewer 2" date:"2026-03-24T10:00:00Z"}
+EUR 100–EUR 15,346 total spend across an entire election is, frankly, negligible. The paper needs to do more work justifying why this matters. Compare to typical municipal campaign budgets. If a candidate spends EUR 50 on a Meta ad, is that really a "level playing field" problem? The normative weight of the argument outstrips the empirical evidence.
+{/comment}
+
+{p id:5B753A3C}
+{font "Times New Roman"}Ads were distributed across Meta's platform ecosystem. The majority appeared on Facebook, with{/font}{font "Times New Roman"} additional placements on Instagram, Messenger, and the Audience Network (see Figure 1). This multi-platform distribution indicates that political advertisers were using Meta's standard ad placement tools, which automatically distribute ads across platform{/font}{font "Times New Roman"}s for maximum reach, rather than narrowly targeting a single platform. The cross-platform placement also means that the ads reached users who may not have encountered them on Facebook alone, extending the reach of political messaging beyond any single app.{/font}
+{/p}
+
+{comment id:32 by:"Editor Chen" date:"2026-03-24T10:00:00Z"}
+Figure cross-references may be misaligned. The text references "Figure 1" and "Figure 2" for different content than the figure captions suggest. Verify all 10 figure references match their captions after any reordering.
+{/comment}
+
+{p id:131845B9}
+{font "Times New Roman"}The temporal distribution of ads across the campaign period reveals sustained advertising activity, with clear increases in volume duri{/font}{font "Times New Roman"}ng the final two weeks before election day (see Figure 2). This pattern is consistent with strategic campaign advertising rather than accidental or one-off placements. Political actors were using Meta's advertising tools deliberately and continuously, adju{/font}{font "Times New Roman"}sting their spending to peak when voter attention was highest. The sustained nature of the activity also suggests that advertisers learned over the course of the campaign that enforcement was unlikely, reinforcing their willingness to continue placing ads.{/font}
+{/p}
+
+{figure id:2ED7810C rId:rId11 src:"word/media/image3.png" width:5943600emu height:4457700emu}
+{/figure}
+
+{p id:6DC92B86}
+{font "Times New Roman"}{b}Figure 3. {/b}{/font}{font "Times New Roman"}{i}Top political advertisers by number of ads placed during the campaign period.{/i}{/font}
+{/p}
+
+{figure id:17883008 rId:rId12 src:"word/media/image4.png" width:5943600emu height:3343275emu}
+{/figure}
+
+{p id:3BF79AE4}
+{font "Times New Roman"}{b}Figure 4. {/b}{/font}{font "Times New Roman"}{i}Timeline of political ad placements across the campaign period (February 1 -- March 18, 2026).{/i}{/font}
+{/p}
+
+### RQ2: Enforcement Patterns {id:51040583}
+
+{p id:6C5A4E2C}
+{font "Times New Roman"}Meta's enforcement of its own ban was limited in scope, slow in execution, and inconsistent across accounts.{/font}
+{/p}
+
+{p id:69093BA8}
+{font "Times New Roman"}{b}Detection and removal rates.{/b}{/font}{font "Times New Roman"} Of 1,329 confirmed political ads, Meta removed 189 (14.2%). At the time of analysis, 410 ads (30.9%) remained active on the platform, and 730 ads (54.9%) were inactive for other{/font}{font "Times New Roman"} reasons, a category that includes ads whose budget was exhausted, ads that the advertiser paused or ended, and ads that may have been removed by Meta outside our detection window. The 189 confirmed takedowns represent cases where removal was clearly platf{/font}{font "Times New Roman"}orm-initiated, identified through disappearance from the Ad Library while other ads from the same account remained visible. The 14.2% takedown rate means that for every political ad Meta removed, approximately six political ads continued running unimpeded.{/font}
+{/p}
+
+{comment id:11 by:"Mira" date:"2026-03-18T11:15:00Z"}
+Key finding. But consider the counterfactual: what is Meta's takedown rate for other policy violations? Without a baseline, 14.2% is hard to interpret as 'low.' Even a rough comparison would strengthen the argument.
+{/comment}
+
+{p id:3C152C88}
+{font "Times New Roman"}{b}Table 2. Status of Confirmed Political Ads{/b}{/font}
+{/p}
+
+{table style:plain cols:3}
+| Status | Ads (N) | Share (%) |
+|---|---|---|
+| Taken down by Meta | 189 | 14.2 |
+| Still active | 410 | 30.9 |
+| Inactive (other reasons) | 730 | 54.9 |
+| Total | 1,329 | 100.0 |
+{/table}
+{p id:7A324765}
+{font "Times New Roman"}{b}Status{/b}{/font}
+{/p}
+
+{p id:5E9258E1}
+{font "Times New Roman"}{b}Ads (N){/b}{/font}
+{/p}
+
+{p id:1B4EB07F}
+{font "Times New Roman"}{b}Share (%){/b}{/font}
+{/p}
+
+{p id:4639DF07}
+{font "Times New Roman"}Taken down by Meta{/font}
+{/p}
+
+{p id:71DDEE59}
+{font "Times New Roman"}189{/font}
+{/p}
+
+{p id:68B009BE}
+{font "Times New Roman"}14.2{/font}
+{/p}
+
+{p id:111C7C10}
+{font "Times New Roman"}Still active{/font}
+{/p}
+
+{p id:2D762DA9}
+{font "Times New Roman"}410{/font}
+{/p}
+
+{p id:17FF9857}
+{font "Times New Roman"}30.9{/font}
+{/p}
+
+{p id:1477C75D}
+{font "Times New Roman"}Inactive (other reasons){/font}
+{/p}
+
+{p id:622CA4C3}
+{font "Times New Roman"}730{/font}
+{/p}
+
+{p id:689C7B3D}
+{font "Times New Roman"}54.9{/font}
+{/p}
+
+{p id:29CAEB46}
+{font "Times New Roman"}{b}Total{/b}{/font}
+{/p}
+
+{p id:743F016A}
+{font "Times New Roman"}{b}1,329{/b}{/font}
+{/p}
+
+{p id:62965E7E}
+{font "Times New Roman"}{b}100.0{/b}{/font}
+{/p}
+
+{p id:68C73F66}
+{font "Times New Roman"}{b}Takedown timing.{/b}{/font}{font "Times New Roman"} For the 189 ads that Meta did remove, the average time from first observation to removal was{/font}{font "Times New Roman"} 10.4 days, with a median of 7.2 days (see Figure 3). The distribution of takedown times was right-skewed: some ads were removed within days, while others ran for two or three weeks before action was taken. Given that the entire campaign period lasted appr{/font}{font "Times New Roman"}oximately seven weeks, a median takedown time of one week means that removed ads had already completed a substantial portion of their intended campaign run before enforcement occurred. In municipal elections, where the formal campaign period is short and v{/font}{font "Times New Roman"}oter attention peaks in the final days, a week of unimpeded advertising represents a significant share of the campaign window. Many of the ads that were eventually removed had likely already delivered most of their intended impressions before the takedown.{/font}
+{/p}
+
+{comment id:12 by:"Mira" date:"2026-03-18T11:15:00Z"}
+Given the campaign period was roughly 30-45 days, an average ad running 10.4 days before takedown means it was live for 25-35% of the entire campaign. Worth making this point explicit.
+{/comment}
+
+{p id:686B7307}
+{font "Times New Roman"}{b}Account-level selectivity.{/b}{/font}{font "Times New Roman"} Enforcement was concentrated on a minority of political accounts. Of the 192 confirmed political accounts, Meta took enforcement action against only 68 (35.4%). The remaining 124 accounts (64.6%) placed politica{/font}{font "Times New Roman"}l ads that were never removed during the entire monitoring period. Among the 68 accounts that did experience enforcement, the intensity varied: some had all their ads removed, while others had only a subset taken down, with remaining ads left active. This {/font}{font "Times New Roman"}inconsistency within accounts further suggests that Meta's detection was ad-level rather than account-level, meaning the platform did not flag entire accounts as political advertisers even after identifying individual ads from those accounts as violations.{/font}
+{/p}
+
+{comment id:22 by:"Dr. Numbers" date:"2026-03-24T10:00:00Z"}
+DATA DISCREPANCY: The enforcement stats file shows 198 total political accounts (126 no takedowns + 62 partial + 10 all removed = 198), but the manuscript reports 192 accounts (68 + 124 = 192). Where did the 6-account difference go? Reconcile these numbers or explain the filtering.
+{/comment}
+
+{p id:29C00937}
+{font "Times New Roman"}{b}Table 3. Enforcement Action by Account{/b}{/font}
+{/p}
+
+{table style:plain cols:3}
+| Enforcement status | Accounts (N) | Share (%) |
+|---|---|---|
+| At least one ad removed | 68 | 35.4 |
+| No ads removed | 124 | 64.6 |
+| Total | 192 | 100.0 |
+{/table}
+{p id:15B5A9CC}
+{font "Times New Roman"}{b}Enforcement status{/b}{/font}
+{/p}
+
+{p id:567F08D4}
+{font "Times New Roman"}{b}Accounts (N){/b}{/font}
+{/p}
+
+{p id:64EFD44E}
+{font "Times New Roman"}{b}Share (%){/b}{/font}
+{/p}
+
+{p id:2C292F3D}
+{font "Times New Roman"}At least one ad removed{/font}
+{/p}
+
+{p id:650BC25B}
+{font "Times New Roman"}68{/font}
+{/p}
+
+{p id:19587DA0}
+{font "Times New Roman"}35.4{/font}
+{/p}
+
+{p id:40789A78}
+{font "Times New Roman"}No ads removed{/font}
+{/p}
+
+{p id:389BA9C3}
+{font "Times New Roman"}124{/font}
+{/p}
+
+{p id:1D297ACB}
+{font "Times New Roman"}64.6{/font}
+{/p}
+
+{p id:75314CA1}
+{font "Times New Roman"}{b}Total{/b}{/font}
+{/p}
+
+{p id:5C4B8568}
+{font "Times New Roman"}{b}192{/b}{/font}
+{/p}
+
+{p id:13DD3F75}
+{font "Times New Roman"}{b}100.0{/b}{/font}
+{/p}
+
+{p id:4A3DE85F}
+{font "Times New Roman"}The selectivity of enforcement raises questions about what triggers Meta's detection mechanisms. If enforcement is primarily report-based, then the ban functions as a complaint-driven system {/font}{font "Times New Roman"}rather than a proactive policy. This interpretation is consistent with the observed pattern: accounts that attracted attention, through user complaints, media coverage, or competitor reports, were subject to enforcement, while accounts that operated withou{/font}{font "Times New Roman"}t drawing attention were left untouched. The implication is that Meta did not invest in proactive detection systems for political advertising violations, relying instead on external signals that are inherently partial and biased toward more visible actors.{/font}
+{/p}
+
+{figure id:4863FFB8 rId:rId13 src:"word/media/image5.png" width:5943600emu height:2971800emu}
+{/figure}
+
+{p id:3090CF0F}
+{font "Times New Roman"}{b}Figure 5. {/b}{/font}{font "Times New Roman"}{i}Enforcement status of confirmed political ads: taken down, still active, or inactive.{/i}{/font}
+{/p}
+
+{figure id:33C551DB rId:rId14 src:"word/media/image6.png" width:5943600emu height:3820886emu}
+{/figure}
+
+{p id:5B071C0C}
+{font "Times New Roman"}{b}Figure 6. {/b}{/font}{font "Times New Roman"}{i}Density distribution of days running before takedown for removed political ads.{/i}{/font}
+{/p}
+
+{figure id:19E9461F rId:rId15 src:"word/media/image7.png" width:5943600emu height:3820886emu}
+{/figure}
+
+{p id:39E4BB5A}
+{font "Times New Roman"}{b}Figure 7. {/b}{/font}{font "Times New Roman"}{i}Timeline of Meta takedown actions across the monitoring period.{/i}{/font}
+{/p}
+
+### RQ3: Level Playing Field and Transparency Implications {id:1DF373DC}
+
+{p id:5E6F2513}
+{font "Times New Roman"}The combination of a nominally strict ban, minimal enforcement, and absent transparency protections produces several distortions relevant to electoral fairness.{/font}
+{/p}
+
+{p id:74DDD26E}
+{font "Times New Roman"}{b}Asymmetric advantages.{/b}{/font}{font "Times New Roman"} Political actors who complied with Meta's ban, by refraining from placing paid advertisements, forfeited the reach and targeting capabilities that paid advertising provides. Those who ignored the ban gained access to{/font}{font "Times New Roman"} Meta's full advertising toolkit, including demographic targeting, geographic targeting, interest-based targeting, and lookalike audience expansion, without the transparency disclosures that the TTPA was designed to require. This asymmetry rewards non-comp{/font}{font "Times New Roman"}liance and punishes compliance. Consider the concrete case of Wakker Emmen, which placed 82 ads during the campaign period. A competing local party in Emmen that respected the ban had access only to organic posting, which reaches a small and unpredictable {/font}{font "Times New Roman"}fraction of a page's followers due to algorithmic filtering. The party that paid for advertising could target specific demographics in specific neighborhoods; the party that followed the rules could not. The competitive distortion is direct and measurable.{/font}
+{/p}
+
+{comment id:13 by:"Mira" date:"2026-03-18T11:15:00Z"}
+Consider adding a concrete example: e.g., Party X ran 80 ads reaching Y thousand voters while Party Z, which complied with the ban, reached zero through paid channels.
+{/comment}
+
+{p id:3AAB3020}
+{font "Times New Roman"}{b}Transparency deficit.{/b}{/font}{font "Times New Roman"} Under the TTPA framework, political ads would appear in Meta's political advertising repository with information about the sponsoring entit{/font}{font "Times New Roman"}y, the amount spent, the audience reached, and the targeting criteria used. Under Meta's ban, none of this information is available. The ads placed by political actors do not carry political advertising labels, do not appear in political ad repositories, a{/font}{font "Times New Roman"}nd do not disclose targeting parameters. Voters encountering these ads have no way to identify them as paid political communication. The ban thus produces a transparency outcome that is strictly worse than the regulatory framework it was designed to avoid.{/font}
+{/p}
+
+{p id:2A5982C8}
+{font "Times New Roman"}{b}Jurisdictional fragmentation.{/b}{/font}{font "Times New Roman"} The enforcement difficulties are compounded by jurisdictional complexity. Meta's European headquarters is in Dublin, placing it under the supervision of the Irish Data Protection Commission for GDPR purposes and the Irish media {/font}{font "Times New Roman"}regulator for certain DSA obligations. The Dutch Commissariaat voor de Media was designated as the national authority responsible for political advertising transparency under the TTPA, but at the time of the 2026 elections, it had not yet received the powe{/font}{font "Times New Roman"}r to levy fines for violations. This jurisdictional gap meant that even if the Dutch authority had wished to compel Meta to enforce its ban more effectively or to comply with TTPA transparency requirements instead, it lacked the enforcement tools to do so.{/font}
+{/p}
+
+{comment id:30 by:"Commissioner Torres" date:"2026-03-24T10:00:00Z"}
+Under the TTPA, the designated national authority for the Netherlands would enforce political ad transparency. But Meta's ban means there are no "political ads" to regulate — the Commissariaat can't enforce transparency obligations on ads that officially don't exist. Make this Catch-22 more explicit; it's a powerful regulatory argument.
+{/comment}
+
+{p id:507E7181}
+{font "Times New Roman"}The contrast with the Digital Services Act enforcement timeline is instructive. In December 2025, the Europ{/font}{font "Times New Roman"}ean Commission imposed a EUR 120 million fine on X (formerly Twitter) for violations of the DSA's transparency requirements, the first major enforcement action under the regulation {/font}{font "Times New Roman"}(European Commission, 2025){/font}{font "Times New Roman"}. This action demonstrated that EU regulators ar{/font}{font "Times New Roman"}e willing to use their enforcement powers against major platforms. Yet the political advertising domain remained untouched, in part because the institutional infrastructure for TTPA enforcement was still being assembled when the Dutch elections took place.{/font}
+{/p}
+
+{comment id:29 by:"Commissioner Torres" date:"2026-03-24T10:00:00Z"}
+Verify the EUR 120 million figure and the date (December 2025). If this refers to the DSA non-compliance fine, confirm the exact legal basis (DSA Art. 56?). Regulatory citations must be precise — an incorrect fine amount would undermine credibility with policy readers.
+{/comment}
+
+{p id:56535758}
+{font "Times New Roman"}{b}Parliamentary response.{/b}{/font}{font "Times New Roman"} The enforcement gap attracted political attention within the Netherlands. On March 10, 2026, during the weekly Questio{/font}{font "Times New Roman"}n Hour (Vragenuur) of the Dutch House of Representatives, Member of Parliament Laurens Dassen (Volt) questioned Minister Heerma of the Interior (BZK) about Meta's failure to enforce its political advertising ban and the implications for the municipal elect{/font}{font "Times New Roman"}ions. The parliamentary exchange exposed the regulatory impasse from the perspective of a national government. Minister Heerma could acknowledge the problem but could not offer a remedy, because enforcement authority over Meta lies with Irish regulators (u{/font}{font "Times New Roman"}nder the country-of-origin principle) and the European Commission (under the DSA's centralized supervision of very large online platforms). This parliamentary intervention illustrates both the political salience of the issue and its structural intractabili{/font}{font "Times New Roman"}ty under the current regulatory architecture. National legislators can raise the problem, media can report on it, and researchers can document it, but none of these actors can compel a platform headquartered in another member state to change its practices.{/font}
+{/p}
+
+{p id:567DA3A0}
+{font "Times New Roman"}{b}The accountability vacuum.{/b}{/font}{font "Times New Roman"} The jurisdictional fragmentation creates what amounts to an accountability vacuum for political advertising enforcement. The Dutch C{/font}{font "Times New Roman"}ommissariaat voor de Media, designated as the national authority for political advertising transparency under the TTPA, had not yet received fine-levying powers. The Irish media regulator, which has supervisory jurisdiction over Meta, has no direct stake i{/font}{font "Times New Roman"}n Dutch municipal elections. The European Commission, which fined X EUR 120 million under the DSA in December 2025 {/font}{font "Times New Roman"}(European Commission, 2025){/font}{font "Times New Roman"}, has not yet brought enforcement actions related to the TTPA. The result is that no authority with both the juris{/font}{font "Times New Roman"}diction and the enforcement tools took action on Meta's political advertising in the Netherlands during the 2026 elections. This is not an oversight; it is a structural feature of the EU's multi-layered regulatory framework during its implementation phase.{/font}
+{/p}
+
+{figure id:536C3163 rId:rId16 src:"word/media/image8.png" width:5943600emu height:2971800emu}
+{/figure}
+
+{p id:785A4DBE}
+{font "Times New Roman"}{b}Figure 8. {/b}{/font}{font "Times New Roman"}{i}Distribution of political ads by actor type (parties, candidates, movements, advocacy organizations).{/i}{/font}
+{/p}
+
+{figure id:09F3BFA4 rId:rId17 src:"word/media/image9.png" width:5943600emu height:2971800emu}
+{/figure}
+
+{p id:1F37CECC}
+{font "Times New Roman"}{b}Figure 9. {/b}{/font}{font "Times New Roman"}{i}Estimated spending on political ads by actor type.{/i}{/font}
+{/p}
+
+{figure id:01A2F164 rId:rId18 src:"word/media/image10.png" width:5943600emu height:3396343emu}
+{/figure}
+
+{p id:02CDFF49}
+{font "Times New Roman"}{b}Figure 10. {/b}{/font}{font "Times New Roman"}{i}Distribution of ads per account among confirmed political advertisers.{/i}{/font}
+{/p}
+
+{comment id:33 by:"Editor Chen" date:"2026-03-24T10:00:00Z"}
+10 figures in a ~7,000 word paper is high for most journals. Consider whether Figures 8–10 (actor type breakdowns) could be consolidated into a single multi-panel figure or moved to an online appendix. Prioritize figures that directly answer the RQs.
+{/comment}
+
+## Discussion {id:7A19C206}
+
+{p id:11266821}
+{font "Times New Roman"}The findings from the 2026 Dutch municipal elections document a specific failure mode of platform self-regulation: a prohibition that is announced but not enforced, creating outcomes worse than either effective prohibition or regulated permission.{/font}
+{/p}
+
+### The Enforcement Gap as Regulatory Avoidance {id:3855DEA6}
+
+{p id:61E48391}
+{font "Times New Roman"}Meta's political advertising ban can be understood as a form of regulatory avoidance rather than regulatory compliance. The TTPA requires platforms that host political advertising to invest in label{/font}{font "Times New Roman"}ing systems, transparency databases, and targeting disclosure mechanisms. By banning political advertising, Meta avoided these investments. But the ban also required enforcement investment, detection systems, content review capacity, and takedown infrastru{/font}{font "Times New Roman"}cture, that Meta evidently did not make. The result is a policy that serves Meta's regulatory positioning (it can claim to have gone further than the regulation requires) while failing to produce the outcomes that either the ban or the regulation intended.{/font}
+{/p}
+
+{comment id:14 by:"Mira" date:"2026-03-18T11:15:00Z"}
+This is a strong claim. Ensure the evidence supports characterizing it as deliberate avoidance rather than implementation difficulty. The Vragenuur transcript shows Meta told the government they found the regulation 'onduidelijk' (unclear).
+{/comment}
+
+{comment id:27 by:"Dr. Framing" date:"2026-03-24T10:00:00Z"}
+"Regulatory avoidance" implies intentionality. The evidence is consistent with this interpretation but also with organizational incapacity (Meta genuinely couldn't classify political ads at scale). The paper should acknowledge both possibilities and explain why the distinction matters for policy — avoidance warrants penalties, incapacity warrants technical standards.
+{/comment}
+
+{p id:318CF4D0}
+{font "Times New Roman"}This pattern echoes findings from other domains of platform governance. {/font}{font "Times New Roman"}Suzor {/font}{font "Times New Roman"}(2019){/font}{font "Times New Roman"} documented how platforms often adopt broad rules that they lack the capacity or willingness to enforce consistently. The politic{/font}{font "Times New Roman"}al advertising ban fits this pattern. The breadth of the prohibition, covering all political advertising under a broad definition, makes consistent enforcement operationally challenging. But the 14.2% takedown rate and the concentration of enforcement on 3{/font}{font "Times New Roman"}5.4% of accounts suggest that the challenge is not merely operational. It reflects a policy design in which enforcement is secondary to the announcement of the policy itself. Meta's incentive structure clarifies the dynamic: the company earns revenue from {/font}{font "Times New Roman"}every ad placed on its platform, including those placed by political actors in violation of the ban. Proactive enforcement of the ban would require Meta to invest resources in order to reduce its own revenue, a combination that market logic does not favor.{/font}
+{/p}
+
+### Implications for the Self-Regulation Debate {id:45FB3B2B}
+
+{p id:3FAA0797}
+{font "Times New Roman"}The findings contribu{/font}{font "Times New Roman"}te to the ongoing debate about the effectiveness of platform self-regulation in the domain of political communication. Proponents of self-regulation argue that platforms are best positioned to develop and enforce rules tailored to their technical capabilit{/font}{font "Times New Roman"}ies and user communities {/font}{font "Times New Roman"}(Flew, Martin, & Suzor, 2019){/font}{font "Times New Roman"}. Critics argue that platforms' commercial incentives are misaligned with democratic accountability, and that meaningful regulation requires external enforcement {/font}{font "Times New Roman"}(Helberger, Pierson, & Poell, 2018){/font}{font "Times New Roman"}.{/font}
+{/p}
+
+{comment id:28 by:"Dr. Framing" date:"2026-03-24T10:00:00Z"}
+The paper's structure is predominantly empirical-descriptive. Consider whether you can articulate a more explicit theoretical mechanism: WHY does enforcement fail? Is it capacity (can't detect), willingness (won't enforce), or design (ban is structured to fail)? Even a brief typology would strengthen the contribution beyond documentation.
+{/comment}
+
+{p id:2E01B9A8}
+{font "Times New Roman"}The Dutch case supports the critics. Meta's ban was a self-regulat{/font}{font "Times New Roman"}ory choice. It was not required by the TTPA, which envisions transparency rather than prohibition. Meta chose prohibition over compliance because prohibition is cheaper: it requires no new transparency infrastructure. But the choice to prohibit without enf{/font}{font "Times New Roman"}orcing produces a regulatory vacuum. Political ads run without transparency labels, without repository listings, and without targeting disclosures. The self-regulatory choice did not just fail to achieve the regulation's goals; it actively undermined them.{/font}
+{/p}
+
+{p id:7D3A73D9}
+{font "Times New Roman"}This finding has implications for the broader EU regulatory framework. The DSA requires{/font}{font "Times New Roman"} very large online platforms to conduct systemic risk assessments (Articles 34-35) and to take proportionate mitigation measures for risks to democratic processes. Article 39 specifically requires that ad repositories be maintained with information about a{/font}{font "Times New Roman"}ll advertisements served on the platform. An advertising ban that is not enforced, and that creates transparency deficits for electoral processes, may itself constitute a systemic risk that Meta is required to assess and mitigate under the DSA. The interac{/font}{font "Times New Roman"}tion between the TTPA and the DSA creates overlapping regulatory expectations that Meta's current approach does not meet. Under the TTPA, Meta avoids transparency obligations by claiming it does not host political ads. Under the DSA, Meta is required to ma{/font}{font "Times New Roman"}intain ad repositories and assess electoral risks regardless of its advertising policies. The two regulations, read together, leave little room for the position that banning political ads while failing to enforce the ban satisfies a platform's obligations.{/font}
+{/p}
+
+{p id:651EEC6C}
+{font "Times New Roman"}The Dutch case also{/font}{font "Times New Roman"} illustrates the temporal dimension of regulatory failure. The TTPA entered into force in October 2025. The Dutch municipal elections took place in March 2026, five months later. In that five-month window, the Dutch national authority had not yet received {/font}{font "Times New Roman"}enforcement powers, the European Commission had not yet addressed TTPA violations, and Meta had not built enforcement infrastructure for its own ban. The election proceeded in what amounted to a regulatory interregnum: the old system (Meta's voluntary tran{/font}{font "Times New Roman"}sparency tools) had been dismantled, and the new system (TTPA-mandated transparency) had not yet been implemented. This timing gap is not unique to the Netherlands. Any EU election held during the early implementation phase of the TTPA faces the same risk.{/font}
+{/p}
+
+### Limitations and Future Research {id:1EA76B0D}
+
+{p id:871E03A2}
+{font "Times New Roman"}Preliminary evidence suggests that Google's ad infrastructure also served political ads during the Dutch municipal elections despite a similar ban, indicating that the enforcement gap may extend beyond a single platform.{/font}
+{/p}
+
+{comment id:35 by:"Professor Platform" date:"2026-03-24T10:00:00Z"}
+Google's parallel ban is mentioned only in the limitations. Given that Google Ads also served political content during the same election, this deserves more than a footnote — even a brief paragraph comparing the two platforms' approaches would significantly strengthen the paper's implications.
+{/comment}
+
+{p id:53418651}
+{font "Times New Roman"}This study has several limitations that future research should address. First, our monitoring captured only ads visible i{/font}{font "Times New Roman"}n Meta's Ad Library; ads removed before our collection sweeps were missed. The true volume of political advertising, and the true number of takedowns, is likely higher than our figures indicate. Second, our study covers a single election in a single countr{/font}{font "Times New Roman"}y. While the Dutch municipal elections provide a useful case, the generalizability of findings to other EU member states, other election types, and other time periods remains to be established. Third, we could not determine with certainty the mechanisms be{/font}{font "Times New Roman"}hind Meta's enforcement decisions: whether takedowns were triggered by user reports, automated detection, or some combination. Understanding these mechanisms would require access to Meta's internal processes, which is not available to external researchers.{/font}
+{/p}
+
+{p id:314899F9}
+{font "Times New Roman"}Future research should extend this m{/font}{font "Times New Roman"}onitoring approach to other EU elections to assess whether the enforcement patterns we document are consistent across contexts. The German state elections in Baden-Wurttemberg (2026) and the anticipated European Parliament elections provide natural compari{/font}{font "Times New Roman"}son cases. Comparative studies across member states would illuminate whether jurisdictional factors, the size of the election, or the political salience of the campaign affect enforcement rates. Research should also examine whether the TTPA's transparency {/font}{font "Times New Roman"}requirements, once fully implemented with national enforcement powers, produce better outcomes than Meta's current prohibition approach. The planned implementation of enforcement capacities across EU member states creates a natural experiment: elections he{/font}{font "Times New Roman"}ld before national authorities have enforcement powers can be compared with elections held after. Finally, the question of how selective enforcement affects voter information and electoral outcomes deserves sustained empirical attention, including survey-b{/font}{font "Times New Roman"}ased research that measures voter awareness of paid political content on platforms operating under advertising bans, and field experiments that assess whether voters can distinguish paid from organic political content in the absence of transparency labels.{/font}
+{/p}
+
+{comment id:38 by:"Reviewer International" date:"2026-03-24T10:00:00Z"}
+The German Baden-Württemberg and Israeli elections are already being monitored by your system (per the methods section context). Can you include even preliminary cross-national comparisons? Even a footnote saying "preliminary data from BW26 shows a similar pattern" would dramatically strengthen the generalizability claim.
+{/comment}
+
+## Conclusion {id:6474F30C}
+
+{p id:68B9C57B}
+{font "Times New Roman"}Meta's political advertising ban in the European Union was presented as a decisive response to regulatory requirements. Our analysis of the 2026 Dutch{/font}{font "Times New Roman"} municipal elections reveals it to be something else: a policy that is announced rather than enforced, that avoids regulatory compliance rather than exceeding it, and that produces worse transparency outcomes than the regulation it was designed to preempt.{/font}
+{/p}
+
+{p id:74859AF0}
+{font "Times New Roman"}The numbers tell a clear story. Of 1,329 confirmed political ads from 192 accounts, Meta removed 189 (14.2%). The remaining 86% of known political ads were either still active or h{/font}{font "Times New Roman"}ad completed their runs without enforcement action. Ads that were eventually removed ran for a median of 7.2 days before takedown. Enforcement reached only 68 of 192 political accounts (35.4%), leaving the majority of violating accounts entirely untouched.{/font}
+{/p}
+
+{p id:18302F08}
+{font "Times New Roman"}These findings have three principal implicat{/font}{font "Times New Roman"}ions. First, platform self-regulation through prohibition does not work when the prohibiting platform lacks the enforcement infrastructure, or the enforcement incentive, to make the prohibition effective. A ban without enforcement is not a ban; it is a pol{/font}{font "Times New Roman"}icy statement. Second, Meta's approach produces a transparency outcome strictly worse than TTPA compliance. Under the TTPA, political ads would run with labels, disclosures, and repository listings. Under Meta's unenforced ban, they run with none of these.{/font}{font "Times New Roman"} Third, selective enforcement distorts the electoral level playing field by rewarding non-compliance. Political actors who respect the ban lose access to paid advertising. Those who ignore it gain paid targeting advantages without transparency obligations.{/font}
+{/p}
+
+{p id:6B367B0F}
+{font "Times New Roman"}The policy implications are direct. Co-regulation, in which public authorities set standards and retain enforcement powers{/font}{font "Times New Roman"}, is necessary to prevent platforms from substituting self-serving policy announcements for meaningful compliance. The TTPA was designed for transparency, not for bans. Meta's response, replacing transparency requirements with an unenforced prohibition, ci{/font}{font "Times New Roman"}rcumvents the regulation's intent. As EU member states build out their national enforcement capacities under the TTPA, they should treat platform advertising bans not as a form of overcompliance but as a potential form of regulatory avoidance that requires{/font}{font "Times New Roman"} scrutiny. Regulators should consider whether a platform that bans political advertising but fails to enforce the ban is in compliance with its obligations under the DSA's systemic risk provisions, which require mitigation of risks to democratic processes.{/font}
+{/p}
+
+{p id:51F9CB45}
+{font "Times New Roman"}For researchers, the case demonstrates both the feasibility and the necessity of independent mo{/font}{font "Times New Roman"}nitoring. The enforcement gap we document was invisible until an external monitoring system made it measurable. Meta's own reporting provided no indication that political ads were running in violation of its ban. Without independent data collection, the ga{/font}{font "Times New Roman"}p between policy and practice would have remained hidden. This highlights the importance of maintaining research access to platform advertising data, an access that is itself threatened by Meta's restrictions on the Ad Library API for EU political content.{/font}
+{/p}
+
+{p id:140E045D}
+{font "Times New Roman"}The 2026 Dutch municipal elections are one case in a large and evolving regulatory context. But they demonstrate a principle with broad application: when a platform announces a rule it does not enforce, {/font}{font "Times New Roman"}the result is not regulation. It is the appearance of regulation. And the appearance of regulation may be worse than no regulation at all, because it removes the pressure to develop meaningful alternatives while leaving the underlying problems unaddressed.{/font}
+{/p}
+
+{comment id:15 by:"Mira" date:"2026-03-18T11:15:00Z"}
+Consider ending with a forward-looking statement about the AI Act Art. 50 transparency obligations taking effect August 2026, and whether the same enforcement gap will repeat.
+{/comment}
+
+## References {id:79B09378}
+
+{comment id:16 by:"Mira" date:"2026-03-18T11:15:00Z"}
+The reference list is thin (12 citations). Political Communication typically expects 40-60 references. Key missing: Dobber et al. (2019), Kreiss & McGregor (2018), Helberger et al. (2018) are cited in text but verify they appear in the reference list. Also consider adding: Bodó et al. (2017) on transparency, Borgesius et al. (2018) on micro-targeting regulation.
+{/comment}
+
+{p id:67658738}
+{font "Times New Roman"}[Bibliography will be generated by Zotero]{/font}
+{/p}

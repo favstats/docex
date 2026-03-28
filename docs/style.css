@@ -1342,7 +1342,7 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
   background: var(--accent-dim);
   color: var(--accent);
   transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.08);
+  box-shadow: 0 4px 20px rgba(139, 94, 60, 0.08);
 }
 .drop-zone-icon {
   margin-bottom: 10px;
@@ -1363,6 +1363,16 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
 }
 .drop-zone input[type="file"] { display: none; }
 
+/* Drop zone file landing effect */
+@keyframes dropLand {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.97); }
+  100% { transform: scale(1); opacity: 0; }
+}
+.drop-zone.file-landed {
+  animation: dropLand 0.4s var(--ease-out) forwards;
+}
+
 /* Editor panes */
 .editor-panes {
   display: grid;
@@ -1374,6 +1384,18 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
   overflow: hidden;
   border: 1px solid var(--border);
   box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  /* Smooth entry on first load */
+  animation: panesEntry 0.8s var(--ease-out) 0.2s both;
+}
+@keyframes panesEntry {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @media (max-width: 768px) {
   .editor-panes { grid-template-columns: 1fr; height: auto; }
@@ -1464,6 +1486,28 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
   animation: btnSpin 0.6s linear infinite;
 }
 
+/* Typing-dots indicator when compiler is working */
+.compile-indicator {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+.compile-indicator span {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.3;
+}
+@keyframes typingDot {
+  0%, 80%, 100% { opacity: 0.3; }
+  40% { opacity: 1; }
+}
+.compile-indicator.active span:nth-child(1) { animation: typingDot 1.4s infinite 0s; }
+.compile-indicator.active span:nth-child(2) { animation: typingDot 1.4s infinite 0.2s; }
+.compile-indicator.active span:nth-child(3) { animation: typingDot 1.4s infinite 0.4s; }
+
 /* Editor textarea */
 .dex-editor {
   width: 100%;
@@ -1478,6 +1522,11 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
   resize: none;
   outline: none;
   tab-size: 4;
+  transition: box-shadow 0.3s var(--ease-out);
+}
+/* Warm inner glow when editor is focused */
+.dex-editor:focus {
+  box-shadow: inset 0 0 60px rgba(245, 158, 11, 0.04);
 }
 
 .editor-container {
@@ -1733,15 +1782,25 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
 }
 
 /* ============================================================================
-   DOCX PREVIEW PANE (playground)
+   DOCX PREVIEW PANE (playground) — Living Document
    ============================================================================ */
 #docxPreviewPane {
   padding: 12px !important;
-  background: #f5f5f5 !important;
+  background: var(--paper) !important;
   overflow: auto !important;
+  /* Paper texture: subtle grain + warm gradient */
+  background-image:
+    url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, var(--paper), color-mix(in oklch, var(--paper), #f5ebe0 5%)) !important;
+  /* Realistic floating paper shadow */
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.06),
+    0 4px 12px rgba(0,0,0,0.08),
+    0 12px 36px rgba(0,0,0,0.12);
+  transition: box-shadow 0.6s var(--ease-out);
 }
 #docxPreviewPane .docx-wrapper {
-  background: #f5f5f5 !important;
+  background: transparent !important;
   padding: 0 !important;
 }
 #docxPreviewPane .docx-wrapper > section.docx {
@@ -1751,6 +1810,46 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
   width: auto !important;
   padding: 40px 48px !important;
 }
+
+/* --- Amber glow pulse when edits land --- */
+@keyframes editPulse {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3),
+                    0 1px 3px rgba(0,0,0,0.06),
+                    0 4px 12px rgba(0,0,0,0.08),
+                    0 12px 36px rgba(0,0,0,0.12); }
+  50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15),
+                     0 1px 3px rgba(0,0,0,0.06),
+                     0 4px 12px rgba(0,0,0,0.08),
+                     0 12px 36px rgba(0,0,0,0.12); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0),
+                      0 1px 3px rgba(0,0,0,0.06),
+                      0 4px 12px rgba(0,0,0,0.08),
+                      0 12px 36px rgba(0,0,0,0.12); }
+}
+.preview-pulse {
+  animation: editPulse 0.6s var(--ease-out);
+}
+
+/* --- Spring-physics comment slide-in --- */
+#docxPreviewPane .docx-wrapper [class*="comment"],
+#docxPreviewPane .docx-wrapper aside {
+  animation: commentSlideIn 0.5s var(--ease-spring) both;
+  transform-origin: right center;
+}
+@keyframes commentSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+/* Stagger multiple comments */
+#docxPreviewPane .docx-wrapper [class*="comment"]:nth-child(2) { animation-delay: 0.05s; }
+#docxPreviewPane .docx-wrapper [class*="comment"]:nth-child(3) { animation-delay: 0.1s; }
+#docxPreviewPane .docx-wrapper [class*="comment"]:nth-child(4) { animation-delay: 0.15s; }
 
 /* ============================================================================
    ROUND 2: INSTALL SECTION

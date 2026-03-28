@@ -110,6 +110,54 @@ tracked changes, and footnote references.
     </div>
   </section>
 
+  <!-- Extended Formatting -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Extended formatting</h2>
+      <p>Beyond the basic bold/italic/underline tags, .dex supports additional character formatting that maps to Word's extended run properties.</p>
+      <pre><code>{strike}strikethrough{/strike}
+{dstrike}double strikethrough{/dstrike}
+{size 28}14pt text{/size}           (value in half-points)
+{smallcaps}Small Caps{/smallcaps}
+{caps}ALL CAPS{/caps}
+{hidden}hidden text{/hidden}
+{u double}double underline{/u}
+{u wave}wave underline{/u}</code></pre>
+      <table>
+        <tr><th>Syntax</th><th>Renders as</th><th>Word equivalent</th></tr>
+        <tr><td><code>{strike}text{/strike}</code></td><td><s>strikethrough</s></td><td>Strikethrough</td></tr>
+        <tr><td><code>{dstrike}text{/dstrike}</code></td><td><s style="text-decoration-style:double">double strikethrough</s></td><td>Double Strikethrough</td></tr>
+        <tr><td><code>{size N}text{/size}</code></td><td>Sized text</td><td>Font size (N = half-points, so 28 = 14pt)</td></tr>
+        <tr><td><code>{smallcaps}text{/smallcaps}</code></td><td><span style="font-variant:small-caps">Small Caps</span></td><td>Small Caps</td></tr>
+        <tr><td><code>{caps}text{/caps}</code></td><td><span style="text-transform:uppercase">ALL CAPS</span></td><td>All Caps</td></tr>
+        <tr><td><code>{hidden}text{/hidden}</code></td><td>(not visible)</td><td>Hidden text</td></tr>
+      </table>
+      <h3>Underline types</h3>
+      <p>The <code>{u}</code> tag accepts an optional type parameter. When no type is specified, <code>single</code> is assumed.</p>
+      <pre><code>{u}default single underline{/u}
+{u double}double underline{/u}
+{u wave}wavy underline{/u}
+{u dotted}dotted underline{/u}</code></pre>
+      <table>
+        <tr><th>Type</th><th>Description</th></tr>
+        <tr><td><code>single</code></td><td>Single underline (default)</td></tr>
+        <tr><td><code>double</code></td><td>Double underline</td></tr>
+        <tr><td><code>dotted</code></td><td>Dotted underline</td></tr>
+        <tr><td><code>dottedHeavy</code></td><td>Heavy dotted underline</td></tr>
+        <tr><td><code>dash</code></td><td>Dashed underline</td></tr>
+        <tr><td><code>dashLong</code></td><td>Long-dash underline</td></tr>
+        <tr><td><code>dashLongHeavy</code></td><td>Heavy long-dash underline</td></tr>
+        <tr><td><code>dotDash</code></td><td>Dot-dash underline</td></tr>
+        <tr><td><code>dotDotDash</code></td><td>Dot-dot-dash underline</td></tr>
+        <tr><td><code>wave</code></td><td>Wavy underline</td></tr>
+        <tr><td><code>wavyHeavy</code></td><td>Heavy wavy underline</td></tr>
+        <tr><td><code>wavyDouble</code></td><td>Double wavy underline</td></tr>
+        <tr><td><code>thick</code></td><td>Thick underline</td></tr>
+        <tr><td><code>words</code></td><td>Underline words only (not spaces)</td></tr>
+      </table>
+    </div>
+  </section>
+
   <!-- Font, Color, Highlight -->
   <section class="section">
     <div class="spec-entry">
@@ -157,6 +205,16 @@ Added Johnson 2022 and Williams 2020.
         <tr><td><code>date:"ISO8601"</code></td><td>Timestamp of the comment</td></tr>
         <tr><td><code>parent:N</code></td><td>(Replies only) ID of the parent comment</td></tr>
       </table>
+      <h3>Comment anchors</h3>
+      <p>Comments can be anchored to specific text within a paragraph using inline <code>{comment-start}</code> and <code>{comment-end}</code> markers. The <code>id</code> attribute links the markers to the corresponding comment block.</p>
+      <pre><code>{p id:ABC123}
+We address the {comment-start id:0}regulatory gap{comment-end id:0} in governance.
+{/p}
+
+{comment id:0 by:"Reviewer 2"}
+Clarify what you mean here.
+{/comment}</code></pre>
+      <p>The <code>{comment-start id:X}</code> and <code>{comment-end id:X}</code> markers wrap the exact text the comment is anchored to. The <code>id</code> links them to the <code>{comment}</code> block that contains the comment text. This preserves Word's precise comment anchoring so that the yellow highlight appears on the correct span of text after round-tripping.</p>
     </div>
   </section>
 
@@ -175,6 +233,39 @@ We analyzed {del id:17 by:"Research Assistant" date:"2026-03-18T14:39:03Z"}12,84
         <tr><td><code>{ins ...}text{/ins}</code></td><td><span style="color:var(--green)">text</span></td><td>Inserted text (added)</td></tr>
       </table>
       <p>Attributes are the same as comments: <code>id:N</code>, <code>by:"Name"</code>, <code>date:"ISO8601"</code>.</p>
+    </div>
+  </section>
+
+  <!-- Move tracking -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Move tracking</h2>
+      <p>When text is moved from one location to another with Track Changes enabled, Word records both the source and destination. The .dex format preserves this with <code>{movefrom}</code> and <code>{moveto}</code> tags.</p>
+      <pre><code>{p id:1A2B3C4D}
+{movefrom id:1 by:"Author" date:"2026-03-18"}moved text{/movefrom}
+{/p}
+
+{p id:5E6F7A8B}
+{moveto id:2 by:"Author" date:"2026-03-18"}moved text{/moveto}
+{/p}</code></pre>
+      <table>
+        <tr><th>Tag</th><th>Word display</th><th>Meaning</th></tr>
+        <tr><td><code>{movefrom ...}text{/movefrom}</code></td><td><span style="color:green;text-decoration:line-through">moved text</span></td><td>Original location (text was moved away)</td></tr>
+        <tr><td><code>{moveto ...}text{/moveto}</code></td><td><span style="color:green;text-decoration:underline double">moved text</span></td><td>New location (text was moved here)</td></tr>
+      </table>
+      <p>Attributes are the same as tracked changes: <code>id:N</code>, <code>by:"Name"</code>, <code>date:"ISO8601"</code>.</p>
+    </div>
+  </section>
+
+  <!-- Format change tracking -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Format change tracking</h2>
+      <p>When formatting (but not text) is changed with Track Changes enabled, Word records the revision. The .dex format uses <code>{fmtchange}</code> for this.</p>
+      <pre><code>{p id:9C0D1E2F}
+{fmtchange by:"Author" date:"2026-03-18"}text with changed formatting{/fmtchange}
+{/p}</code></pre>
+      <p>The tag wraps the text whose formatting was modified. The actual formatting (bold, italic, font, etc.) is represented by the normal inline formatting tags inside or around the <code>{fmtchange}</code>. Attributes are the same as other tracked changes: <code>id:N</code> (optional), <code>by:"Name"</code>, <code>date:"ISO8601"</code>.</p>
     </div>
   </section>
 
@@ -232,13 +323,250 @@ The strategic alignment of our core competencies{footnote id:2}Citation needed. 
     </div>
   </section>
 
-  <!-- Page Breaks -->
+  <!-- Endnotes -->
   <section class="section">
     <div class="spec-entry">
-      <h2>Page breaks</h2>
-      <p>Page breaks are standalone tags on their own line.</p>
-      <pre><code>{pagebreak}</code></pre>
-      <p>This maps to <code>&lt;w:br w:type="page"/&gt;</code> in the Word XML.</p>
+      <h2>Endnotes</h2>
+      <p>Endnotes work similarly to footnotes, but are collected at the end of the document (or end of a section). An inline reference marks the endnote location, and the definitions appear in a dedicated block.</p>
+      <pre><code>{p id:3A4B5C6D}
+We found significant results{endnote id:1}.
+{/p}
+
+{endnotes}
+{endnote-def id:1}
+See the supplementary materials for the complete dataset.
+{/endnote-def}
+{/endnotes}</code></pre>
+      <table>
+        <tr><th>Tag</th><th>Description</th></tr>
+        <tr><td><code>{endnote id:N}</code></td><td>Inline endnote reference (placed at the point of reference in text)</td></tr>
+        <tr><td><code>{endnotes}...{/endnotes}</code></td><td>Block containing all endnote definitions</td></tr>
+        <tr><td><code>{endnote-def id:N}...{/endnote-def}</code></td><td>Individual endnote definition (the <code>id</code> links back to the inline reference)</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- Breaks -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Line, column, and page breaks</h2>
+      <p>Several types of breaks are supported as standalone tags.</p>
+      <pre><code>{br}                    Soft line break (Shift+Enter in Word)
+{colbreak}              Column break
+{pagebreak}             Page break</code></pre>
+      <table>
+        <tr><th>Tag</th><th>Word XML</th><th>Description</th></tr>
+        <tr><td><code>{br}</code></td><td><code>&lt;w:br/&gt;</code></td><td>Soft line break within a paragraph (like Shift+Enter)</td></tr>
+        <tr><td><code>{colbreak}</code></td><td><code>&lt;w:br w:type="column"/&gt;</code></td><td>Column break (forces text to the next column)</td></tr>
+        <tr><td><code>{pagebreak}</code></td><td><code>&lt;w:br w:type="page"/&gt;</code></td><td>Page break (forces text to the next page)</td></tr>
+      </table>
+      <p>The <code>{br}</code> tag is inline and can appear within a paragraph. The <code>{pagebreak}</code> and <code>{colbreak}</code> tags typically appear on their own line.</p>
+    </div>
+  </section>
+
+  <!-- Bookmarks -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Bookmarks</h2>
+      <p>Bookmarks mark named locations in the document that can be referenced by hyperlinks, cross-references, and field codes.</p>
+      <pre><code>{bookmark-start id:1 name:"_Ref123"}
+This text is bookmarked.
+{bookmark-end id:1}</code></pre>
+      <table>
+        <tr><th>Attribute</th><th>Description</th></tr>
+        <tr><td><code>id:N</code></td><td>Unique bookmark identifier (integer)</td></tr>
+        <tr><td><code>name:"text"</code></td><td>Bookmark name (used for cross-references; names starting with <code>_</code> are auto-generated by Word)</td></tr>
+      </table>
+      <p>Bookmarks can span multiple paragraphs. The <code>{bookmark-start}</code> and <code>{bookmark-end}</code> markers do not need to be in the same paragraph.</p>
+    </div>
+  </section>
+
+  <!-- Hyperlinks -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Hyperlinks</h2>
+      <p>Hyperlinks come in two forms: relationship-based (external URLs) and bookmark-based (internal cross-references).</p>
+      <pre><code>{link rId:rId5}Click here{/link}           (relationship-based)
+{link anchor:"_Ref123"}See above{/link}    (bookmark-based)</code></pre>
+      <table>
+        <tr><th>Attribute</th><th>Description</th></tr>
+        <tr><td><code>rId:rIdN</code></td><td>Relationship ID pointing to an external URL (defined in <code>document.xml.rels</code>)</td></tr>
+        <tr><td><code>anchor:"name"</code></td><td>Internal bookmark name to link to</td></tr>
+      </table>
+      <p>The text between the tags is the visible link text. A hyperlink uses either <code>rId</code> or <code>anchor</code>, not both.</p>
+    </div>
+  </section>
+
+  <!-- Symbols -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Symbols</h2>
+      <p>Special symbol characters from fonts like Symbol or Wingdings are represented with the <code>{sym}</code> tag.</p>
+      <pre><code>{sym F0B7}              Symbol character (hex char code)</code></pre>
+      <p>The value is a hexadecimal character code. This maps to <code>&lt;w:sym w:char="F0B7"/&gt;</code> in Word XML. The font for the symbol is typically inherited from the run properties.</p>
+    </div>
+  </section>
+
+  <!-- Tabs -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Tabs</h2>
+      <p>Tab characters are preserved as literal tab characters (<code>\t</code>) in .dex text. They map to <code>&lt;w:tab/&gt;</code> elements in the Word XML.</p>
+      <pre><code>{p id:1A2B3C4D}
+Name	Score	Grade
+Alice	95	A
+Bob	87	B+
+{/p}</code></pre>
+      <p>Each tab stop in the original document is represented by one tab character in the .dex file. Tab stop positions and alignment are defined as part of paragraph or style properties in the original .docx.</p>
+    </div>
+  </section>
+
+  <!-- Paragraph properties -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Paragraph properties</h2>
+      <p>Paragraphs can carry detailed formatting properties as attributes on the <code>{p}</code> tag. These map to the <code>&lt;w:pPr&gt;</code> element in Word XML.</p>
+      <pre><code>{p id:ABC align:center style:"Quote" indent-left:720 spacing-line:360 list-id:1 list-level:0 bidi keepnext}
+This paragraph has properties.
+{/p}</code></pre>
+      <table>
+        <tr><th>Attribute</th><th>Value</th><th>Description</th></tr>
+        <tr><td><code>align</code></td><td><code>left</code>, <code>center</code>, <code>right</code>, <code>both</code></td><td>Paragraph alignment (<code>both</code> = justified)</td></tr>
+        <tr><td><code>style</code></td><td><code>"StyleName"</code></td><td>Named paragraph style</td></tr>
+        <tr><td><code>indent-left</code></td><td>twips</td><td>Left indent (1440 = 1 inch)</td></tr>
+        <tr><td><code>indent-right</code></td><td>twips</td><td>Right indent</td></tr>
+        <tr><td><code>indent-first</code></td><td>twips</td><td>First-line indent</td></tr>
+        <tr><td><code>indent-hanging</code></td><td>twips</td><td>Hanging indent</td></tr>
+        <tr><td><code>spacing-line</code></td><td>twips or value</td><td>Line spacing (360 = 1.5 lines when <code>spacing-rule</code> is <code>auto</code>)</td></tr>
+        <tr><td><code>spacing-before</code></td><td>twips</td><td>Space before paragraph</td></tr>
+        <tr><td><code>spacing-after</code></td><td>twips</td><td>Space after paragraph</td></tr>
+        <tr><td><code>spacing-rule</code></td><td><code>auto</code>, <code>exact</code>, <code>atLeast</code></td><td>Line spacing rule</td></tr>
+        <tr><td><code>list-id</code></td><td>integer</td><td>Numbering definition ID (links to list definition)</td></tr>
+        <tr><td><code>list-level</code></td><td>integer</td><td>List nesting level (0-based)</td></tr>
+        <tr><td><code>bidi</code></td><td>(flag)</td><td>Right-to-left paragraph direction</td></tr>
+        <tr><td><code>keepnext</code></td><td>(flag)</td><td>Keep with next paragraph (prevents page break between)</td></tr>
+      </table>
+      <p>Flag attributes (<code>bidi</code>, <code>keepnext</code>) are present when the property is enabled and absent when disabled. All other attributes use key-value syntax.</p>
+    </div>
+  </section>
+
+  <!-- Field codes -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Field codes</h2>
+      <p>Word field codes (page numbers, cross-references, tables of contents, etc.) are represented with <code>{field}</code> tags. The field instruction appears in quotes, and the current cached result is the text between the tags.</p>
+      <pre><code>{field "PAGE"}3{/field}
+{field "HYPERLINK \"https://example.com\""}Example{/field}
+{field "TOC \\o \"1-3\""}Table of Contents{/field}</code></pre>
+      <table>
+        <tr><th>Component</th><th>Description</th></tr>
+        <tr><td>Field instruction</td><td>The quoted string after <code>{field</code> (e.g., <code>"PAGE"</code>, <code>"TOC \\o \"1-3\""</code>)</td></tr>
+        <tr><td>Field result</td><td>The text between <code>{field ...}</code> and <code>{/field}</code> (the cached display value)</td></tr>
+      </table>
+      <p>Field codes are preserved for lossless round-tripping. The result text is what Word displays; the instruction tells Word how to compute it. Escaped quotes within the instruction use <code>\"</code>.</p>
+    </div>
+  </section>
+
+  <!-- Content controls (SDT) -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Content controls (SDT)</h2>
+      <p>Structured document tags (SDTs) represent content controls such as bibliographies, tables of contents, and form fields.</p>
+      <pre><code>{sdt "Bibliography"}bibliography content{/sdt}</code></pre>
+      <table>
+        <tr><th>Attribute</th><th>Description</th></tr>
+        <tr><td>Tag name (quoted string)</td><td>The SDT tag or alias identifying the content control type</td></tr>
+      </table>
+      <p>The text between the tags is the content of the control. Content controls are commonly used by Word for auto-generated structures like bibliographies and cover pages.</p>
+    </div>
+  </section>
+
+  <!-- Headers and footers -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Headers and footers</h2>
+      <p>Document headers and footers are represented as named blocks with a reference to their source XML file.</p>
+      <pre><code>{header file:"header1.xml"}
+Header text content
+{/header}
+
+{footer file:"footer1.xml"}
+Footer text content
+{/footer}</code></pre>
+      <table>
+        <tr><th>Tag</th><th>Description</th></tr>
+        <tr><td><code>{header file:"name.xml"}</code></td><td>Page header (maps to a header part in the .docx)</td></tr>
+        <tr><td><code>{footer file:"name.xml"}</code></td><td>Page footer (maps to a footer part in the .docx)</td></tr>
+      </table>
+      <p>The <code>file</code> attribute identifies which header/footer XML part this corresponds to. The text between the tags can contain the same inline formatting, paragraphs, and other elements as the document body.</p>
+    </div>
+  </section>
+
+  <!-- Math equations -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Math equations</h2>
+      <p>Math equations from Word's equation editor are represented with a <code>{math}</code> tag. The raw OOXML math markup is base64-encoded for lossless round-tripping, while the text between the tags provides a human-readable approximation.</p>
+      <pre><code>{math data:BASE64ENCODED}x = y + z{/math}</code></pre>
+      <table>
+        <tr><th>Component</th><th>Description</th></tr>
+        <tr><td><code>data:BASE64</code></td><td>Base64-encoded OOXML math XML (<code>&lt;m:oMath&gt;...&lt;/m:oMath&gt;</code>)</td></tr>
+        <tr><td>Text content</td><td>Human-readable representation of the equation</td></tr>
+      </table>
+      <p>The <code>data</code> attribute ensures that the equation can be perfectly reconstructed when compiling back to .docx. The visible text is an approximation for readability when editing the .dex file.</p>
+    </div>
+  </section>
+
+  <!-- Text boxes -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Text boxes</h2>
+      <p>Text boxes (floating or inline) are represented with <code>{textbox}</code> tags.</p>
+      <pre><code>{textbox}Content inside a text box{/textbox}</code></pre>
+      <p>The content between the tags can include paragraphs, inline formatting, and other block elements just like the document body. Text boxes map to Word's <code>&lt;w:txbxContent&gt;</code> elements.</p>
+    </div>
+  </section>
+
+  <!-- Ruby text -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Ruby text (phonetic guides)</h2>
+      <p>Ruby text provides phonetic annotations above base text, commonly used in East Asian languages.</p>
+      <pre><code>{ruby base:"&#28450;&#23383;"}&#12363;&#12435;&#12376;{/ruby}</code></pre>
+      <table>
+        <tr><th>Component</th><th>Description</th></tr>
+        <tr><td><code>base:"text"</code></td><td>The base text being annotated</td></tr>
+        <tr><td>Text content</td><td>The ruby (phonetic) annotation displayed above the base</td></tr>
+      </table>
+      <p>This maps to Word's <code>&lt;w:ruby&gt;</code> element. The base text is displayed at normal size and the ruby text appears as a smaller annotation above it.</p>
+    </div>
+  </section>
+
+  <!-- Embedded objects -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Embedded objects</h2>
+      <p>Embedded OLE objects (Excel sheets, Visio diagrams, etc.) are represented with the <code>{object}</code> tag.</p>
+      <pre><code>{object type:"Excel.Sheet.12"}</code></pre>
+      <table>
+        <tr><th>Attribute</th><th>Description</th></tr>
+        <tr><td><code>type:"ProgID"</code></td><td>The OLE program identifier for the embedded object</td></tr>
+      </table>
+      <p>The actual object data is stored in the .docx package as a binary part. The <code>{object}</code> tag preserves the reference for round-tripping.</p>
+    </div>
+  </section>
+
+  <!-- Soft/non-breaking hyphens -->
+  <section class="section">
+    <div class="spec-entry">
+      <h2>Soft and non-breaking hyphens</h2>
+      <p>Special hyphen characters are preserved as their Unicode equivalents in .dex text.</p>
+      <table>
+        <tr><th>Character</th><th>Unicode</th><th>Description</th></tr>
+        <tr><td>Soft hyphen</td><td><code>U+00AD</code></td><td>Invisible hyphen that only appears at line breaks. Maps to <code>&lt;w:softHyphen/&gt;</code>.</td></tr>
+        <tr><td>Non-breaking hyphen</td><td><code>U+2011</code></td><td>Hyphen that prevents a line break. Maps to <code>&lt;w:noBreakHyphen/&gt;</code>.</td></tr>
+      </table>
+      <p>These characters are not visible in most text editors but are preserved during round-tripping to maintain the document's hyphenation behavior.</p>
     </div>
   </section>
 
@@ -246,9 +574,22 @@ The strategic alignment of our core competencies{footnote id:2}Citation needed. 
   <section class="section">
     <div class="spec-entry">
       <h2>Section properties</h2>
-      <p>Section-level formatting (margins, page size) appears at the end of the document.</p>
+      <p>Section-level formatting (margins, page size, orientation, columns) appears at the end of the document or between sections. The basic form specifies only margins:</p>
       <pre><code>{section margins:"1440 1440 1440 1440"}</code></pre>
-      <p>Margins are specified in twips (1/1440 of an inch) in the order: top right bottom left. The value <code>1440</code> equals 1 inch.</p>
+      <p>The extended form supports the full range of section properties:</p>
+      <pre><code>{section type:continuous orient:landscape pgw:15840 pgh:12240 cols:2 colspace:720 margins:"1440,1440,1440,1440,720,720,0" pgstart:1}</code></pre>
+      <table>
+        <tr><th>Attribute</th><th>Value</th><th>Description</th></tr>
+        <tr><td><code>type</code></td><td><code>nextPage</code>, <code>continuous</code>, <code>evenPage</code>, <code>oddPage</code></td><td>Section break type</td></tr>
+        <tr><td><code>orient</code></td><td><code>portrait</code>, <code>landscape</code></td><td>Page orientation</td></tr>
+        <tr><td><code>pgw</code></td><td>twips</td><td>Page width (12240 = 8.5 inches)</td></tr>
+        <tr><td><code>pgh</code></td><td>twips</td><td>Page height (15840 = 11 inches)</td></tr>
+        <tr><td><code>cols</code></td><td>integer</td><td>Number of columns</td></tr>
+        <tr><td><code>colspace</code></td><td>twips</td><td>Space between columns</td></tr>
+        <tr><td><code>margins</code></td><td><code>"top,right,bottom,left,header,footer,gutter"</code></td><td>Page margins in twips (comma-separated; the short form <code>"T R B L"</code> with spaces is also accepted)</td></tr>
+        <tr><td><code>pgstart</code></td><td>integer</td><td>Starting page number for the section</td></tr>
+      </table>
+      <p>All values are in twips (1/1440 of an inch). For example, <code>1440</code> equals 1 inch and <code>720</code> equals 0.5 inches.</p>
     </div>
   </section>
 

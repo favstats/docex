@@ -282,6 +282,296 @@ describe('DexParser', () => {
 });
 
 // ============================================================================
+// 2b. PARSER TESTS — New .dex format features
+// ============================================================================
+
+describe('DexParser — Comment anchors', () => {
+  it('parses {comment-start id:N} and {comment-end id:N} inline markers', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{comment-start id:0}annotated text{comment-end id:0}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const cStart = para.runs.find(r => r.type === 'comment-start');
+    assert.ok(cStart, 'should have comment-start node');
+    assert.equal(cStart.id, 0);
+    const cEnd = para.runs.find(r => r.type === 'comment-end');
+    assert.ok(cEnd, 'should have comment-end node');
+    assert.equal(cEnd.id, 0);
+  });
+});
+
+describe('DexParser — Bookmarks', () => {
+  it('parses {bookmark-start id:N name:"ref"} and {bookmark-end id:N}', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{bookmark-start id:1 name:"ref"}bookmarked text{bookmark-end id:1}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const bStart = para.runs.find(r => r.type === 'bookmark-start');
+    assert.ok(bStart, 'should have bookmark-start node');
+    assert.equal(bStart.id, 1);
+    assert.equal(bStart.name, 'ref');
+    const bEnd = para.runs.find(r => r.type === 'bookmark-end');
+    assert.ok(bEnd, 'should have bookmark-end node');
+    assert.equal(bEnd.id, 1);
+  });
+});
+
+describe('DexParser — Hyperlinks', () => {
+  it('parses {link rId:rId5}text{/link} (external hyperlink)', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{link rId:rId5}click here{/link}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const linkRun = para.runs.find(r => r.type === 'link');
+    assert.ok(linkRun, 'should have link node');
+    assert.equal(linkRun.rId, 'rId5');
+    assert.equal(linkRun.text, 'click here');
+  });
+
+  it('parses {link anchor:"_Ref1"}text{/link} (internal anchor link)', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{link anchor:"_Ref1"}see above{/link}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const linkRun = para.runs.find(r => r.type === 'link');
+    assert.ok(linkRun, 'should have link node');
+    assert.equal(linkRun.anchor, '_Ref1');
+    assert.equal(linkRun.text, 'see above');
+  });
+});
+
+describe('DexParser — Line breaks', () => {
+  it('parses {br} as a linebreak node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\nfirst line{br}second line\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const brNode = para.runs.find(r => r.type === 'linebreak');
+    assert.ok(brNode, 'should have linebreak node');
+  });
+
+  it('parses {colbreak} as a colbreak node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\nfirst column{colbreak}second column\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const colNode = para.runs.find(r => r.type === 'colbreak');
+    assert.ok(colNode, 'should have colbreak node');
+  });
+});
+
+describe('DexParser — Endnote references', () => {
+  it('parses {endnote id:1} as an endnote node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\nSome text{endnote id:1} continues.\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const enNode = para.runs.find(r => r.type === 'endnote');
+    assert.ok(enNode, 'should have endnote node');
+    assert.equal(enNode.id, 1);
+  });
+});
+
+describe('DexParser — Symbols', () => {
+  it('parses {sym F0B7} as a sym node with char code', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\nBullet: {sym F0B7}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const symNode = para.runs.find(r => r.type === 'sym');
+    assert.ok(symNode, 'should have sym node');
+    assert.equal(symNode.char, 'F0B7');
+  });
+});
+
+describe('DexParser — Strikethrough', () => {
+  it('parses {strike}text{/strike} as a strike node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{strike}removed text{/strike}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const strikeNode = para.runs.find(r => r.type === 'strike');
+    assert.ok(strikeNode, 'should have strike node');
+    assert.equal(strikeNode.text, 'removed text');
+  });
+
+  it('parses {dstrike}text{/dstrike} as a dstrike node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{dstrike}double struck{/dstrike}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const dstrikeNode = para.runs.find(r => r.type === 'dstrike');
+    assert.ok(dstrikeNode, 'should have dstrike node');
+    assert.equal(dstrikeNode.text, 'double struck');
+  });
+});
+
+describe('DexParser — Font size', () => {
+  it('parses {size 28}text{/size} as a size node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{size 28}large text{/size}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const sizeNode = para.runs.find(r => r.type === 'size');
+    assert.ok(sizeNode, 'should have size node');
+    assert.equal(sizeNode.size, '28');
+    assert.equal(sizeNode.text, 'large text');
+  });
+});
+
+describe('DexParser — Small caps / All caps', () => {
+  it('parses {smallcaps}text{/smallcaps} as a smallcaps node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{smallcaps}small caps text{/smallcaps}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const scNode = para.runs.find(r => r.type === 'smallcaps');
+    assert.ok(scNode, 'should have smallcaps node');
+    assert.equal(scNode.text, 'small caps text');
+  });
+
+  it('parses {caps}text{/caps} as a caps node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{caps}all caps text{/caps}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const capsNode = para.runs.find(r => r.type === 'caps');
+    assert.ok(capsNode, 'should have caps node');
+    assert.equal(capsNode.text, 'all caps text');
+  });
+});
+
+describe('DexParser — Hidden text', () => {
+  it('parses {hidden}text{/hidden} as a hidden node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{hidden}secret text{/hidden}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const hiddenNode = para.runs.find(r => r.type === 'hidden');
+    assert.ok(hiddenNode, 'should have hidden node');
+    assert.equal(hiddenNode.text, 'secret text');
+  });
+});
+
+describe('DexParser — Underline types', () => {
+  it('parses {u double}text{/u} as an underline node with type', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{u double}double underlined{/u}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const uNode = para.runs.find(r => r.type === 'underline');
+    assert.ok(uNode, 'should have underline node');
+    assert.equal(uNode.underlineType, 'double');
+    assert.equal(uNode.text, 'double underlined');
+  });
+});
+
+describe('DexParser — Paragraph properties', () => {
+  it('parses {p align:center style:"Quote" list-id:1 list-level:0 bidi keepnext}', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:CC align:center style:"Quote" list-id:1 list-level:0 bidi keepnext}\nQuoted text.\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    assert.ok(para, 'should have a paragraph');
+    assert.equal(para.id, 'CC');
+    assert.equal(para.align, 'center');
+    assert.equal(para.style, 'Quote');
+    assert.equal(para.listId, '1');
+    assert.equal(para.listLevel, '0');
+    assert.equal(para.bidi, true);
+    assert.equal(para.keepnext, true);
+  });
+});
+
+describe('DexParser — Move tracking', () => {
+  it('parses {movefrom id:1 by:"Author" date:"2026-01-01"}text{/movefrom}', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{movefrom id:1 by:"Author" date:"2026-01-01"}moved text{/movefrom}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const mfNode = para.runs.find(r => r.type === 'movefrom');
+    assert.ok(mfNode, 'should have movefrom node');
+    assert.equal(mfNode.id, 1);
+    assert.equal(mfNode.author, 'Author');
+    assert.equal(mfNode.date, '2026-01-01');
+    assert.equal(mfNode.text, 'moved text');
+  });
+});
+
+describe('DexParser — Field codes', () => {
+  it('parses {field "PAGE"}3{/field} as a field node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\nPage {field "PAGE"}3{/field} of 10\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const fieldNode = para.runs.find(r => r.type === 'field');
+    assert.ok(fieldNode, 'should have field node');
+    assert.equal(fieldNode.text, '3');
+    assert.equal(typeof fieldNode.instr, 'string', 'instr should be a string');
+  });
+
+  it('parses {field instr:"TOC"}table of contents{/field} with key:value attr', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{field instr:"TOC"}table of contents{/field}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const fieldNode = para.runs.find(r => r.type === 'field');
+    assert.ok(fieldNode, 'should have field node');
+    assert.equal(fieldNode.instr, 'TOC');
+    assert.equal(fieldNode.text, 'table of contents');
+  });
+});
+
+describe('DexParser — Content controls (SDT)', () => {
+  it('parses {sdt "Bibliography"}text{/sdt} as an sdt node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{sdt "Bibliography"}References here{/sdt}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const sdtNode = para.runs.find(r => r.type === 'sdt');
+    assert.ok(sdtNode, 'should have sdt node');
+    assert.equal(sdtNode.text, 'References here');
+    assert.equal(typeof sdtNode.name, 'string', 'name should be a string');
+  });
+
+  it('parses {sdt name:"Bibliography"}text{/sdt} with key:value attr', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{sdt name:"Bibliography"}References here{/sdt}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const sdtNode = para.runs.find(r => r.type === 'sdt');
+    assert.ok(sdtNode, 'should have sdt node');
+    assert.equal(sdtNode.name, 'Bibliography');
+    assert.equal(sdtNode.text, 'References here');
+  });
+});
+
+describe('DexParser — Math', () => {
+  it('parses {math data:AAAA}x+y{/math} as a math node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{math data:AAAA}x+y{/math}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const mathNode = para.runs.find(r => r.type === 'math');
+    assert.ok(mathNode, 'should have math node');
+    assert.equal(mathNode.data, 'AAAA');
+    assert.equal(mathNode.text, 'x+y');
+  });
+});
+
+describe('DexParser — Text boxes', () => {
+  it('parses {textbox}content{/textbox} as a textbox node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{textbox}box content{/textbox}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const tbNode = para.runs.find(r => r.type === 'textbox');
+    assert.ok(tbNode, 'should have textbox node');
+    assert.equal(tbNode.text, 'box content');
+  });
+});
+
+describe('DexParser — Ruby text', () => {
+  it('parses {ruby base:"text"}annotation{/ruby} as a ruby node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{ruby base:"text"}annotation{/ruby}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const rubyNode = para.runs.find(r => r.type === 'ruby');
+    assert.ok(rubyNode, 'should have ruby node');
+    assert.equal(rubyNode.base, 'text');
+    assert.equal(rubyNode.text, 'annotation');
+  });
+});
+
+describe('DexParser — Embedded objects', () => {
+  it('parses {object type:"Excel.Sheet"} as an object node', () => {
+    const dex = '---\ndocex: "0.4.0"\n---\n\n{p id:AA}\n{object type:"Excel.Sheet"}\n{/p}\n';
+    const ast = DexParser.parse(dex);
+    const para = ast.body.find(n => n.type === 'paragraph');
+    const objNode = para.runs.find(r => r.type === 'object');
+    assert.ok(objNode, 'should have object node');
+    assert.equal(objNode.progId, 'Excel.Sheet');
+  });
+});
+
+// ============================================================================
 // 3. COMPILER TESTS
 // ============================================================================
 

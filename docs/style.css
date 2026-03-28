@@ -13,7 +13,7 @@
   --bg:              #faf8f5;
   --bg-warm:         #f5f0ea;
   --bg-card:         #ffffff;
-  --bg-code:         #2d2a26;
+  --bg-code:         #292524;
   --bg-surface:      #ede8e1;
   --border:          #d6cfc5;
   --border-subtle:   #e8e2da;
@@ -23,11 +23,11 @@
   --text-muted:      #9a938b;
   --heading:         #1a1714;
 
-  /* Accent: deep scholarly blue-grey */
-  --accent:          #8b5e3c;
-  --accent-hover:    #6d4528;
-  --accent-dim:      rgba(139, 94, 60, 0.1);
-  --accent-glow:     rgba(139, 94, 60, 0.05);
+  /* Accent: warm terracotta — readable on cream */
+  --accent:          #b45309;
+  --accent-hover:    #92400e;
+  --accent-dim:      rgba(180, 83, 9, 0.08);
+  --accent-glow:     rgba(180, 83, 9, 0.04);
 
   /* Semantic */
   --green:           #2e7d32;
@@ -115,11 +115,11 @@ a:hover { color: var(--accent-hover); }
 
 /* ---------- Typography ---------- */
 h1, h2, h3, h4 {
-  font-family: 'Fraunces', 'Georgia', serif;
+  font-family: 'Source Serif 4', 'Georgia', serif;
   color: var(--heading);
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
 }
 h1 { font-size: var(--text-3xl); }
 h2 {
@@ -271,7 +271,7 @@ p { margin-bottom: 1rem; font-size: var(--text-base); }
   width: 800px;
   height: 600px;
   transform: translateX(-50%);
-  background: radial-gradient(ellipse at center, rgba(139, 94, 60, 0.04) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(180, 83, 9, 0.04) 0%, transparent 70%);
   pointer-events: none;
   z-index: -1;
 }
@@ -284,17 +284,16 @@ p { margin-bottom: 1rem; font-size: var(--text-base); }
   margin-bottom: 1rem;
 }
 .hero-title {
-  font-family: 'Fraunces', 'Georgia', serif;
+  font-family: 'Source Serif 4', 'Georgia', serif;
   font-size: var(--text-hero);
   font-weight: 900;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   line-height: 1;
   margin-bottom: 1rem;
   color: var(--heading);
 }
 .hero-title span {
   color: var(--accent);
-  font-style: italic;
 }
 .hero-desc {
   font-size: var(--text-lg);
@@ -334,7 +333,7 @@ p { margin-bottom: 1rem; font-size: var(--text-base); }
   background: var(--accent-hover);
   color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(139, 94, 60, 0.2);
+  box-shadow: 0 4px 16px rgba(180, 83, 9, 0.2);
 }
 .btn-secondary {
   background: var(--bg-card);
@@ -365,7 +364,7 @@ p { margin-bottom: 1rem; font-size: var(--text-base); }
   transition: border-color .3s var(--ease-out), box-shadow .3s var(--ease-out);
 }
 .code-output:hover {
-  border-color: rgba(139, 94, 60, 0.3);
+  border-color: rgba(180, 83, 9, 0.3);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
@@ -431,7 +430,7 @@ p { margin-bottom: 1rem; font-size: var(--text-base); }
 .code-output-result {
   background: var(--paper);
   padding: 24px 28px;
-  font-family: 'Fraunces', 'Georgia', serif;
+  font-family: 'Source Serif 4', 'Georgia', serif;
   font-size: var(--text-sm);
   line-height: 1.8;
   color: var(--paper-text);
@@ -998,7 +997,7 @@ code {
   background: var(--bg-surface);
 }
 .feature-cell h3 {
-  font-family: 'Fraunces', serif;
+  font-family: 'Source Serif 4', serif;
   font-size: var(--text-lg);
   margin-bottom: 0.5rem;
 }
@@ -1162,7 +1161,7 @@ td {
   padding: 10px 16px;
   border-bottom: 1px solid var(--border-subtle);
 }
-tr:hover td { background: rgba(139, 94, 60, 0.04); }
+tr:hover td { background: rgba(180, 83, 9, 0.04); }
 
 /* ============================================================================
    TABS
@@ -1342,7 +1341,7 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
   background: var(--accent-dim);
   color: var(--accent);
   transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(139, 94, 60, 0.08);
+  box-shadow: 0 4px 20px rgba(180, 83, 9, 0.08);
 }
 .drop-zone-icon {
   margin-bottom: 10px;
@@ -1566,7 +1565,7 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
 /* Preview pane */
 .preview-content {
   padding: 40px 48px;
-  font-family: 'Fraunces', 'Georgia', serif;
+  font-family: 'Source Serif 4', 'Georgia', serif;
   font-size: 1rem;
   line-height: 1.8;
   color: var(--paper-text);
@@ -1895,7 +1894,7 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
    ROUND 2: RESULT PANEL UTILITY CLASSES (replacing inline styles)
    ============================================================================ */
 .result-body {
-  font-family: 'Fraunces', 'Georgia', serif;
+  font-family: 'Source Serif 4', 'Georgia', serif;
   font-size: 14px;
   line-height: 1.8;
 }
@@ -1907,7 +1906,7 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
   line-height: inherit;
 }
 .result-body-sm {
-  font-family: 'Fraunces', 'Georgia', serif;
+  font-family: 'Source Serif 4', 'Georgia', serif;
   font-size: 13px;
   line-height: 1.75;
 }
@@ -1996,7 +1995,7 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
   transition: box-shadow .4s var(--ease-out), border-color .3s var(--ease-out);
 }
 .dex-showcase:hover {
-  border-color: rgba(139, 94, 60, 0.3);
+  border-color: rgba(180, 83, 9, 0.3);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
@@ -2192,10 +2191,10 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
 
 /* --- Textarea selection color --- */
 .dex-editor::selection {
-  background: rgba(139, 94, 60, 0.3);
+  background: rgba(180, 83, 9, 0.3);
 }
 .dex-editor::-moz-selection {
-  background: rgba(139, 94, 60, 0.3);
+  background: rgba(180, 83, 9, 0.3);
 }
 
 /* --- Scrollbar styling --- */

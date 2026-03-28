@@ -38,6 +38,7 @@
     <button class="btn btn-small btn-secondary" id="copyBtn">Copy .dex</button>
     <button class="btn btn-small btn-accent" id="rebuildBtn">Rebuild Preview</button>
     <button class="btn btn-small btn-secondary" id="downloadBtn">Download .docx</button>
+    <button class="btn btn-small btn-secondary" id="viewOnlineBtn" title="Upload to a temporary host and open in Microsoft Word Online or Google Docs viewer">View in Word Online</button>
   </div>
 
   <!-- Drop zone -->
@@ -351,6 +352,109 @@ downloadBtn.addEventListener('click', function() {
   a.download = 'document.docx';
   a.click();
   URL.revokeObjectURL(url);
+});
+
+// ---------- View in Word Online ----------
+var viewOnlineBtn = document.getElementById('viewOnlineBtn');
+
+viewOnlineBtn.addEventListener('click', function() {
+  if (!window._lastCompiledDocx) {
+    statusEl.textContent = 'No compiled .docx yet. Click "Rebuild Preview" first.';
+    statusEl.style.color = 'var(--red)';
+    return;
+  }
+
+  // Privacy warning before upload
+  var proceed = confirm(
+    'View in Word Online\n\n' +
+    'This will temporarily upload your document to tmpfiles.org so that ' +
+    'Microsoft\'s Office Online viewer (or Google Docs viewer) can access it.\n\n' +
+    'Details:\n' +
+    '- The file will be auto-deleted after 60 minutes\n' +
+    '- tmpfiles.org is a free, no-account temporary file host\n' +
+    '- The document will be publicly accessible via a random URL during that time\n' +
+    '- Do NOT use this with sensitive or confidential documents\n\n' +
+    'Continue?'
+  );
+
+  if (!proceed) return;
+
+  viewOnlineBtn.textContent = 'Uploading...';
+  viewOnlineBtn.disabled = true;
+  statusEl.textContent = 'Uploading to tmpfiles.org...';
+  statusEl.style.color = 'var(--accent)';
+
+  var blob = new Blob([window._lastCompiledDocx], {
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  });
+  var formData = new FormData();
+  formData.append('file', blob, 'document.docx');
+
+  fetch('https://tmpfiles.org/api/v1/upload', {
+    method: 'POST',
+    body: formData
+  })
+  .then(function(response) {
+    if (!response.ok) throw new Error('Upload failed (HTTP ' + response.status + ')');
+    return response.json();
+  })
+  .then(function(data) {
+    if (data.status !== 'success' || !data.data || !data.data.url) {
+      throw new Error('Unexpected response from tmpfiles.org');
+    }
+
+    // tmpfiles.org returns: http://tmpfiles.org/12345/document.docx
+    // Direct download URL:  https://tmpfiles.org/dl/12345/document.docx
+    var fileUrl = data.data.url
+      .replace('http://', 'https://')
+      .replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+
+    // Try Microsoft Office Online viewer first, with Google Docs as fallback
+    var msViewerUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(fileUrl);
+    var googleViewerUrl = 'https://docs.google.com/gview?url=' + encodeURIComponent(fileUrl) + '&embedded=true';
+
+    statusEl.textContent = 'Uploaded! Opening viewer... (file expires in 60 min)';
+    statusEl.style.color = 'var(--green)';
+    viewOnlineBtn.textContent = 'View in Word Online';
+    viewOnlineBtn.disabled = false;
+
+    // Open Microsoft viewer in new tab
+    var viewerWindow = window.open(msViewerUrl, '_blank');
+
+    // Show fallback info in status with clickable Google Docs link
+    var fallbackMsg = document.createElement('span');
+    fallbackMsg.textContent = 'Opened in Word Online. ';
+    var fallbackLink = document.createElement('a');
+    fallbackLink.href = googleViewerUrl;
+    fallbackLink.target = '_blank';
+    fallbackLink.textContent = 'Try Google Docs viewer instead';
+    fallbackLink.style.color = 'var(--accent)';
+    fallbackLink.style.textDecoration = 'underline';
+    var separator = document.createElement('span');
+    separator.textContent = ' | ';
+    var directLink = document.createElement('a');
+    directLink.href = fileUrl;
+    directLink.target = '_blank';
+    directLink.textContent = 'Direct link';
+    directLink.style.color = 'var(--accent)';
+    directLink.style.textDecoration = 'underline';
+    var expiry = document.createElement('span');
+    expiry.textContent = ' (expires in 60 min)';
+
+    statusEl.textContent = '';
+    statusEl.appendChild(fallbackMsg);
+    statusEl.appendChild(fallbackLink);
+    statusEl.appendChild(separator);
+    statusEl.appendChild(directLink);
+    statusEl.appendChild(expiry);
+  })
+  .catch(function(err) {
+    console.error('View online failed:', err);
+    statusEl.textContent = 'Upload failed: ' + err.message;
+    statusEl.style.color = 'var(--red)';
+    viewOnlineBtn.textContent = 'View in Word Online';
+    viewOnlineBtn.disabled = false;
+  });
 });
 </script>
 <script src="compiler.js"></script>

@@ -240,10 +240,32 @@ class DexDecompiler {
           continue;
         }
         if (/<w:commentReference/.test(runXml)) { pos = endIdx + endTag.length; continue; }
+        // Endnote references
+        const enRefMatch = runXml.match(/<w:endnoteReference\s+w:id="(\d+)"/);
+        if (enRefMatch) {
+          parts.push('{endnote id:' + enRefMatch[1] + '}');
+          pos = endIdx + endTag.length;
+          continue;
+        }
+        // Extract text, tabs, breaks, and symbols from the run
         const texts = [];
-        const tRe = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+        const runBody = runXml.replace(/<w:rPr>[\s\S]*?<\/w:rPr>/g, '');
+        const elemRe = /<w:t[^>]*>([^<]*)<\/w:t>|<w:tab\s*\/>|<w:br\s*\/?>|<w:br\s+w:type="([^"]*)"[^>]*\/?>|<w:sym\s+[^>]*w:char="([^"]*)"[^>]*\/?>/g;
         let tMatch;
-        while ((tMatch = tRe.exec(runXml)) !== null) texts.push(xml.decodeXml(tMatch[1]));
+        while ((tMatch = elemRe.exec(runBody)) !== null) {
+          if (tMatch[0].startsWith('<w:t')) {
+            texts.push(xml.decodeXml(tMatch[1]));
+          } else if (tMatch[0].startsWith('<w:tab')) {
+            texts.push('\t');
+          } else if (tMatch[0].startsWith('<w:br')) {
+            const brType = tMatch[2] || '';
+            if (brType === 'page') texts.push('{pagebreak}');
+            else if (brType === 'column') texts.push('{colbreak}');
+            else texts.push('{br}');
+          } else if (tMatch[0].startsWith('<w:sym')) {
+            texts.push('{sym ' + (tMatch[3] || '') + '}');
+          }
+        }
         const text = texts.join('');
         if (text) {
           const fmt = DexDecompiler._extractFormatting(runXml);
@@ -255,7 +277,19 @@ class DexDecompiler {
         const endIdx = xmlStr.indexOf(endTag, pos);
         if (endIdx === -1) { pos++; continue; }
         const hlXml = xmlStr.slice(pos, endIdx + endTag.length);
-        DexDecompiler._walkElements(hlXml.slice(hlXml.indexOf('>') + 1, hlXml.lastIndexOf('<')), parts, footnoteMap);
+        // Extract link target (r:id for relationship-based, w:anchor for bookmark-based)
+        const rIdMatch = hlXml.match(/r:id="([^"]*)"/);
+        const anchorMatch = hlXml.match(/w:anchor="([^"]*)"/);
+        const linkParts = [];
+        DexDecompiler._walkElements(hlXml.slice(hlXml.indexOf('>') + 1, hlXml.lastIndexOf('<')), linkParts, footnoteMap);
+        const linkText = linkParts.join('');
+        if (rIdMatch) {
+          parts.push('{link rId:' + rIdMatch[1] + '}' + linkText + '{/link}');
+        } else if (anchorMatch) {
+          parts.push('{link anchor:' + DexDecompiler._dexStr(anchorMatch[1]) + '}' + linkText + '{/link}');
+        } else {
+          parts.push(linkText); // fallback: just the text
+        }
         pos = endIdx + endTag.length;
       } else if (xmlStr.startsWith('<w:commentRangeStart', pos)) {
         const closeAngle = xmlStr.indexOf('>', pos);
@@ -269,8 +303,20 @@ class DexDecompiler {
         const idMatch = tag.match(/w:id="(\d+)"/);
         if (idMatch) parts.push('{comment-end id:' + idMatch[1] + '}');
         pos = closeAngle + 1;
-      } else if (xmlStr.startsWith('<w:bookmarkStart', pos) || xmlStr.startsWith('<w:bookmarkEnd', pos)) {
+      } else if (xmlStr.startsWith('<w:bookmarkStart', pos)) {
         const closeAngle = xmlStr.indexOf('>', pos);
+        const tag = xmlStr.slice(pos, closeAngle + 1);
+        const idMatch = tag.match(/w:id="(\d+)"/);
+        const nameMatch = tag.match(/w:name="([^"]*)"/);
+        if (idMatch && nameMatch && nameMatch[1] !== '_GoBack') {
+          parts.push('{bookmark-start id:' + idMatch[1] + ' name:' + DexDecompiler._dexStr(nameMatch[1]) + '}');
+        }
+        pos = closeAngle + 1;
+      } else if (xmlStr.startsWith('<w:bookmarkEnd', pos)) {
+        const closeAngle = xmlStr.indexOf('>', pos);
+        const tag = xmlStr.slice(pos, closeAngle + 1);
+        const idMatch = tag.match(/w:id="(\d+)"/);
+        if (idMatch) parts.push('{bookmark-end id:' + idMatch[1] + '}');
         pos = closeAngle + 1;
       } else {
         const closeAngle = xmlStr.indexOf('>', pos);

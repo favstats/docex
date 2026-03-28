@@ -223,6 +223,38 @@ class DexParser {
       const attrs = DexParser._parseBlockAttrs(attrStr);
       return { node: { type: 'comment-end', id: parseInt(attrs.id, 10) || 0 }, endPos: closeAngle + 1 };
     }
+    // Bookmark markers
+    if (content.startsWith('{bookmark-start ', pos)) {
+      const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
+      const attrStr = content.slice(pos + '{bookmark-start '.length, closeAngle).trim();
+      const attrs = DexParser._parseBlockAttrs(attrStr);
+      return { node: { type: 'bookmark-start', id: parseInt(attrs.id, 10) || 0, name: attrs.name || '' }, endPos: closeAngle + 1 };
+    }
+    if (content.startsWith('{bookmark-end ', pos)) {
+      const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
+      const attrStr = content.slice(pos + '{bookmark-end '.length, closeAngle).trim();
+      const attrs = DexParser._parseBlockAttrs(attrStr);
+      return { node: { type: 'bookmark-end', id: parseInt(attrs.id, 10) || 0 }, endPos: closeAngle + 1 };
+    }
+    // Hyperlinks
+    if (content.startsWith('{link ', pos)) return DexParser._parseAttributedTag(content, pos, 'link', '{/link}', (attrs, inner) => ({ type: 'link', rId: attrs.rId || '', anchor: attrs.anchor || '', text: inner }));
+    // Line break
+    if (content.startsWith('{br}', pos)) return { node: { type: 'linebreak' }, endPos: pos + 4 };
+    // Column break
+    if (content.startsWith('{colbreak}', pos)) return { node: { type: 'colbreak' }, endPos: pos + 10 };
+    // Endnote reference
+    if (content.startsWith('{endnote ', pos)) {
+      const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
+      const attrStr = content.slice(pos + '{endnote '.length, closeAngle).trim();
+      const attrs = DexParser._parseBlockAttrs(attrStr);
+      return { node: { type: 'endnote', id: parseInt(attrs.id, 10) || 0 }, endPos: closeAngle + 1 };
+    }
+    // Symbol
+    if (content.startsWith('{sym ', pos)) {
+      const closeAngle = content.indexOf('}', pos); if (closeAngle === -1) return null;
+      const charCode = content.slice(pos + '{sym '.length, closeAngle).trim();
+      return { node: { type: 'sym', char: charCode }, endPos: closeAngle + 1 };
+    }
     return null;
   }
 

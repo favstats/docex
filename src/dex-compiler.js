@@ -119,6 +119,16 @@ class DexCompiler {
           + '<w:r><w:rPr><w:rStyle w:val="CommentReference"/></w:rPr>'
           + '<w:commentReference w:id="' + (run.id || 0) + '"/></w:r>';
       }
+      if (run.type === 'bookmark-start') return '<w:bookmarkStart w:id="' + (run.id || 0) + '" w:name="' + esc(run.name || '') + '"/>';
+      if (run.type === 'bookmark-end') return '<w:bookmarkEnd w:id="' + (run.id || 0) + '"/>';
+      if (run.type === 'link') {
+        if (run.anchor) return '<w:hyperlink w:anchor="' + esc(run.anchor) + '"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r></w:hyperlink>';
+        return '<w:hyperlink r:id="' + esc(run.rId || '') + '"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r></w:hyperlink>';
+      }
+      if (run.type === 'linebreak') return '<w:r><w:br/></w:r>';
+      if (run.type === 'colbreak') return '<w:r><w:br w:type="column"/></w:r>';
+      if (run.type === 'endnote') return '<w:r><w:endnoteReference w:id="' + (run.id || 0) + '"/></w:r>';
+      if (run.type === 'sym') return '<w:r><w:sym w:font="Symbol" w:char="' + esc(run.char || '') + '"/></w:r>';
       return '<w:r><w:t xml:space="preserve">' + esc(run.text || '') + '</w:t></w:r>';
     }
 

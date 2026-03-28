@@ -135,6 +135,22 @@ var DexCompiler = (function() {
           continue;
         }
 
+        // Comment anchors
+        var csMatch = tag.match(/^comment-start\s+id:(\d+)$/);
+        if (csMatch) { runs.push({ commentStart: true, commentId: parseInt(csMatch[1], 10) }); pos = tagEnd + 1; continue; }
+        var ceMatch = tag.match(/^comment-end\s+id:(\d+)$/);
+        if (ceMatch) { runs.push({ commentEnd: true, commentId: parseInt(ceMatch[1], 10) }); pos = tagEnd + 1; continue; }
+
+        // Bookmarks
+        var bsMatch = tag.match(/^bookmark-start\s+id:(\d+)\s+name:"([^"]*)"$/);
+        if (bsMatch) { runs.push({ bookmarkStart: true, bookmarkId: parseInt(bsMatch[1], 10), bookmarkName: bsMatch[2] }); pos = tagEnd + 1; continue; }
+        var beMatch = tag.match(/^bookmark-end\s+id:(\d+)$/);
+        if (beMatch) { runs.push({ bookmarkEnd: true, bookmarkId: parseInt(beMatch[1], 10) }); pos = tagEnd + 1; continue; }
+
+        // Line break
+        if (tag === 'br') { runs.push({ lineBreak: true }); pos = tagEnd + 1; continue; }
+        if (tag === 'pagebreak') { runs.push({ pageBreak: true }); pos = tagEnd + 1; continue; }
+
         // Unknown tag - output as literal
         runs.push({ text: '{' + tag + '}', fmt: cloneFmt(fmtStack) });
         pos = tagEnd + 1;
@@ -209,6 +225,13 @@ var DexCompiler = (function() {
       return '<w:ins w:id="' + escXml(run.revId) + '" w:author="' + escXml(run.revAuthor) + '" w:date="' + escXml(run.revDate) + '">' +
         '<w:r><w:rPr>' + buildRPr(run.fmt) + '</w:rPr><w:t xml:space="preserve">' + escXml(run.text) + '</w:t></w:r></w:ins>';
     }
+
+    if (run.commentStart) return '<w:commentRangeStart w:id="' + run.commentId + '"/>';
+    if (run.commentEnd) return '<w:commentRangeEnd w:id="' + run.commentId + '"/><w:r><w:rPr><w:rStyle w:val="CommentReference"/></w:rPr><w:commentReference w:id="' + run.commentId + '"/></w:r>';
+    if (run.bookmarkStart) return '<w:bookmarkStart w:id="' + run.bookmarkId + '" w:name="' + escXml(run.bookmarkName) + '"/>';
+    if (run.bookmarkEnd) return '<w:bookmarkEnd w:id="' + run.bookmarkId + '"/>';
+    if (run.lineBreak) return '<w:r><w:br/></w:r>';
+    if (run.pageBreak) return '<w:r><w:br w:type="page"/></w:r>';
 
     var rPr = buildRPr(run.fmt);
     return '<w:r>' + (rPr ? '<w:rPr>' + rPr + '</w:rPr>' : '') +

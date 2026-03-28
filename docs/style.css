@@ -2125,3 +2125,148 @@ tr:hover td { background: rgba(139, 94, 60, 0.04); }
     justify-content: center;
   }
 }
+
+/* ============================================================================
+   DELIGHT + POLISH
+   ============================================================================ */
+
+/* --- Toast notification --- */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px 20px;
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  z-index: 200;
+  transition: transform 0.4s var(--ease-out), opacity 0.4s;
+  opacity: 0;
+  pointer-events: none;
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* --- Green dot pulse (preview active) --- */
+.dot-green {
+  animation: dotPulse 2s infinite;
+}
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* --- Button hover polish --- */
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: translateY(0);
+}
+
+/* --- Copy button green flash --- */
+.btn-copied {
+  color: var(--green) !important;
+  border-color: var(--green) !important;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+/* --- Download bounce animation --- */
+@keyframes downloadBounce {
+  0%   { transform: translateY(0); }
+  30%  { transform: translateY(3px); }
+  50%  { transform: translateY(-1px); }
+  70%  { transform: translateY(2px); }
+  100% { transform: translateY(0); }
+}
+.download-bounce svg {
+  animation: downloadBounce 0.5s var(--ease-out);
+}
+
+/* --- Textarea selection color --- */
+.dex-editor::selection {
+  background: rgba(139, 94, 60, 0.3);
+}
+.dex-editor::-moz-selection {
+  background: rgba(139, 94, 60, 0.3);
+}
+
+/* --- Scrollbar styling --- */
+.dex-editor::-webkit-scrollbar,
+#docxPreviewPane::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.dex-editor::-webkit-scrollbar-track,
+#docxPreviewPane::-webkit-scrollbar-track {
+  background: var(--bg-code);
+}
+.dex-editor::-webkit-scrollbar-thumb,
+#docxPreviewPane::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.dex-editor::-webkit-scrollbar-thumb:hover,
+#docxPreviewPane::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* --- Drop zone hover refinement --- */
+.drop-zone.drag-over {
+  transform: scale(1.01);
+}
+
+/* --- Modal backdrop blur --- */
+.modal-overlay {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* --- Status bar polish --- */
+.status-bar {
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-warm);
+}
+
+/* --- Nav active state --- */
+.nav-links a.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* --- Empty state for preview pane --- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 48px 32px;
+}
+.empty-state svg {
+  margin-bottom: 16px;
+  opacity: 0.35;
+}
+.empty-state p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  max-width: 280px;
+  line-height: 1.6;
+  text-indent: 0;
+  text-align: center;
+}
+
+/* --- Line count polish --- */
+.pane-header-meta {
+  font-variant-numeric: tabular-nums;
+}

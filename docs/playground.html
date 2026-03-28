@@ -28,7 +28,7 @@
     <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
     <div class="nav-links" role="menubar">
       <a href="index.html" role="menuitem">Home</a>
-      <a href="playground.html" role="menuitem">Playground</a>
+      <a href="playground.html" role="menuitem" class="active">Playground</a>
       <a href="examples.html" role="menuitem">Examples</a>
       <a href="api.html" role="menuitem">API</a>
       <a href="cli.html" role="menuitem">CLI</a>
@@ -115,7 +115,16 @@
         <span id="previewMode" class="pane-header-meta"></span>
       </div>
       <div class="pane-body">
-        <div class="preview-content" id="previewPane"></div>
+        <div class="preview-content" id="previewPane">
+          <div class="empty-state" id="emptyState">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="14" y="6" width="36" height="48" rx="4" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3"/>
+              <path d="M24 22h16M24 28h12M24 34h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+              <path d="M32 44v6M28 47h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
+            </svg>
+            <p>Drop a .docx or start typing .dex to see your document here</p>
+          </div>
+        </div>
         <div class="preview-content" id="docxPreviewPane" style="display:none;background:#fff;overflow:auto"></div>
       </div>
     </div>
@@ -180,6 +189,22 @@
 
 <script src="decompiler.js"></script>
 <script src="script.js"></script>
+<script>
+// ---------- Toast notification system ----------
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.className = 'toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+</script>
 <script>
 // ---------- Presets ----------
 var PRESETS = {
@@ -287,6 +312,9 @@ function triggerCompile() {
   statusEl.textContent = 'Compiling...';
   statusEl.style.color = 'var(--accent)';
   DexCompiler.compile(editor.value).then(function(arrayBuffer) {
+    // Hide empty state
+    var emptyState = document.getElementById('emptyState');
+    if (emptyState) emptyState.style.display = 'none';
     previewEl.style.display = 'none';
     docxPreviewPane.style.display = 'block';
     docxPreviewPane.textContent = '';
@@ -305,6 +333,7 @@ function triggerCompile() {
     window._lastCompiledDocx = arrayBuffer;
     statusEl.textContent = 'Preview updated';
     statusEl.style.color = 'var(--green)';
+    showToast('Preview rebuilt');
     hideSpinner();
   }).catch(function(err) {
     console.error('Compile failed:', err);
@@ -319,7 +348,12 @@ copyBtn.addEventListener('click', function() {
   navigator.clipboard.writeText(editor.value).then(function() {
     var orig = copyBtn.innerHTML;
     copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:-1px"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg> Copied!';
-    setTimeout(function() { copyBtn.innerHTML = orig; }, 2000);
+    copyBtn.classList.add('btn-copied');
+    showToast('Copied to clipboard');
+    setTimeout(function() {
+      copyBtn.innerHTML = orig;
+      copyBtn.classList.remove('btn-copied');
+    }, 2000);
   });
 });
 
@@ -369,8 +403,10 @@ function handleFile(file) {
   DocxDecompiler.decompile(file).then(function(dex) {
     editor.value = dex;
     updateEditor();
-    statusEl.textContent = 'Decompiled ' + file.name + ' (' + dex.split('\n').length + ' lines)';
+    var lineCount = dex.split('\n').length;
+    statusEl.textContent = 'Decompiled ' + file.name + ' (' + lineCount + ' lines)';
     statusEl.style.color = 'var(--green)';
+    showToast('Document decompiled (' + lineCount + ' lines)');
     hideSpinner();
   }).catch(function(err) {
     statusEl.textContent = 'Error: ' + err.message;
@@ -421,6 +457,10 @@ function handleFile(file) {
 var downloadBtn = document.getElementById('downloadBtn');
 
 downloadBtn.addEventListener('click', function() {
+  // Bounce animation on the download icon
+  downloadBtn.classList.add('download-bounce');
+  setTimeout(function() { downloadBtn.classList.remove('download-bounce'); }, 500);
+
   if (!window._lastCompiledDocx) {
     // No compiled docx yet, compile first then download
     showSpinner();
@@ -432,6 +472,7 @@ downloadBtn.addEventListener('click', function() {
       statusEl.textContent = 'Compiled and downloading';
       statusEl.style.color = 'var(--green)';
       triggerDownload(arrayBuffer);
+      showToast('Downloaded document.docx');
     }).catch(function(err) {
       hideSpinner();
       statusEl.textContent = 'Build error: ' + err.message;
@@ -441,6 +482,7 @@ downloadBtn.addEventListener('click', function() {
     return;
   }
   triggerDownload(window._lastCompiledDocx);
+  showToast('Downloaded document.docx');
 });
 
 function triggerDownload(arrayBuffer) {

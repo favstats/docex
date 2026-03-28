@@ -549,6 +549,12 @@ uploadModal.addEventListener('click', function(e) {
   if (e.target === uploadModal) hideUploadModal();
 });
 document.addEventListener('keydown', function(e) {
+  // Ctrl/Cmd+Enter: force rebuild preview
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    triggerCompile();
+    return;
+  }
   if (e.key === 'Escape' && uploadModal.style.display !== 'none') hideUploadModal();
   // Focus trap: cycle tab within modal when open
   if (e.key === 'Tab' && uploadModal.style.display !== 'none') {

@@ -831,7 +831,6 @@ code {
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--bg-code);
-  max-width: 900px;
 }
 .hero-demo-bar {
   display: flex;

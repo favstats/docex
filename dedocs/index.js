@@ -9,10 +9,14 @@ const {
 
 const {
   compareDocxPackages,
+  applyTransforms,
   compileDedocsFile,
   compileDedocsText,
   compilePackageToDocx,
   dedocsFromDocx,
+  normalizeDedocsFile,
+  normalizeDedocsText,
+  normalizePackage,
   packageFromDedocsText,
   packageFromDocx,
   readDedocsFile,
@@ -21,11 +25,15 @@ const {
 
 module.exports = {
   DEDOCS_VERSION,
+  applyTransforms,
   compareDocxPackages,
   compileDedocsFile,
   compileDedocsText,
   compilePackageToDocx,
   dedocsFromDocx,
+  normalizeDedocsFile,
+  normalizeDedocsText,
+  normalizePackage,
   packageFromDedocsText,
   packageFromDocx,
   parsePackage,

@@ -5,6 +5,7 @@ const path = require('path');
 const {
   compareDocxPackages,
   compileDedocsFile,
+  normalizeDedocsFile,
   writeDedocsFile,
 } = require('./index');
 
@@ -13,6 +14,7 @@ function usage() {
     'Usage:',
     '  node dedocs/cli.js decompile <input.docx> <output.dedocs>',
     '  node dedocs/cli.js compile <input.dedocs> <output.docx>',
+    '  node dedocs/cli.js normalize <input.dedocs> [output.dedocs]',
     '  node dedocs/cli.js verify <left.docx> <right.docx>',
   ].join('\n');
 }
@@ -50,6 +52,15 @@ function main(argv) {
     const result = compareDocxPackages(arg1, arg2);
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
     process.exitCode = result.equal ? 0 : 1;
+    return;
+  }
+
+  if (command === 'normalize') {
+    if (!arg1) {
+      throw new Error('normalize requires input.dedocs');
+    }
+    const output = normalizeDedocsFile(arg1, arg2 || arg1);
+    process.stdout.write(output + '\n');
     return;
   }
 

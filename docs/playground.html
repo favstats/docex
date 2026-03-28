@@ -6,6 +6,7 @@
   <title>Playground - docex</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js"></script>
 </head>
 <body>
 
@@ -63,9 +64,11 @@
     <div class="editor-pane">
       <div class="pane-header">
         <span>Document preview</span>
+        <span id="previewMode" style="font-weight:400;text-transform:none;font-size:0.75rem"></span>
       </div>
       <div class="pane-body">
         <div class="preview-content" id="previewPane"></div>
+        <div class="preview-content" id="docxPreviewPane" style="display:none;background:#fff;overflow:auto"></div>
       </div>
     </div>
   </div>
@@ -166,6 +169,9 @@ fileInput.addEventListener('change', function(e) {
   if (file) handleFile(file);
 });
 
+var docxPreviewPane = document.getElementById('docxPreviewPane');
+var previewModeEl = document.getElementById('previewMode');
+
 function handleFile(file) {
   if (!file.name.endsWith('.docx')) {
     statusEl.textContent = 'Please drop a .docx file.';
@@ -174,6 +180,8 @@ function handleFile(file) {
   }
   statusEl.textContent = 'Decompiling ' + file.name + '...';
   statusEl.style.color = 'var(--accent)';
+
+  // Decompile to .dex (left pane)
   DocxDecompiler.decompile(file).then(function(dex) {
     editor.value = dex;
     updateEditor();
@@ -184,7 +192,49 @@ function handleFile(file) {
     statusEl.style.color = 'var(--red)';
     console.error(err);
   });
+
+  // Render real .docx preview (right pane) using docx-preview
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    // Switch to real docx preview
+    previewEl.style.display = 'none';
+    docxPreviewPane.style.display = 'block';
+    docxPreviewPane.textContent = '';
+    previewModeEl.textContent = 'real .docx rendering';
+
+    docx.renderAsync(e.target.result, docxPreviewPane, null, {
+      className: 'docx-preview',
+      inWrapper: true,
+      breakPages: true,
+      renderHeaders: true,
+      renderFooters: true,
+      renderFootnotes: true,
+      renderEndnotes: true,
+      renderChanges: true,
+      renderComments: true,
+      ignoreWidth: false,
+      ignoreHeight: false
+    }).then(function() {
+      statusEl.textContent += ' | Preview rendered';
+    }).catch(function(err) {
+      console.error('docx-preview error:', err);
+      // Fall back to .dex mock preview
+      previewEl.style.display = 'block';
+      docxPreviewPane.style.display = 'none';
+      previewModeEl.textContent = '.dex preview (fallback)';
+    });
+  };
+  reader.readAsArrayBuffer(file);
 }
+
+// When user edits .dex manually, switch back to mock preview
+editor.addEventListener('input', function() {
+  if (docxPreviewPane.style.display === 'block') {
+    previewEl.style.display = 'block';
+    docxPreviewPane.style.display = 'none';
+    previewModeEl.textContent = '.dex preview';
+  }
+});
 </script>
 </body>
 </html>

@@ -7,9 +7,11 @@ const os = require('os');
 const path = require('path');
 
 const {
+  applyTransforms,
   compareDocxPackages,
   compileDedocsText,
   dedocsFromDocx,
+  normalizeDedocsText,
   parsePackage,
   serializePackage,
 } = require('../dedocs');
@@ -68,6 +70,10 @@ describe('dedocs format', () => {
 
   it('round-trips a docx fixture package-exactly', () => {
     const text = dedocsFromDocx(FIXTURE, { source: 'test-manuscript.docx' });
+    const parsed = parsePackage(text, { strictMetadata: true });
+    assert.equal(parsed.guides.length, 1);
+    assert.match(parsed.guides[0].text, /\\p\[index="0000", style="Heading1"\] Introduction/);
+
     const outDocx = tmpPath('roundtrip.docx');
     compileDedocsText(text, outDocx, { strictMetadata: true });
 
@@ -78,14 +84,61 @@ describe('dedocs format', () => {
   it('supports direct xml edits in the single text file', () => {
     const original = dedocsFromDocx(FIXTURE, { source: 'test-manuscript.docx' });
     const edited = original.replace(
-      'platform governance and political advertising.',
-      'platform governance, political advertising, and enforcement.'
+      '<w:t xml:space="preserve">This is the first paragraph of the introduction. It contains some text about platform governance and political advertising.</w:t>',
+      '<w:t xml:space="preserve">This is the first paragraph of the introduction. It contains some text about platform governance, political advertising, and enforcement.</w:t>'
     );
     const outDocx = tmpPath('edited.docx');
     compileDedocsText(edited, outDocx);
 
     const documentXml = readDocxPart(outDocx, 'word/document.xml');
     assert.match(documentXml, /platform governance, political advertising, and enforcement\./);
+
+    const comparison = compareDocxPackages(FIXTURE, outDocx);
+    assert.deepEqual(comparison.diffs, [
+      { path: 'word/document.xml', type: 'content' },
+    ]);
+  });
+
+  it('supports authoring-layer replace-text transforms', () => {
+    const pkg = parsePackage(dedocsFromDocx(FIXTURE, { source: 'test-manuscript.docx' }), {
+      strictMetadata: true,
+    });
+
+    pkg.transforms = [{
+      type: 'replace-text',
+      part: 'word/document.xml',
+      count: 1,
+      find: 'platform governance and political advertising.',
+      replace: 'platform governance, political advertising, and enforcement.',
+    }];
+
+    const transformedPkg = applyTransforms(pkg);
+    const transformedXml = transformedPkg.parts.find(part => part.path === 'word/document.xml').buffer.toString('utf8');
+    assert.match(transformedXml, /platform governance, political advertising, and enforcement\./);
+
+    const outDocx = tmpPath('transformed.docx');
+    compileDedocsText(serializePackage(pkg), outDocx, { strictMetadata: true });
+
+    const comparison = compareDocxPackages(FIXTURE, outDocx);
+    assert.deepEqual(comparison.diffs, [
+      { path: 'word/document.xml', type: 'content' },
+    ]);
+  });
+
+  it('normalizes stale metadata and regenerates guides after edits', () => {
+    const original = dedocsFromDocx(FIXTURE, { source: 'test-manuscript.docx' });
+    const edited = original.replace(
+      '<w:t xml:space="preserve">This is the first paragraph of the introduction. It contains some text about platform governance and political advertising.</w:t>',
+      '<w:t xml:space="preserve">This is the first paragraph of the introduction. It contains some text about platform governance, political advertising, and enforcement.</w:t>'
+    );
+
+    const normalized = normalizeDedocsText(edited);
+    const reparsed = parsePackage(normalized, { strictMetadata: true });
+
+    assert.match(reparsed.guides[0].text, /platform governance, political advertising, and enforcement\./);
+
+    const outDocx = tmpPath('normalized.docx');
+    compileDedocsText(normalized, outDocx, { strictMetadata: true });
 
     const comparison = compareDocxPackages(FIXTURE, outDocx);
     assert.deepEqual(comparison.diffs, [

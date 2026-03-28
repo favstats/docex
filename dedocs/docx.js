@@ -6,6 +6,8 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const { DEDOCS_VERSION, parsePackage, serializePackage } = require('./format');
+const { createGuides } = require('./guide');
+const { applyTransforms } = require('./overlay');
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'dedocs-'));
@@ -73,13 +75,21 @@ function packageFromDocx(docxPath, opts = {}) {
       };
     });
 
-    return {
+    const pkg = {
       version: DEDOCS_VERSION,
       package: 'docx',
       fidelity: 'package-exact',
       source: opts.source || path.basename(absDocxPath),
+      guides: [],
+      transforms: [],
       parts,
     };
+
+    if (opts.includeGuides !== false) {
+      pkg.guides = createGuides(pkg);
+    }
+
+    return pkg;
   } finally {
     removeDir(tmpDir);
   }
@@ -87,6 +97,44 @@ function packageFromDocx(docxPath, opts = {}) {
 
 function dedocsFromDocx(docxPath, opts = {}) {
   return serializePackage(packageFromDocx(docxPath, opts));
+}
+
+function normalizePackage(pkg, opts = {}) {
+  const normalized = {
+    version: pkg.version || DEDOCS_VERSION,
+    package: pkg.package || 'docx',
+    fidelity: pkg.fidelity || 'package-exact',
+    source: pkg.source || '',
+    transforms: Array.isArray(pkg.transforms) ? pkg.transforms.map(transform => ({ ...transform })) : [],
+    parts: pkg.parts.map(part => ({
+      ...part,
+      buffer: Buffer.from(part.buffer),
+    })),
+    guides: [],
+  };
+
+  if (opts.regenerateGuides !== false) {
+    normalized.guides = createGuides(normalized);
+  } else {
+    normalized.guides = Array.isArray(pkg.guides) ? pkg.guides.map(guide => ({ ...guide })) : [];
+  }
+
+  return normalized;
+}
+
+function normalizeDedocsText(text, opts = {}) {
+  const parsed = parsePackage(text, { strictMetadata: false });
+  return serializePackage(normalizePackage(parsed, opts));
+}
+
+function normalizeDedocsFile(inputPath, outputPath, opts = {}) {
+  const absInputPath = path.resolve(inputPath);
+  const absOutputPath = path.resolve(outputPath || inputPath);
+  const text = fs.readFileSync(absInputPath, 'utf8');
+  const normalizedText = normalizeDedocsText(text, opts);
+  fs.mkdirSync(path.dirname(absOutputPath), { recursive: true });
+  fs.writeFileSync(absOutputPath, normalizedText, 'utf8');
+  return absOutputPath;
 }
 
 function writeDedocsFile(docxPath, dedocsPath, opts = {}) {
@@ -128,8 +176,9 @@ function compilePackageToDocx(pkg, outputPath) {
 }
 
 function compileDedocsText(text, outputPath, opts = {}) {
-  const pkg = parsePackage(text, { strictMetadata: !!opts.strictMetadata });
-  return compilePackageToDocx(pkg, outputPath);
+  const parsed = parsePackage(text, { strictMetadata: !!opts.strictMetadata });
+  const transformed = applyTransforms(parsed);
+  return compilePackageToDocx(transformed, outputPath);
 }
 
 function compileDedocsFile(dedocsPath, outputPath, opts = {}) {
@@ -209,11 +258,15 @@ function compareDocxPackages(leftPath, rightPath) {
 }
 
 module.exports = {
+  applyTransforms,
   compareDocxPackages,
   compileDedocsFile,
   compileDedocsText,
   compilePackageToDocx,
   dedocsFromDocx,
+  normalizeDedocsFile,
+  normalizeDedocsText,
+  normalizePackage,
   packageFromDedocsText,
   packageFromDocx,
   readDedocsFile,

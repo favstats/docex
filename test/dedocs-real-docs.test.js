@@ -30,6 +30,7 @@ describe('dedocs real documents', () => {
 
     it(`round-trips ${label} package-exactly`, { skip: !exists && `missing ${docxPath}` }, () => {
       const dedocsText = dedocsFromDocx(docxPath, { source: path.basename(docxPath) });
+      assert.match(dedocsText, /\\guide\[name="document-paragraphs"/);
       const rebuiltPath = tmpDocxPath(label);
       compileDedocsText(dedocsText, rebuiltPath, { strictMetadata: true });
 

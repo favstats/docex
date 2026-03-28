@@ -1,0 +1,12 @@
+{
+  "plugins": [
+    {
+      "name": "docex",
+      "description": "LaTeX for .docx -- edit Word documents with code, convert to/from plain text .dex format. Zero dependencies. 648 tests.",
+      "source": {
+        "source": "github",
+        "repo": "favstats/docex"
+      }
+    }
+  ]
+}

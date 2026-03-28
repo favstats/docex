@@ -1,0 +1,20 @@
+{
+  "name": "docex",
+  "version": "0.4.0",
+  "description": "LaTeX for .docx -- edit Word documents with code, convert to/from plain text .dex format",
+  "author": "Fabio Votta",
+  "homepage": "https://github.com/favstats/docex",
+  "skills": [
+    {
+      "name": "docex",
+      "path": "skill/SKILL.md",
+      "description": "Use when editing, creating, or manipulating .docx files. Covers text replacement, tracked changes, comments, figures, tables, citations, journal formatting, submission validation, and the .dex plain-text format. Use when user says 'edit the docx', 'add a comment', 'replace text', 'tracked changes', 'format for journal', 'decompile to dex', 'build from dex', or any .docx modification."
+    }
+  ],
+  "mcpServers": {
+    "docex": {
+      "command": "node",
+      "args": ["${PLUGIN_DIR}/src/mcp-server.js"]
+    }
+  }
+}
